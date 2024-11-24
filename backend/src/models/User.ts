@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -21,11 +21,19 @@ const userSchema = new mongoose.Schema({
     required: false,
     maxLength: 160,
   },
+  followers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
   followerCount: {
     type: Number,
     required: true,
     default: 0,
   },
+  following: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
   followingCount: {
     type: Number,
     required: true,
