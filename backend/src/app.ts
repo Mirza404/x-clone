@@ -1,15 +1,15 @@
-import {Request, Response} from 'express';
+import { Request, Response } from "express";
+import { config } from "dotenv";
 const express = require("express");
 const app = express();
-const PORT = 3001;
 const cors = require("cors");
+config();
 
 app.use(cors());
+app.use(express.json());
 
 app.get("/api/home", (req: Request, res: Response) => {
   res.json({ message: "Hello from express backend server!" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server up on port: ${PORT}`);
-});
+export default app;
