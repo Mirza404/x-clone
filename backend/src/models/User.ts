@@ -1,6 +1,12 @@
 import mongoose, { Mongoose } from "mongoose";
+import Email from "next-auth/providers/email";
 
 const userSchema = new mongoose.Schema({
+  email: {
+    type: Email,
+    required: true,
+    unique: true,
+  },
   name: {
     type: String,
     required: true,

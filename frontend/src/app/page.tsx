@@ -1,27 +1,20 @@
-"use client";
 import React from "react";
-import { useEffect, useState } from "react";
+import { getServerSession } from "next-auth";
+import ClientComponent from "./components/ClientComponent";
 
-const page = () => {
-  const [message, setMessage] = useState("Loading...");
+export default async function page() {
+  const session = await getServerSession();
 
-  useEffect(() => {
-    fetch("http://localhost:3001/api/home")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setMessage(data.message);
-      })
-      .catch((err) => {
-        console.log("Error fetching data: ", err);
-      });
-  }, []);
-
-  return <div>{message}</div>;
-};
-
-export default page;
+  return (
+    <>
+      <ClientComponent>
+        getServerSession name result:{" "}
+        {session?.user?.name ? (
+          <div>{session?.user?.name}</div>
+        ) : (
+          <div>Not logged in!</div>
+        )}
+      </ClientComponent>
+    </>
+  );
+}
