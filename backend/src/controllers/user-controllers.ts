@@ -19,6 +19,7 @@ export async function createUser(req: Request, res: Response) {
     console.log("Request body:", req.body); // Log the request body
 
     await connectToDatabase();
+    console.log("this line runs before user.create");
     const newUser = await User.create({
       name,
       email,
@@ -33,11 +34,11 @@ export async function createUser(req: Request, res: Response) {
 
     res.status(201).json({ message: "User Created!", user: { name, email } });
   } catch (error) {
+    console.log("Error creating user:", error); // Log the error
     if (typeof error === "string") {
       res.status(400).json({ message: error });
     } else {
       res.status(500).json({ message: "An unexpected error occurred" });
     }
   }
-  ``;
 }
