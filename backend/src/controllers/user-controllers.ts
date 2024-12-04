@@ -1,6 +1,5 @@
 import { connectToDatabase } from "../db/connection";
 import User from "../models/User";
-// import { NextResponse } from "next/server";
 import { Response, Request } from "express";
 
 export async function createUser(req: Request, res: Response) {
@@ -18,7 +17,7 @@ export async function createUser(req: Request, res: Response) {
     } = req.body;
     console.log("Request body:", req.body); // Log the request body
 
-    await connectToDatabase();
+    // await connectToDatabase();
     console.log("this line runs before user.create");
     const newUser = await User.create({
       name,

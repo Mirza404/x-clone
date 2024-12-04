@@ -14,7 +14,7 @@ config();
 
 async function connectToDatabase() {
   const uri = process.env.MONGODB_URL;
-  console.log(" uri: ", uri);
+  // console.log(" uri: ", uri);
 
   if (!uri) {
     throw new Error("MONGODB_URL not defined!");
