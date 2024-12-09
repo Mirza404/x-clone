@@ -5,5 +5,4 @@ const appRouter = Router();
 
 appRouter.use("/user", userRoutes);
 
-
 export default appRouter;
