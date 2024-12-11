@@ -4,11 +4,6 @@ import ClientComponent from "./components/ClientComponent";
 
 export default async function page() {
   const session = await getServerSession();
-  console.log("NOVII");
-  console.log("NOVII");
-  console.log("NOVII");
-  console.log("NOVII");
-  console.log("NOVII");
 
   console.log("session", session);
   // console.log(');
