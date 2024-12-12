@@ -35,15 +35,15 @@ export const handleEmail = async (
   const { email } = req.body;
 
   if (!email) {
-     res.status(400).json({ message: "Email is required" });
+    res.status(400).json({ message: "Email is required" });
   }
 
   // Process the email (e.g., store in database, send a welcome email, etc.)
   console.log("Received email:", email);
 
   // Respond with a success message
-   res.status(200).json({ message: "Email received successfully" });
+  res.status(200).json({ message: "Email received successfully" });
 
-   console.log('id: ', await getUserIdByEmail(email));
-   
+  console.log('id: ', await getUserIdByEmail(email));
+  
 };

@@ -1,23 +1,42 @@
 import mongoose from "mongoose";
 import Post from "../models/Post";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { getUserIdByEmail } from "./user-controllers";
 import { connectToDatabase } from "../db/connection";
 
-const createPost = async (postData: string) => {
-  const token = await fetch("/api/auth/session").then((res) => res.json());
+async function createPost(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { author, content } = req.body;
 
-  const response = await fetch("http://localhost:5000/api/posts/create", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token?.accessToken}`, // Pass JWT in header
-    },
-    body: JSON.stringify(postData),
-  });
+    if (!author || !content) {
+      res.status(400).json({ message: "Author and content are required" });
+      return;
+    }
 
-  const result = await response.json();
-  return result;
-};
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: "Database not connected" });
+      return;
+    }
+
+    const date = new Date();
+    const timeString = date.toTimeString().split(" ")[0];
+    const dateString = date.toDateString();
+    const dateTime = `${dateString} ${timeString}`;
+
+    const post = new Post({ author, content, createdAt: dateTime });
+    await post.save();
+
+    res.status(201).json({ message: "Post created successfully", post });
+  } catch (e) {
+    console.error("Error creating post:", e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: e });
+    }
+  }
+}
 
 export { createPost };
