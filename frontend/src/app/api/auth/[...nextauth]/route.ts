@@ -13,12 +13,23 @@ export const authOptions: NextAuthOptions = {
   ],
   adapter: MongoDBAdapter(client),
   callbacks: {
+    async signIn({ user }) {
+      if (user.email) {
+        await fetch("https://your-express-backend.com/api/endpoint", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: user.email }),
+        });
+      }
+      return true;
+    },
     async session({ session, token }) {
       // Customize session to include user id from token
       console.log("session", session);
       console.log("token", token);
 
-      
       if (session?.user) {
         session.user.id = token.sub; // Add user ID to session
       }

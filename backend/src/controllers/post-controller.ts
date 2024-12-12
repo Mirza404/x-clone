@@ -1,34 +1,23 @@
 import mongoose from "mongoose";
-import Post from "src/models/Post";
+import Post from "../models/Post";
 import { Request, Response } from "express";
 import { getUserIdByEmail } from "./user-controllers";
-import { connectToDatabase } from "src/db/connection";
+import { connectToDatabase } from "../db/connection";
 
-async function createPost(req: Request, res: Response): Promise<void> {
-  try {
-    console.log("CREATING POST...");
-    console.log("CREATING POST...");
-    console.log("CREATING POST...");
-    console.log("CREATING POST...");
+const createPost = async (postData: string) => {
+  const token = await fetch("/api/auth/session").then((res) => res.json());
 
-    await connectToDatabase(); // Ensure you're connected to the database
-    const { email, postData } = req.body;
-    const userId = await getUserIdByEmail(email); // Get the user ID by email
+  const response = await fetch("http://localhost:5000/api/posts/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token?.accessToken}`, // Pass JWT in header
+    },
+    body: JSON.stringify(postData),
+  });
 
-    const newPost = await Post.create({
-      content: postData.content,
-      author: email,
-      createdAt: new Date(),
-    });
-
-    // Save the new post
-    const savedPost = await newPost.save();
-
-    console.log("Post created successfully:", savedPost);
-  } catch (e) {
-    console.error("Error creating post:", e);
-    throw e; // Propagate the error
-  }
-}
+  const result = await response.json();
+  return result;
+};
 
 export { createPost };

@@ -1,5 +1,5 @@
-import Email from "next-auth/providers/email";
 import mongoose from "mongoose";
+import { NextFunction, Request, Response } from "express";
 
 export async function getUserIdByEmail(
   email: string
@@ -25,3 +25,17 @@ export async function getUserIdByEmail(
     throw error;
   }
 }
+
+export const handleEmail = (req: Request, res: Response, next: NextFunction): void => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400).json({ message: "Email is required" });
+  }
+
+  // Process the email (e.g., store in database, send a welcome email, etc.)
+  console.log("Received email:", email);
+
+  // Respond with a success message
+  res.status(200).json({ message: "Email received successfully" });
+};
