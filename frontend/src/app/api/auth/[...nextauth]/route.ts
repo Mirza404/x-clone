@@ -15,7 +15,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user }) {
       if (user.email) {
-        await fetch("https://your-express-backend.com/api/endpoint", {
+        await fetch("http://localhost:3001/user/endpoint", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

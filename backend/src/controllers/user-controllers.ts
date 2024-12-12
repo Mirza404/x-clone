@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { NextFunction, Request, Response } from "express";
+import User from "../models/User";
 
 export async function getUserIdByEmail(
   email: string
@@ -26,16 +27,23 @@ export async function getUserIdByEmail(
   }
 }
 
-export const handleEmail = (req: Request, res: Response, next: NextFunction): void => {
+export const handleEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   const { email } = req.body;
 
   if (!email) {
-    res.status(400).json({ message: "Email is required" });
+     res.status(400).json({ message: "Email is required" });
   }
 
   // Process the email (e.g., store in database, send a welcome email, etc.)
   console.log("Received email:", email);
 
   // Respond with a success message
-  res.status(200).json({ message: "Email received successfully" });
+   res.status(200).json({ message: "Email received successfully" });
+
+   console.log('id: ', await getUserIdByEmail(email));
+   
 };
