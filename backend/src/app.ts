@@ -19,6 +19,6 @@ app.use(express.json());
 app.use(morgan("dev"));
 connectToMongo();
 
-app.use("/", appRouter);
+app.use("/api", appRouter);
 
 export default app;
