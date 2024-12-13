@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import Post from "../models/Post";
 import { NextFunction, Request, Response } from "express";
-import { getUserIdByEmail } from "./user-controllers";
-import { connectToDatabase } from "../db/connection";
 
 async function createPost(
   req: Request,
@@ -39,4 +37,33 @@ async function createPost(
   }
 }
 
-export { createPost };
+async function deletePost (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.body;
+
+    if (!id) {
+      res.status(400).json({ message: "Post ID is required" });
+      return;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: "Database not connected" });
+      return;
+    }
+
+    await Post.deleteOne({ _id: id });
+
+    res.status(200).json({ message: "Post deleted successfully" });
+  } catch (e) {
+    console.error("Error deleting post:", e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: e });
+    }
+  }
+}
+
+export { createPost, deletePost };

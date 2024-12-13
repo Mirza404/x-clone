@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import { NextFunction, Request, Response } from "express";
-import User from "../models/User";
 
 export async function getUserIdByEmail(
   email: string
@@ -10,7 +9,6 @@ export async function getUserIdByEmail(
 
     //check db connection
     if (!db) {
-      console.log("db variable: ", db);
       throw new Error("No database connection");
     }
     const usersCollection = db.collection("users"); // Adjust collection name as needed
