@@ -47,6 +47,11 @@ export default function NavMenu() {
             Protected Route
           </li>
         </Link>
+        <Link href="/posts">
+          <li className={pathname === "/posts" ? ACTIVE_ROUTE : INACTIVE_ROUTE}>
+            Create Post
+          </li>
+        </Link>
       </ul>
     </div>
   );

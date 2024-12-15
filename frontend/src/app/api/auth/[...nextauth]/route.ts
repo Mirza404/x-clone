@@ -27,8 +27,6 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       // Customize session to include user id from token
-      console.log("session", session);
-      console.log("token", token);
 
       if (session?.user) {
         //@ts-ignore

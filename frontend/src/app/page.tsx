@@ -6,7 +6,6 @@ export default async function page() {
   const session = await getServerSession();
 
   console.log("session", session);
-  // console.log(');
   
 
   return (

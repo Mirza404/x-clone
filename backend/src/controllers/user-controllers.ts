@@ -30,7 +30,7 @@ export const handleEmail = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { email } = req.body;
+  const { content, email } = req.body;
 
   if (!email) {
     res.status(400).json({ message: "Email is required" });
@@ -39,9 +39,17 @@ export const handleEmail = async (
   // Process the email (e.g., store in database, send a welcome email, etc.)
   console.log("Received email:", email);
 
-  // Respond with a success message
   res.status(200).json({ message: "Email received successfully" });
 
-  console.log('id: ', await getUserIdByEmail(email));
-  
+  const userId = await getUserIdByEmail(email);
+
+  console.log("sending id (from email) and content: ", userId, content);
+
+  await fetch("http://localhost:3001/api/post/new", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ content, author: userId }),
+  });
 };
