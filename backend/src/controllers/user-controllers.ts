@@ -18,7 +18,7 @@ export async function getUserIdByEmail(
       throw new Error("User not found");
     }
 
-    return user._id; // MongoDB's unique identifier
+    return user._id; // MongoDB's unique identifie
   } catch (error) {
     console.error("Error retrieving user ID:", error);
     throw error;
@@ -35,15 +35,9 @@ export const handleEmail = async (
   if (!email) {
     res.status(400).json({ message: "Email is required" });
   }
-
-  // Process the email (e.g., store in database, send a welcome email, etc.)
-  console.log("Received email:", email);
-
   res.status(200).json({ message: "Email received successfully" });
-
+  
   const userId = await getUserIdByEmail(email);
-
-  console.log("sending id (from email) and content: ", userId, content);
 
   await fetch("http://localhost:3001/api/post/new", {
     method: "POST",

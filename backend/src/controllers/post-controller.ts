@@ -2,6 +2,27 @@ import mongoose from "mongoose";
 import Post from "../models/Post";
 import { NextFunction, Request, Response } from "express";
 
+async function allPosts(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: "Database not connected" });
+      return;
+    }
+
+    const posts = await Post.find();
+    res.status(200).json({ posts });
+  } catch (e) {
+    console.error("Error getting posts:", e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: e });
+    }
+  }
+}
+
 async function createPost(
   req: Request,
   res: Response,
@@ -37,7 +58,7 @@ async function createPost(
   }
 }
 
-async function deletePost (
+async function deletePost(
   req: Request,
   res: Response,
   next: NextFunction
@@ -66,4 +87,4 @@ async function deletePost (
   }
 }
 
-export { createPost, deletePost };
+export { allPosts, createPost, deletePost };

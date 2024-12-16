@@ -1,4 +1,3 @@
-import { Request, Response } from "express";
 import { config } from "dotenv";
 import appRouter from "./routes";
 import { connectToDatabase } from "./db/connection";
