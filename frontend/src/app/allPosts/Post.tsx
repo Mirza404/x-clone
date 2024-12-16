@@ -6,7 +6,7 @@ interface PostProps {
   createdAt: Date;
 }
 
-const Post: React.FC<PostProps> = async ({ content, author, createdAt }) => {
+const Post: React.FC<PostProps> = ({ content, author, createdAt }) => {
   const formattedDate = new Date(createdAt).toLocaleString();
 
   return (

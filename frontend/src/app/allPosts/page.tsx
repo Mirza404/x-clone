@@ -1,44 +1,35 @@
 "use client";
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Post from "./Post";
+import fetchPosts from "./FetchInfo";
 
 interface Post {
   id: number;
-  title: string;
+  author: string;
   content: string;
+  createdAt: Date;
 }
 
 interface PostListProps {
   allPosts: Post[];
 }
 
-const PostList: React.FC<PostListProps> = ({ allPosts }) => {
+const PostList: React.FC<PostListProps> = () => {
   const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      const response = await fetch("/api/posts", {
-        method: "GET",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPosts(data.posts);
-      } else {
-        console.error("Failed to fetch posts");
-      }
-    };
-
-    fetchPosts();
+    fetchPosts().then((fetchPosts) => setPosts(fetchPosts));
   }, []);
 
   return (
     <div>
       {posts.map((post) => (
         <div key={post.id}>
-          <h2>{post.title}</h2>
-          <p>{post.content}</p>
+          <Post
+            content={post.content}
+            author={post.author}
+            createdAt={post.createdAt}
+          />
         </div>
       ))}
     </div>

@@ -8,6 +8,8 @@ async function allPosts(
   next: NextFunction
 ): Promise<void> {
   try {
+    console.log("ALLPOSTS CALLED");
+
     if (mongoose.connection.readyState !== 1) {
       res.status(500).json({ message: "Database not connected" });
       return;
