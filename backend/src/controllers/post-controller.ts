@@ -8,15 +8,20 @@ async function allPosts(
   next: NextFunction
 ): Promise<void> {
   try {
-    console.log("ALLPOSTS CALLED");
-
     if (mongoose.connection.readyState !== 1) {
       res.status(500).json({ message: "Database not connected" });
       return;
     }
 
     const posts = await Post.find();
-    res.status(200).json({ posts });
+    const postsWithId = posts.map((post) => ({
+      id: post._id,
+      author: post.author,
+      content: post.content,
+      createdAt: post.createdAt,
+    }));
+
+    res.status(200).json({ posts: postsWithId });
   } catch (e) {
     console.error("Error getting posts:", e);
     if (!res.headersSent) {

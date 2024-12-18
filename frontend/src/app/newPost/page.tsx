@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
+import toast from "react-hot-toast";
 
 const Page = () => {
   const [content, setContent] = useState("");
@@ -29,7 +30,7 @@ const Page = () => {
   }, [router]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    toast.loading('Loading...');
   }
 
   return (
