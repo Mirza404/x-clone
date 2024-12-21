@@ -1,8 +1,6 @@
 import { Router } from "express";
-import { handleEmail } from "../controllers/user-controllers";
+// import { handleEmail } from "../controllers/user-controllers";
 
 const userRoutes = Router();
-
-userRoutes.post("/endpoint", handleEmail);
 
 export default userRoutes;
