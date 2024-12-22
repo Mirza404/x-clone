@@ -50,15 +50,18 @@ export const PostList: React.FC<PostListProps> = () => {
   return (
     <div>
       {postsQuery.data?.map((post: Post) => (
-        <div key={post.id}>
+        <div key={post.id} className="p-4 border rounded-lg shadow-md bg-white">
           <PostComponent
             id={post.id}
             content={post.content}
             author={post.author}
             createdAt={post.createdAt}
           />
-          <button onClick={() => deletePostMutation.mutate(post.id)}>
-            Delete ew
+          <button
+            onClick={() => deletePostMutation.mutate(post.id)}
+            className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Delete
           </button>
         </div>
       ))}
