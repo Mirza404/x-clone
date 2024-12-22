@@ -2,13 +2,17 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
+// import useAddPost from "../hooks/useAddPost";
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
 
 const Page = () => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const router = useRouter();
+  const newPostProps = { email, content };
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -29,9 +33,35 @@ const Page = () => {
     fetchSession();
   }, [router]);
 
-  if (loading) {
-    toast.loading('Loading...');
-  }
+  const newPostMutation = useMutation({
+    mutationFn: () => {
+      setLoading(true);
+      return axios.post(
+        "http://localhost:3001/api/post/new",
+        {
+          content,
+          email,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    },
+    onSuccess: () => {
+      setLoading(false);
+      toast.success("Post created successfully!");
+      setContent("");
+      router.push("/allPosts");
+    },
+    onError: (error: any) => {
+      setLoading(false);
+      toast.error(`Error creating post: ${error.message}`);
+    },
+  });
+
+  
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-none">
@@ -47,18 +77,12 @@ const Page = () => {
         />
         <button
           className="mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300"
-          onClick={() =>
-            fetch("http://localhost:3001/api/user/endpoint", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ content, email }),
-            })
-          }
+          onClick={() => newPostMutation.mutate()}
+          disabled={loading}
         >
-          Submit
+          {loading ? "Submitting..." : "Submit"}
         </button>
+        <Toaster />
       </div>
     </div>
   );

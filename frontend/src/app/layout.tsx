@@ -4,6 +4,8 @@ import "./globals.css";
 import NavMenu from "./components/NavMenu";
 import { getServerSession } from "next-auth";
 import SessionProvider from "./components/SessionProvider";
+import QueryProvider from "@/query-client-provider";
+import { QueryClient } from "@tanstack/react-query";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -27,17 +29,20 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getServerSession();
+  const queryClient = new QueryClient();
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>
-          <main className="mx-auto max-w-5xl text-2xl flex gap-2 text-white">
-            <NavMenu />
-            {children}
-          </main>
-        </SessionProvider>
+        <QueryProvider>
+          <SessionProvider>
+            <main className="mx-auto max-w-5xl text-2xl flex gap-2 text-white">
+              <NavMenu />
+              {children}
+            </main>
+          </SessionProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -1,35 +1,65 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import PostComponent from "../components/Post";
 import fetchPosts from "./fetchInfo";
 import type { Post } from "./fetchInfo";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import axios from "axios";
 
 interface PostListProps {
   allPosts: Post[];
 }
 
 export const PostList: React.FC<PostListProps> = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const fetchedPosts = await fetchPosts();
-      setPosts(fetchedPosts);
-    };
+  const postsQuery = useQuery({
+    queryKey: ["posts"],
+    queryFn: () => fetchPosts(),
+  });
 
-    fetchData();
-  }, []);
+  const deletePostMutation = useMutation({
+    mutationFn: async (id: string) => {
+      setLoading(true);
+      try {
+        return await axios.delete(`http://localhost:3001/api/post/delete`, {
+          data: { id }, // Pass the id in the data
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (error: any) {
+        throw new Error(error.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Post deleted successfully");
+      postsQuery.refetch(); // Refetch posts after deletion
+    },
+    onError: (error: any) => {
+      toast.error(`Error deleting post: ${error.message}`);
+    },
+  });
+
+  if (postsQuery.isLoading) return <div>Loading..</div>;
+  if (postsQuery.isError) return <pre>Error</pre>;
+
   return (
     <div>
-      {posts.map((post) => (
-        <div>
+      {postsQuery.data?.map((post: Post) => (
+        <div key={post.id}>
           <PostComponent
-            key={post.id}
-            id={post.id} // Pass the id
+            id={post.id}
             content={post.content}
             author={post.author}
             createdAt={post.createdAt}
           />
+          <button onClick={() => deletePostMutation.mutate(post.id)}>
+            Delete ew
+          </button>
         </div>
       ))}
     </div>

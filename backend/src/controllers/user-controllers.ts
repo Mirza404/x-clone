@@ -1,6 +1,4 @@
 import mongoose from "mongoose";
-import { NextFunction, Request, Response } from "express";
-
 export async function getUserIdByEmail(
   email: string
 ): Promise<mongoose.Types.ObjectId> {
@@ -24,26 +22,3 @@ export async function getUserIdByEmail(
     throw error;
   }
 }
-
-export const handleEmail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  const { content, email } = req.body;
-
-  if (!email) {
-    res.status(400).json({ message: "Email is required" });
-  }
-  res.status(200).json({ message: "Email received successfully" });
-  
-  const userId = await getUserIdByEmail(email);
-
-  await fetch("http://localhost:3001/api/post/new", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ content, author: userId }),
-  });
-};

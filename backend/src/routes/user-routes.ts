@@ -1,5 +1,5 @@
 import { Router } from "express";
-// import { handleEmail } from "../controllers/user-controllers";
+import { getUserIdByEmail } from "src/controllers/user-controllers";
 
 const userRoutes = Router();
 

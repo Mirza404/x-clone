@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Post from "../models/Post";
 import { NextFunction, Request, Response } from "express";
+import { getUserIdByEmail } from "./user-controllers";
 
 async function allPosts(
   req: Request,
@@ -36,7 +37,14 @@ async function createPost(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { author, content } = req.body;
+    const { content, email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ message: "Email is required" });
+      return;
+    }
+
+    const author = await getUserIdByEmail(email);
 
     if (!author || !content) {
       res.status(400).json({ message: "Author and content are required" });
