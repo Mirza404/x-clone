@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import PostComponent from "../components/Post";
 import fetchPosts from "./fetchInfo";
-import type { Post } from "./fetchInfo";
+import type { Post } from "../components/Post";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -24,7 +24,7 @@ export const PostList: React.FC<PostListProps> = () => {
       setLoading(true);
       try {
         return await axios.delete(`http://localhost:3001/api/post/delete`, {
-          data: { id }, // Pass the id in the data
+          data: { id },
           headers: {
             "Content-Type": "application/json",
           },
@@ -37,7 +37,7 @@ export const PostList: React.FC<PostListProps> = () => {
     },
     onSuccess: () => {
       toast.success("Post deleted successfully");
-      postsQuery.refetch(); // Refetch posts after deletion
+      postsQuery.refetch();
     },
     onError: (error: any) => {
       toast.error(`Error deleting post: ${error.message}`);

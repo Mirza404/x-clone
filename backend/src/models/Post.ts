@@ -1,10 +1,5 @@
 import mongoose, { Document } from "mongoose";
 
-interface IPost extends Document {
-  content: string;
-  author: mongoose.Types.ObjectId;
-  createdAt: Date;
-}
 
 const PostSchema = new mongoose.Schema({
   content: {

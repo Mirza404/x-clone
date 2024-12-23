@@ -12,7 +12,6 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const router = useRouter();
-  const newPostProps = { email, content };
 
   useEffect(() => {
     const fetchSession = async () => {
