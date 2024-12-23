@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Post from "../models/Post";
 import { NextFunction, Request, Response } from "express";
-import { getUserIdByEmail } from "./user-controllers";
+import { getUserIdByEmail, getUserNameByEmail } from "./user-controllers";
 
 async function allPosts(
   req: Request,
@@ -17,6 +17,7 @@ async function allPosts(
     const posts = await Post.find();
     const postsWithId = posts.map((post) => ({
       id: post._id,
+      name: post.name,
       author: post.author,
       content: post.content,
       createdAt: post.createdAt,
@@ -45,6 +46,7 @@ async function createPost(
     }
 
     const author = await getUserIdByEmail(email);
+    const name = await getUserNameByEmail(email);
 
     if (!author || !content) {
       res.status(400).json({ message: "Author and content are required" });
@@ -61,7 +63,7 @@ async function createPost(
     const dateString = date.toDateString();
     const dateTime = `${dateString} ${timeString}`;
 
-    const post = new Post({ author, content, createdAt: dateTime });
+    const post = new Post({ author, name, content, createdAt: dateTime });
     await post.save();
 
     res.status(201).json({ message: "Post created successfully", post });

@@ -11,6 +11,7 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const router = useRouter();
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -35,7 +36,7 @@ const Page = () => {
     mutationFn: () => {
       setLoading(true);
       return axios.post(
-        "http://localhost:3001/api/post/new",
+        `${serverUrl}/api/post/new`,
         {
           content,
           email,

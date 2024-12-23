@@ -55,6 +55,7 @@ export const PostList: React.FC<PostListProps> = () => {
           <PostComponent
             id={post.id}
             content={post.content}
+            name={post.name}
             author={post.author}
             createdAt={post.createdAt}
           />

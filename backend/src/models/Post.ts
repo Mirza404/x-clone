@@ -1,6 +1,5 @@
 import mongoose, { Document } from "mongoose";
 
-
 const PostSchema = new mongoose.Schema({
   content: {
     type: String,
@@ -12,6 +11,12 @@ const PostSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
+  },
+  name: {
+    type: String,
+    required: true,
+    minLength: 1,
+    maxLength: 20,
   },
   createdAt: {
     type: Date,
