@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
 import toast, { Toaster } from "react-hot-toast";
-// import useAddPost from "../hooks/useAddPost";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 

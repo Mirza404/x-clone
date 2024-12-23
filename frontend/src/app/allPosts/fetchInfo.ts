@@ -1,5 +1,6 @@
 "use client";
 import axios from "axios";
+
 export interface Post {
   id: string;
   author: string;
@@ -8,7 +9,8 @@ export interface Post {
 }
 
 const fetchPosts = async () => {
-  const response = await axios.get("http://localhost:3001/api/post/allposts");
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const response = await axios.get(`${serverUrl}/api/post/allposts`);
   return response.data.posts;
 };
 

@@ -28,8 +28,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getServerSession();
-  const queryClient = new QueryClient();
   return (
     <html lang="en">
       <body

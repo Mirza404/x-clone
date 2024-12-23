@@ -13,18 +13,6 @@ export const authOptions: NextAuthOptions = {
   ],
   adapter: MongoDBAdapter(client),
   callbacks: {
-    async signIn({ user }) {
-      if (user.email) {
-        await fetch("http://localhost:3001/user/endpoint", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email: user.email }),
-        });
-      }
-      return true;
-    },
     async session({ session, token }) {
       // Customize session to include user id from token
 

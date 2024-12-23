@@ -8,7 +8,7 @@ import {
 const postRoutes = Router();
 
 postRoutes.get("/allposts", allPosts);
-postRoutes.post("/new", createPost); // Define the route for creating a post
+postRoutes.post("/new", createPost); 
 postRoutes.delete("/delete", deletePost);
 
 export default postRoutes;

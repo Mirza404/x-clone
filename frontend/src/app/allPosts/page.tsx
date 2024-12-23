@@ -13,6 +13,7 @@ interface PostListProps {
 
 export const PostList: React.FC<PostListProps> = () => {
   const [loading, setLoading] = useState(true);
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
   const postsQuery = useQuery({
     queryKey: ["posts"],
@@ -23,7 +24,7 @@ export const PostList: React.FC<PostListProps> = () => {
     mutationFn: async (id: string) => {
       setLoading(true);
       try {
-        return await axios.delete(`http://localhost:3001/api/post/delete`, {
+        return await axios.delete(`${serverUrl}/api/post/delete`, {
           data: { id },
           headers: {
             "Content-Type": "application/json",
