@@ -30,38 +30,45 @@ export default function NavMenu() {
   const pathname = usePathname();
   return (
     <div>
-      <AuthButton />
-      <hr className="my-4" />
-      <ul>
-        <Link href="/">
-          <li className={pathname === "/" ? ACTIVE_ROUTE : INACTIVE_ROUTE}>
-            Home
-          </li>
-        </Link>
-        <Link href="/protected">
-          <li
-            className={
-              pathname === "/protected" ? ACTIVE_ROUTE : INACTIVE_ROUTE
-            }
-          >
-            Protected Route
-          </li>
-        </Link>
-        <Link href="/newPost">
-          <li
-            className={pathname === "/newPost" ? ACTIVE_ROUTE : INACTIVE_ROUTE}
-          >
-            Create Post
-          </li>
-        </Link>
-        <Link href="/allPosts">
-          <li
-            className={pathname === "/allPosts" ? ACTIVE_ROUTE : INACTIVE_ROUTE}
-          >
-            All posts
-          </li>
-        </Link>
-      </ul>
+      <nav className="mt-5 px-2">
+        <AuthButton />
+        <hr className="my-4" />
+        <ul>
+          <Link href="/" >
+            <li className={pathname === "/" ? ACTIVE_ROUTE : INACTIVE_ROUTE}>
+              Home
+            </li>
+          </Link>
+          
+          <Link href="/protected">
+            <li
+              className={
+                pathname === "/protected" ? ACTIVE_ROUTE : INACTIVE_ROUTE
+              }
+            >
+              Protected Route
+            </li>
+          </Link>
+          <Link href="/newPost">
+            <li
+              className={
+                pathname === "/newPost" ? ACTIVE_ROUTE : INACTIVE_ROUTE
+              }
+            >
+              Create Post
+            </li>
+          </Link>
+          <Link href="/posts">
+            <li
+              className={
+                pathname === "/posts" ? ACTIVE_ROUTE : INACTIVE_ROUTE
+              }
+            >
+              All posts
+            </li>
+          </Link>
+        </ul>
+      </nav>
     </div>
   );
 }

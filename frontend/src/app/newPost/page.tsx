@@ -52,7 +52,7 @@ const Page = () => {
       setLoading(false);
       toast.success("Post created successfully!");
       setContent("");
-      router.push("/allPosts");
+      router.push("/posts");
     },
     onError: (error: any) => {
       setLoading(false);
@@ -60,9 +60,7 @@ const Page = () => {
     },
   });
 
-  
-
-  return (
+  return (  
     <div className="flex items-center justify-center min-h-screen bg-none">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div className="flex items-center justify-center text-2xl font-bold text-black">

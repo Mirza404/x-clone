@@ -1,11 +1,14 @@
 "use client";
 import React, { useState } from "react";
 import PostComponent from "../components/Post";
-import fetchPosts from "./fetchInfo";
+import { fetchPosts, getPost } from "./fetchInfo";
 import type { Post } from "../components/Post";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import axios from "axios";
+import Link from "next/link";
+import PostPage from "./[id]/page";
+import { PostListInfinite } from "../components/PostListInfinite";
 
 interface PostListProps {
   allPosts: Post[];
@@ -52,13 +55,15 @@ export const PostList: React.FC<PostListProps> = () => {
     <div>
       {postsQuery.data?.map((post: Post) => (
         <div key={post.id} className="p-4 border rounded-lg shadow-md bg-white">
-          <PostComponent
-            id={post.id}
-            content={post.content}
-            name={post.name}
-            author={post.author}
-            createdAt={post.createdAt}
-          />
+          <Link href={`/posts/${post.id}`}>
+            <PostComponent
+              id={post.id}
+              content={post.content}
+              name={post.name}
+              author={post.author}
+              createdAt={post.createdAt}
+            />
+          </Link>
           <button
             onClick={() => deletePostMutation.mutate(post.id)}
             className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
@@ -67,6 +72,7 @@ export const PostList: React.FC<PostListProps> = () => {
           </button>
         </div>
       ))}
+      {/* <PostListInfinite /> */}
     </div>
   );
 };

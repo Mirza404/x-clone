@@ -11,7 +11,7 @@ export interface Post {
 const Post: React.FC<Post> = ({ id, content, name, author, createdAt }) => {
   const formattedDate = new Date(createdAt).toLocaleString();
   return (
-    <div className="p-4 mb-4 bg-white ">
+    <div>
       <div className="flex justify-between mb-2">
         <span className="font-bold text-blue-500">{name}</span>
         <span className="text-gray-500">{formattedDate}</span>

@@ -32,6 +32,41 @@ async function allPosts(
   }
 }
 
+async function getPost(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res.status(400).json({ message: "Post ID is required" });
+      return;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: "Database not connected" });
+      return;
+    }
+
+    const post = await Post.findById(id);
+
+    if (!post) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    res.status(200).json({ post });
+  } catch (e) {
+    console.error("Error getting post:", e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: e });
+    }
+  }
+}
+
+
 async function createPost(
   req: Request,
   res: Response,
@@ -104,4 +139,4 @@ async function deletePost(
   }
 }
 
-export { allPosts, createPost, deletePost };
+export { allPosts, getPost, createPost, deletePost };
