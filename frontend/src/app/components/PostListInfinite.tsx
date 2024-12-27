@@ -1,12 +1,11 @@
 import React from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import type { Post } from "../components/Post";
 
 export function PostListInfinite() {
   const fetchPosts = async ({ pageParam = 0 }) => {
     const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-    const response = await fetch(
-      `${serverUrl}/api/post/?page=${pageParam}`
-    );
+    const response = await fetch(`${serverUrl}/api/post/?page=${pageParam}`);
     return response.json();
   };
 
@@ -33,7 +32,7 @@ export function PostListInfinite() {
     <>
       {data.pages.map((group, i) => (
         <React.Fragment key={i}>
-          {group.data.map((post: any) => (
+          {group.data.map((post: Post) => (
             <p key={post.id}>{post.content}</p>
           ))}
         </React.Fragment>
