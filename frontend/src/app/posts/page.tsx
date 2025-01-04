@@ -7,6 +7,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // Correct import for useRouter in Next.js 13+
 import PostPage from "./[id]/page";
 import { PostListInfinite } from "../components/PostListInfinite";
 
@@ -16,7 +17,9 @@ interface PostListProps {
 
 export const PostList: React.FC<PostListProps> = () => {
   const [loading, setLoading] = useState(true);
+  const [newContent, setNewContent] = useState("");
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const router = useRouter(); // Correct useRouter hook
 
   const postsQuery = useQuery({
     queryKey: ["posts"],
@@ -48,6 +51,8 @@ export const PostList: React.FC<PostListProps> = () => {
     },
   });
 
+  
+
   if (postsQuery.isLoading) return <div>Loading..</div>;
   if (postsQuery.isError) return <pre>Error</pre>;
 
@@ -69,6 +74,13 @@ export const PostList: React.FC<PostListProps> = () => {
             className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
           >
             Delete
+          </button>
+          <button
+            onClick={() => router.push(`/posts/${post.id}/editPost`)}
+            
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Edit
           </button>
         </div>
       ))}

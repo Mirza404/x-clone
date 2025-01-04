@@ -25,10 +25,6 @@ export default function Page({ params }: { params: { id: string } }) {
     }
   }, [router]);
 
-  useEffect(() => {
-    console.log("postsQuery.data: ", postsQuery.data);
-  }, [postsQuery.data]);
-
   const deletePostMutation = useMutation({
     mutationFn: async (id: string) => {
       setLoading(true);

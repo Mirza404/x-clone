@@ -66,7 +66,6 @@ async function getPost(
   }
 }
 
-
 async function createPost(
   req: Request,
   res: Response,
@@ -139,4 +138,33 @@ async function deletePost(
   }
 }
 
-export { allPosts, getPost, createPost, deletePost };
+async function editPost(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id, content } = req.body;
+
+    if (!id || !content) {
+      res.status(400).json({ message: "Post ID and content are required" });
+      return;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: "Database not connected" });
+      return;
+    }
+
+    await Post.updateOne({ _id: id }, { content });
+
+    res.status(200).json({ message: "Post updated successfully" });
+  } catch (e) {
+    console.error("Error updating post:", e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: e });
+    }
+  }
+}
+
+export { allPosts, getPost, createPost, deletePost, editPost };
