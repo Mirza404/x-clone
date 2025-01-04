@@ -51,15 +51,16 @@ export const PostList: React.FC<PostListProps> = () => {
     },
   });
 
-  
-
   if (postsQuery.isLoading) return <div>Loading..</div>;
   if (postsQuery.isError) return <pre>Error</pre>;
 
   return (
     <div>
       {postsQuery.data?.map((post: Post) => (
-        <div key={post.id} className="p-4 border rounded-lg shadow-md bg-white">
+        <div
+          key={post.id}
+          className="p-4 border border-gray-500 rounded-none shadow-md bg-black m-0"
+        >
           <Link href={`/posts/${post.id}`}>
             <PostComponent
               id={post.id}
@@ -77,14 +78,12 @@ export const PostList: React.FC<PostListProps> = () => {
           </button>
           <button
             onClick={() => router.push(`/posts/${post.id}/editPost`)}
-            
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Edit
           </button>
         </div>
       ))}
-      {/* <PostListInfinite /> */}
     </div>
   );
 };

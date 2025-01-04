@@ -1,5 +1,6 @@
 import React from "react";
 import { Toaster } from "react-hot-toast";
+
 export interface Post {
   id: string;
   content: string;
@@ -9,14 +10,19 @@ export interface Post {
 }
 
 const Post: React.FC<Post> = ({ id, content, name, author, createdAt }) => {
-  const formattedDate = new Date(createdAt).toLocaleString();
+  const formattedDate = new Date(createdAt).toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+  });
+
   return (
-    <div>
-      <div className="flex justify-between mb-2">
-        <span className="font-bold text-blue-500">{name}</span>
-        <span className="text-gray-500">{formattedDate}</span>
+    <div className="bg-black p-4">
+      <div className="flex items-center mb-2 text-sm text-gray-400">
+        <span className="font-bold">{name}</span>
+        <span className="mx-1">·</span>
+        <span>{formattedDate}</span>
       </div>
-      <div className="text-gray-900">{content}</div>
+      <div className="text-white">{content}</div>
       <Toaster />
     </div>
   );

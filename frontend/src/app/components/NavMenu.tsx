@@ -30,16 +30,17 @@ export default function NavMenu() {
   const pathname = usePathname();
   return (
     <div>
-      <nav className="mt-5 px-2">
+      <nav className="m-5 px-2">
         <AuthButton />
         <hr className="my-4" />
         <ul>
-          <Link href="/" >
-            <li className={pathname === "/" ? ACTIVE_ROUTE : INACTIVE_ROUTE}>
+          <Link href="/posts">
+            <li
+              className={pathname === "/posts" ? ACTIVE_ROUTE : INACTIVE_ROUTE}
+            >
               Home
             </li>
           </Link>
-          
           <Link href="/protected">
             <li
               className={
@@ -56,15 +57,6 @@ export default function NavMenu() {
               }
             >
               Create Post
-            </li>
-          </Link>
-          <Link href="/posts">
-            <li
-              className={
-                pathname === "/posts" ? ACTIVE_ROUTE : INACTIVE_ROUTE
-              }
-            >
-              All posts
             </li>
           </Link>
         </ul>
