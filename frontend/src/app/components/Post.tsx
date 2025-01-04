@@ -1,5 +1,7 @@
+"use client";
 import React from "react";
 import { Toaster } from "react-hot-toast";
+import { useState } from "react";
 
 export interface Post {
   id: string;
@@ -10,6 +12,10 @@ export interface Post {
 }
 
 const Post: React.FC<Post> = ({ id, content, name, author, createdAt }) => {
+  const [showMore, setShowMore] = useState(false);
+
+  const toggleShowMore = () => setShowMore(!showMore);
+
   const formattedDate = new Date(createdAt).toLocaleDateString(undefined, {
     month: "long",
     day: "numeric",
@@ -22,7 +28,14 @@ const Post: React.FC<Post> = ({ id, content, name, author, createdAt }) => {
         <span className="mx-1">·</span>
         <span>{formattedDate}</span>
       </div>
-      <div className="text-white">{content}</div>
+      <div className="text-white">
+        {showMore ? content : `${content.substring(0, 300)}...`}
+        {content.length > 300 && (
+          <button onClick={toggleShowMore} className="text-blue-500">
+            {showMore ? "Show less" : "Read more"}
+          </button>
+        )}
+      </div>
       <Toaster />
     </div>
   );

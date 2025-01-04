@@ -7,9 +7,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import axios from "axios";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // Correct import for useRouter in Next.js 13+
-import PostPage from "./[id]/page";
-import { PostListInfinite } from "../components/PostListInfinite";
+import { useRouter } from "next/navigation";
+import Page from "../newPost/page";
 
 interface PostListProps {
   allPosts: Post[];
@@ -18,6 +17,7 @@ interface PostListProps {
 export const PostList: React.FC<PostListProps> = () => {
   const [loading, setLoading] = useState(true);
   const [newContent, setNewContent] = useState("");
+  const [modal, setModal] = useState(false);
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const router = useRouter(); // Correct useRouter hook
 
@@ -25,6 +25,10 @@ export const PostList: React.FC<PostListProps> = () => {
     queryKey: ["posts"],
     queryFn: () => fetchPosts(),
   });
+
+  const toggleModal = () => {
+    setModal(!modal);
+  };
 
   const deletePostMutation = useMutation({
     mutationFn: async (id: string) => {

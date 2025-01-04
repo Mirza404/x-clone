@@ -60,15 +60,12 @@ const Page = () => {
     },
   });
 
-  return (  
-    <div className="flex items-center justify-center min-h-screen bg-none">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <div className="flex items-center justify-center text-2xl font-bold text-black">
-          Email: {email}
-        </div>
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-black bg-opacity-50 backdrop-blur-sm">
+      <div className="bg-black border border-gray-500 p-6 rounded-lg shadow-lg w-full max-w-md">
         <textarea
-          className="w-full p-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter your content here..."
+          className="w-full p-3 border border-gray-300 text-white bg-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="What is happening?!"
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
@@ -77,9 +74,8 @@ const Page = () => {
           onClick={() => newPostMutation.mutate()}
           disabled={loading}
         >
-          {loading ? "Submitting..." : "Submit"}
+          Post
         </button>
-        <Toaster />
       </div>
     </div>
   );
