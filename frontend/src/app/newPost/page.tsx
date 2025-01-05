@@ -2,17 +2,19 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
-import toast, { Toaster } from "react-hot-toast";
-import { QueryClient, useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { useMutation } from "@tanstack/react-query";
 import { fetchPosts } from "../posts/fetchInfo";
-import { useQuery } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import classNames from "classnames";
 
 const NewPostPage = () => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
+  const [toastShown, setToastShown] = useState(false);
+  const queryClient = useQueryClient();
   const router = useRouter();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
@@ -57,10 +59,10 @@ const NewPostPage = () => {
       );
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
       setLoading(false);
-      toast.success("Post created successfully!");
+      toast.success("Post created successfully");
       setContent("");
-      postsQuery.refetch();
     },
     onError: (error: any) => {
       setLoading(false);
@@ -78,9 +80,17 @@ const NewPostPage = () => {
           onChange={(e) => setContent(e.target.value)}
         />
         <button
-          className="mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300"
+          className={classNames(
+            "mt-4 w-full py-2 px-4 rounded-lg transition duration-300",
+            {
+              "bg-white text-black hover:bg-gray-300":
+                !loading && content.trim() !== "",
+              "bg-white text-black opacity-70":
+                loading || content.trim() === "",
+            }
+          )}
           onClick={() => newPostMutation.mutate()}
-          disabled={loading}
+          disabled={loading || content.trim() === ""}
         >
           Post
         </button>

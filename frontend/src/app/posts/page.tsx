@@ -1,7 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import PostComponent from "../components/Post";
-import { fetchPosts, getPost } from "./fetchInfo";
+import { fetchPosts } from "./fetchInfo";
+import { useSession } from "next-auth/react";
 import type { Post } from "../components/Post";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -19,6 +20,7 @@ export const PostList: React.FC<PostListProps> = () => {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const { data: session } = useSession();
 
   const toggleDropdown = (id: string) => {
     setDropdownOpen(dropdownOpen === id ? null : id);
