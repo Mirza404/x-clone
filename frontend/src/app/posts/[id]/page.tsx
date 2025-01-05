@@ -56,7 +56,7 @@ export default function Page({ params }: { params: { id: string } }) {
 
   return (
     <div>
-      <div className="p-4 border rounded-lg shadow-md bg-white">
+      <div className="p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content">
         {postsQuery.data && (
           <>
             <PostComponent
@@ -77,6 +77,14 @@ export default function Page({ params }: { params: { id: string } }) {
               className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
             >
               Delete
+            </button>
+            <button
+              onClick={() =>
+                router.push(`/posts/${postsQuery.data._id}/editPost`)
+              }
+              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Edit
             </button>
           </>
         )}
