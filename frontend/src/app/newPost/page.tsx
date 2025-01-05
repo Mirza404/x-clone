@@ -3,10 +3,13 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
 import toast, { Toaster } from "react-hot-toast";
-import { useMutation } from "@tanstack/react-query";
+import { QueryClient, useMutation } from "@tanstack/react-query";
+import { fetchPosts } from "../posts/fetchInfo";
+import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
-const Page = () => {
+const NewPostPage = () => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
@@ -32,6 +35,11 @@ const Page = () => {
     fetchSession();
   }, [router]);
 
+  const postsQuery = useQuery({
+    queryKey: ["posts"],
+    queryFn: () => fetchPosts(),
+  });
+
   const newPostMutation = useMutation({
     mutationFn: () => {
       setLoading(true);
@@ -52,7 +60,7 @@ const Page = () => {
       setLoading(false);
       toast.success("Post created successfully!");
       setContent("");
-      router.push("/posts");
+      postsQuery.refetch();
     },
     onError: (error: any) => {
       setLoading(false);
@@ -61,8 +69,8 @@ const Page = () => {
   });
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-black border border-gray-500 p-6 rounded-lg shadow-lg w-full max-w-md">
+    <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm m-0 ">
+      <div className="bg-black border border-gray-500 p-6  shadow-lg w-full max-w-md min-w-[600px] min-h-[200px]">
         <textarea
           className="w-full p-3 border border-gray-300 text-white bg-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="What is happening?!"
@@ -81,4 +89,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default NewPostPage;

@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Page from "../newPost/page";
+import NewPostPage from "../newPost/page";
 
 interface PostListProps {
   allPosts: Post[];
@@ -16,8 +16,6 @@ interface PostListProps {
 
 export const PostList: React.FC<PostListProps> = () => {
   const [loading, setLoading] = useState(true);
-  const [newContent, setNewContent] = useState("");
-  const [modal, setModal] = useState(false);
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
@@ -25,8 +23,6 @@ export const PostList: React.FC<PostListProps> = () => {
   const toggleDropdown = (id: string) => {
     setDropdownOpen(dropdownOpen === id ? null : id);
   };
-
-  const formattedDate = null;
 
   const postsQuery = useQuery({
     queryKey: ["posts"],
@@ -63,6 +59,7 @@ export const PostList: React.FC<PostListProps> = () => {
 
   return (
     <div>
+      <NewPostPage />
       {postsQuery.data?.map((post: Post) => (
         <div
           key={post.id}
