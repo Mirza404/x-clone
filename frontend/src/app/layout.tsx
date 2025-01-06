@@ -5,7 +5,8 @@ import NavMenu from "./components/NavMenu";
 import { getServerSession } from "next-auth";
 import SessionProvider from "./components/SessionProvider";
 import QueryProvider from "@/query-client-provider";
-import { QueryClient } from "@tanstack/react-query";
+import PostList from "./posts/page";
+import Post from "./components/Post";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

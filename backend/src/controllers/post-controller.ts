@@ -22,6 +22,7 @@ async function allPosts(
       content: post.content,
       createdAt: post.createdAt,
     }));
+    console.log("Fetched posts:", postsWithId); // Add this line to log the posts
 
     res.status(200).json({ posts: postsWithId });
   } catch (e) {

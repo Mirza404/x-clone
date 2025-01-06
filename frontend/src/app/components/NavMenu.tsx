@@ -17,6 +17,7 @@ function AuthButton() {
           <Link href={"/"}>
             <img
               className="w-10 h-10 rounded-full"
+
               src={session.user?.image ?? "https://via.placeholder.com/150"}
               alt=""
             />
