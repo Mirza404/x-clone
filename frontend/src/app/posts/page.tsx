@@ -90,15 +90,13 @@ export const Page: React.FC<PostListProps> = () => {
               })}
             </span>
           </div>
-          <Link href={`/posts/${post.id}`}>
-            <PostComponent
-              id={post.id}
-              content={post.content}
-              name={post.name}
-              author={post.author}
-              createdAt={post.createdAt}
-            />
-          </Link>
+          <PostComponent
+            id={post.id}
+            content={post.content}
+            name={post.name}
+            author={post.author}
+            createdAt={post.createdAt}
+          />
           <div className="absolute top-2 right-2 mr-2">
             <button
               className="p-1 rounded-full hover:bg-gray-800 transition delay-100"
@@ -120,10 +118,11 @@ export const Page: React.FC<PostListProps> = () => {
             {dropdownOpen === post.id &&
               session?.user?.id === post.author &&
               session && (
-                <div className="absolute right-0 mt-2 w-48 bg-black border rounded shadow-lg">
+                <div className="absolute right-0 mt-2 w-48 bg-black border rounded shadow-[0_0_px_rgba(128,128,128,1)]">
                   <button
                     onClick={() => deletePostMutation.mutate(post.id)}
                     className="flex items-center w-full px-4 py-2 text-left text-white hover:bg-gray-800"
+                    disabled={!(session?.user?.id === post.author && session)}
                   >
                     <span className="mr-2">
                       <svg
