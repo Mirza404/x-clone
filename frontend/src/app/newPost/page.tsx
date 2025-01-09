@@ -8,6 +8,7 @@ import { fetchPosts } from "../posts/fetchInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import classNames from "classnames";
+import { Toaster } from "react-hot-toast";
 
 const NewPostPage = () => {
   const [content, setContent] = useState("");
@@ -62,40 +63,44 @@ const NewPostPage = () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       setLoading(false);
       toast.success("Post created successfully");
+      router.push("/posts");
       setContent("");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       setLoading(false);
       toast.error(`Error creating post: ${error.message}`);
     },
   });
 
   return (
-    <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm m-0 ">
-      <div className="bg-black border border-gray-500 p-6  shadow-lg w-full max-w-md min-w-[600px] min-h-[200px]">
-        <textarea
-          className="w-full p-3 border border-gray-300 text-white bg-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="What is happening?!"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-        />
-        <button
-          className={classNames(
-            "mt-4 w-full py-2 px-4 rounded-lg transition duration-300",
-            {
-              "bg-white text-black hover:bg-gray-300":
-                !loading && content.trim() !== "",
-              "bg-white text-black opacity-70":
-                loading || content.trim() === "",
-            }
-          )}
-          onClick={() => newPostMutation.mutate()}
-          disabled={loading || content.trim() === ""}
-        >
-          Post
-        </button>
+    <>
+      <div className="flex items-top justify-center bg-black bg-opacity-50 backdrop-blur-sm mt-0 h-[223px] min-w-[600px]">
+        <div className="bg-black border border-gray-500 p-6 shadow-lg w-full max-w-md min-w-[600px] min-h-[200px] m-0">
+          <textarea
+            className="w-full p-3 border border-gray-300 text-white bg-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="What is happening?!"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
+          <button
+            className={classNames(
+              "mt-4 w-full py-2 px-4 rounded-lg transition duration-300",
+              {
+                "bg-white text-black hover:bg-gray-300":
+                  !loading && content.trim() !== "",
+                "bg-white text-black opacity-70":
+                  loading || content.trim() === "",
+              }
+            )}
+            onClick={() => newPostMutation.mutate()}
+            disabled={loading || content.trim() === ""}
+          >
+            Post
+          </button>
+        </div>
       </div>
-    </div>
+      <Toaster position="top-right" />
+    </>
   );
 };
 

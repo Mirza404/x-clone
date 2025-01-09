@@ -7,11 +7,11 @@ import type { Post } from "../components/Post";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import axios from "axios";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NewPostPage from "../newPost/page";
+import { Toaster } from "react-hot-toast";
 
-interface PostListProps {
+export interface PostListProps {
   allPosts: Post[];
 }
 
@@ -32,17 +32,6 @@ export const Page: React.FC<PostListProps> = () => {
     queryKey: ["posts"],
     queryFn: () => fetchPosts(),
   });
-
-  useEffect(() => {
-    if (session && postsQuery.data) {
-      console.log("session?.user?.id:", session.user?.id);
-      console.log("postsQuery.data.author:", postsQuery.data.author);
-      console.log(
-        "Comparison result:",
-        session?.user?.id === postsQuery.data.author
-      );
-    }
-  }, [session, postsQuery.data]);
 
   const deletePostMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -69,7 +58,12 @@ export const Page: React.FC<PostListProps> = () => {
     },
   });
 
-  if (postsQuery.isLoading) return <div>Loading..</div>;
+  if (postsQuery.isLoading)
+    return (
+      <div className="flex justify-center p-4 min-w-[600px] min-h-[200px]">
+        <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"></div>
+      </div>
+    );
   if (postsQuery.isError) return <pre>Error</pre>;
 
   return (
@@ -135,16 +129,19 @@ export const Page: React.FC<PostListProps> = () => {
                         viewBox="0 0 24 24"
                       >
                         <path
-                          fill-rule="evenodd"
+                          fillRule="evenodd"
                           d="M8.586 2.586A2 2 0 0 1 10 2h4a2 2 0 0 1 2 2v2h3a1 1 0 1 1 0 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a1 1 0 0 1 0-2h3V4a2 2 0 0 1 .586-1.414ZM10 6h4V4h-4v2Zm1 4a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0v-8Zm4 0a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0v-8Z"
-                          clip-rule="evenodd"
+                          clipRule="evenodd"
                         />
                       </svg>
                     </span>
                     Delete
                   </button>
                   <button
-                    onClick={() => router.push(`/posts/${post.id}/editPost`)}
+                    onClick={() => 
+                      router.push(`/posts/${post.id}/editPost`)
+                    
+                    }
                     className="flex items-center w-full px-4 py-2 text-left text-white hover:bg-gray-800"
                   >
                     <span className="mr-2">
@@ -158,14 +155,14 @@ export const Page: React.FC<PostListProps> = () => {
                         viewBox="0 0 24 24"
                       >
                         <path
-                          fill-rule="evenodd"
+                          fillRule="evenodd"
                           d="M11.32 6.176H5c-1.105 0-2 .949-2 2.118v10.588C3 20.052 3.895 21 5 21h11c1.105 0 2-.948 2-2.118v-7.75l-3.914 4.144A2.46 2.46 0 0 1 12.81 16l-2.681.568c-1.75.37-3.292-1.263-2.942-3.115l.536-2.839c.097-.512.335-.983.684-1.352l2.914-3.086Z"
-                          clip-rule="evenodd"
+                          clipRule="evenodd"
                         />
                         <path
-                          fill-rule="evenodd"
+                          fillRule="evenodd"
                           d="M19.846 4.318a2.148 2.148 0 0 0-.437-.692 2.014 2.014 0 0 0-.654-.463 1.92 1.92 0 0 0-1.544 0 2.014 2.014 0 0 0-.654.463l-.546.578 2.852 3.02.546-.579a2.14 2.14 0 0 0 .437-.692 2.244 2.244 0 0 0 0-1.635ZM17.45 8.721 14.597 5.7 9.82 10.76a.54.54 0 0 0-.137.27l-.536 2.84c-.07.37.239.696.588.622l2.682-.567a.492.492 0 0 0 .255-.145l4.778-5.06Z"
-                          clip-rule="evenodd"
+                          clipRule="evenodd"
                         />
                       </svg>
                     </span>
@@ -176,6 +173,9 @@ export const Page: React.FC<PostListProps> = () => {
           </div>
         </div>
       ))}
+      <div>
+        <Toaster position="top-right" reverseOrder={false} />
+      </div>
     </div>
   );
 };

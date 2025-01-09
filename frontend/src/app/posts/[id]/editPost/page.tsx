@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
+import { Toaster } from "react-hot-toast";
+import classNames from "classnames";
 
 function EditPostPage({ params }: { params: { id: string } }) {
   const id = params.id;
@@ -45,7 +47,10 @@ function EditPostPage({ params }: { params: { id: string } }) {
       setLoading(true);
       await axios.patch(`${serverUrl}/api/post/edit`, { id, content });
       toast.success("Post updated successfully");
-      window.location.href = `/posts/${id}`;
+
+      setTimeout(() => {
+        window.location.href = `/posts`;
+      }, 1000);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to update the post");
     } finally {
@@ -58,24 +63,37 @@ function EditPostPage({ params }: { params: { id: string } }) {
 
   return (
     <>
-      <div className="p-4 border rounded-lg shadow-md bg-white">
+      <div className="p-4 border border-gray-500 shadow-md bg-black h-[223px] min-w-[600px] overflow-y-visible">
         {postsQuery.data && (
           <>
-            <div className="flex justify-between mb-2">
-              <span className="font-bold text-blue-500">
-                {postsQuery.data.name}
-              </span>
-              <span className="text-gray-500">
-                {new Date(postsQuery.data.createdAt).toLocaleString()}
+            <div className="flex items-center mb-2 text-sm text-gray-400">
+              <span className="font-bold">{postsQuery.data.name}</span>
+              <span className="mx-1">·</span>
+              <span>
+                {new Date(postsQuery.data.createdAt).toLocaleDateString(
+                  undefined,
+                  {
+                    month: "long",
+                    day: "numeric",
+                  }
+                )}
               </span>
             </div>
             <textarea
-              className="text-black border rounded-2xl m-2 p-2 w-full"
+              className="w-full p-3 border border-gray-300 text-white bg-black rounded-lg "
               defaultValue={postsQuery.data.content}
               onChange={handleContentChange}
             />
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className={classNames(
+                "mt-4 w-full py-2 px-4 rounded-lg transition duration-300",
+                {
+                  "bg-white text-black hover:bg-gray-300":
+                    !loading && content.trim() !== "",
+                  "bg-white text-black opacity-70":
+                    loading || content.trim() === "",
+                }
+              )}
               onClick={() => {
                 if (content.trim() === "") {
                   toast.error("Content cannot be empty");
@@ -85,10 +103,11 @@ function EditPostPage({ params }: { params: { id: string } }) {
               }}
               disabled={loading}
             >
-              {loading ? "Updating..." : "Update Post"}
+              Post
             </button>
           </>
         )}
+        <Toaster position="top-right" />
       </div>
     </>
   );

@@ -1,55 +1,63 @@
-import React from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import type { Post } from "../components/Post";
+// import { useInfiniteQuery } from "@tanstack/react-query";
+// import { useState, Fragment } from "react";
+// import type { Post } from "../components/Post";
+// import { getPostsPaginated } from "../posts/fetchInfo";
 
-export function PostListInfinite() {
-  const fetchPosts = async ({ pageParam = 0 }) => {
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-    const response = await fetch(`${serverUrl}/api/post/?page=${pageParam}`);
-    return response.json();
-  };
+// function PostListInfinite() {
+//   const fetchPosts = ({ pageParam = 0 }) => getPostsPaginated(pageParam);
+//   const [page, setPage] = useState(0);
 
-  const {
-    data,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetching,
-    isFetchingNextPage,
-    status,
-  } = useInfiniteQuery({
-    queryKey: ["posts"],
-    queryFn: fetchPosts,
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, pages) => lastPage.nextCursor,
-  });
+//   fetchPosts({ pageParam: page }).then((data) => {
+//     console.log("fetchPosts data:", data);
+//   });
 
-  return status === "pending" ? (
-    <p>Loading...</p>
-  ) : status === "error" ? (
-    <p>Error: {error.message}</p>
-  ) : (
-    <>
-      {data.pages.map((group, i) => (
-        <React.Fragment key={i}>
-          {group.data.map((post: Post) => (
-            <p key={post.id}>{post.content}</p>
-          ))}
-        </React.Fragment>
-      ))}
-      <div>
-        <button
-          onClick={() => fetchNextPage()}
-          disabled={!hasNextPage || isFetchingNextPage}
-        >
-          {isFetchingNextPage
-            ? "Loading more..."
-            : hasNextPage
-            ? "Load More"
-            : "Nothing more to load"}
-        </button>
-      </div>
-      <div>{isFetching && !isFetchingNextPage ? "Fetching..." : null}</div>
-    </>
-  );
-}
+//   const {
+//     data,
+//     fetchNextPage,
+//     hasNextPage,
+//     isFetching,
+//     isFetchingNextPage,
+//     status,
+//   } = useInfiniteQuery({
+//     queryKey: ["posts"],
+//     queryFn: fetchPosts,
+//     initialPageParam: 0,
+//     getNextPageParam: (lastPage) => lastPage.nextPage,
+//   });
+
+//   if (status === "pending") {
+//     return <p>Loading...</p>;
+//   }
+
+//   if (status === "error") {
+//     return <p>Error: "Error happened"</p>;
+//   }
+//   console.log("data:", data);
+
+//   return (
+//     <>
+//       {data?.pages?.map((group, i) => (
+//         <Fragment key={i}>
+//           {group?.posts?.data?.map((post: Post) => (
+//             <p key={post.id}>{post.name}</p>
+//           ))}
+//         </Fragment>
+//       ))}
+//       <div>
+//         <button
+//           onClick={() => fetchNextPage()}
+//           disabled={!hasNextPage || isFetchingNextPage}
+//         >
+//           {isFetchingNextPage
+//             ? "Loading more..."
+//             : hasNextPage
+//             ? "Load More"
+//             : "Nothing more to load"}
+//         </button>
+//       </div>
+//       <div>{isFetching && !isFetchingNextPage ? "Fetching..." : null}</div>
+//     </>
+//   );
+// }
+
+// export default PostListInfinite;

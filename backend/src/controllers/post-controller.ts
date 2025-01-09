@@ -14,7 +14,17 @@ async function allPosts(
       return;
     }
 
-    const posts = await Post.find();
+    const limit = parseInt(req.query.limit as string) || 10; // Default limit is 10
+    const page = parseInt(req.query.page as string) || 1; // Default page is 1
+    const skip = (page - 1) * limit;
+
+    const posts = await Post.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const totalPosts = await Post.countDocuments();
+    const totalPages = Math.ceil(totalPosts / limit);
+
     const postsWithId = posts.map((post) => ({
       id: post._id,
       name: post.name,
@@ -23,7 +33,7 @@ async function allPosts(
       createdAt: post.createdAt,
     }));
 
-    res.status(200).json({ posts: postsWithId });
+    res.status(200).json({ posts: postsWithId, totalPages, currentPage: page });
   } catch (e) {
     console.error("Error getting posts:", e);
     if (!res.headersSent) {

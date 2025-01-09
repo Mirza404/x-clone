@@ -10,15 +10,22 @@ const INACTIVE_ROUTE =
 
 function AuthButton() {
   const { data: session } = useSession();
+  const [loading, setLoading] = useState(true);
 
   return (
     <div className="flex flex-col items-center justify-center rounded overflow-hidden shadow-lg ">
       {session ? (
         <div className="flex flex-col items-center">
+          {loading && (
+            <div className="spinner">
+              <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"></div>
+            </div>
+          )}
           <img
             className="w-24 h-24 rounded-full border border-gray-300"
             src={session.user?.image ?? "https://via.placeholder.com/150"}
-            alt="User Image"
+            onLoad={() => setLoading(false)}
+            onError={() => setLoading(false)}
           />
           <div className="px-6 py-4 text-center">
             <div className="font-bold text-xl mb-2">{session.user?.name}</div>
@@ -42,7 +49,7 @@ function AuthButton() {
           </div>
           <div className="flex items-center justify-center">
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className=" flex rounded-full p-2 text-white hover:bg-white hover:text-black transition delay-50 text-left"
               onClick={() => signIn()}
             >
               Sign in
@@ -75,9 +82,9 @@ export default function NavMenu() {
                   viewBox="0 0 24 24"
                 >
                   <path
-                    fill-rule="evenodd"
+                    fillRule="evenodd"
                     d="M11.293 3.293a1 1 0 0 1 1.414 0l6 6 2 2a1 1 0 0 1-1.414 1.414L19 12.414V19a2 2 0 0 1-2 2h-3a1 1 0 0 1-1-1v-3h-2v3a1 1 0 0 1-1 1H7a2 2 0 0 1-2-2v-6.586l-.293.293a1 1 0 0 1-1.414-1.414l2-2 6-6Z"
-                    clip-rule="evenodd"
+                    clipRule="evenodd"
                   />
                 </svg>
               </span>
@@ -115,9 +122,9 @@ export default function NavMenu() {
                   viewBox="0 0 24 24"
                 >
                   <path
-                    fill-rule="evenodd"
+                    fillRule="evenodd"
                     d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4.243a1 1 0 1 0-2 0V11H7.757a1 1 0 1 0 0 2H11v3.243a1 1 0 1 0 2 0V13h3.243a1 1 0 1 0 0-2H13V7.757Z"
-                    clip-rule="evenodd"
+                    clipRule="evenodd"
                   />
                 </svg>
               </span>

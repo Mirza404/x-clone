@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import { Toaster } from "react-hot-toast";
 import { useState } from "react";
 
 export interface Post {
@@ -29,7 +28,6 @@ const Post: React.FC<Post> = ({ id, content, name, author, createdAt }) => {
           </button>
         )}
       </div>
-      <Toaster />
     </div>
   );
 };
