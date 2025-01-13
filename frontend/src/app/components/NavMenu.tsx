@@ -65,8 +65,25 @@ export default function NavMenu() {
   const pathname = usePathname();
   return (
     <div>
-      <nav className="m-5 px-2">
+      <nav className="mt-0 m-5 px-2">
         <ul>
+          <Link href="/posts">
+            <button className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2">
+              <span className="flex items-center m-1">
+                <svg
+                  className="w-6 h-6 text-gray-800 dark:text-white"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M13.795 10.533 20.68 2h-3.073l-5.255 6.517L7.69 2H1l7.806 10.91L1.47 22h3.074l5.705-7.07L15.31 22H22l-8.205-11.467Zm-2.38 2.95L9.97 11.464 4.36 3.627h2.31l4.528 6.317 1.443 2.02 6.018 8.409h-2.31l-4.934-6.89Z" />
+                </svg>
+              </span>
+            </button>
+          </Link>
           <Link href="/posts">
             <li
               className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
@@ -584,9 +601,9 @@ export default function NavMenu() {
           <Link href="/posts">
             <li className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 pointer-events-none">
               <div className="flex">
-                <span className="flex items-center ml-0 m-1">
+                <span className="flex items-center ml-1 m-1">
                   <svg
-                    className="w-[30px] h-[30px] text-gray-800 dark:text-white"
+                    className="w-[25px] h-[25px] text-gray-800 dark:text-white"
                     aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -607,48 +624,14 @@ export default function NavMenu() {
               </div>
             </li>
           </Link>
-          <Link href="/protected">
-            <li className=" flex rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-700 transition delay-50 text-left">
-              <span className="m-1">
-                <svg
-                  className="w-6 h-6 text-gray-800 dark:text-white"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12.356 3.066a1 1 0 0 0-.712 0l-7 2.666A1 1 0 0 0 4 6.68a17.695 17.695 0 0 0 2.022 7.98 17.405 17.405 0 0 0 5.403 6.158 1 1 0 0 0 1.15 0 17.406 17.406 0 0 0 5.402-6.157A17.694 17.694 0 0 0 20 6.68a1 1 0 0 0-.644-.949l-7-2.666Z" />
-                </svg>
-              </span>
-              Protected Route
-            </li>
-          </Link>
-          <Link href="/newPost">
-            <li className=" flex rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-700 transition delay-50 text-left">
-              <span className="m-1">
-                <svg
-                  className="w-6 h-6 text-gray-800 dark:text-white"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4.243a1 1 0 1 0-2 0V11H7.757a1 1 0 1 0 0 2H11v3.243a1 1 0 1 0 2 0V13h3.243a1 1 0 1 0 0-2H13V7.757Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </span>
-              Create Post
-            </li>
-          </Link>
-          <hr className="my-4" />
-          <AuthButton />
+          <div className="flex justify-center items-center text-center rounded-full bg-white text-black hover:bg-gray-300 transition duration-300 w-[250px] h-[58px]">
+            <Link
+              href="/newPost"
+              className="mt-4 w-full pb-3  transition duration-300 text-lg font-bold"
+            >
+              Post
+            </Link>
+          </div>
         </ul>
       </nav>
     </div>
