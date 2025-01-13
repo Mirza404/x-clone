@@ -329,6 +329,284 @@ export default function NavMenu() {
               )}
             </li>
           </Link>
+          <Link href="/jobs">
+            <li
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+                pathname === "/jobs" ? "font-bold" : ""
+              }`}
+            >
+              {pathname === "/jobs" ? (
+                <div className="flex">
+                  <span className="flex items-center m-1">
+                    <svg
+                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 2a3 3 0 0 0-3 3v1H5a3 3 0 0 0-3 3v2.382l1.447.723.005.003.027.013.12.056c.108.05.272.123.486.212.429.177 1.056.416 1.834.655C7.481 13.524 9.63 14 12 14c2.372 0 4.52-.475 6.08-.956.78-.24 1.406-.478 1.835-.655a14.028 14.028 0 0 0 .606-.268l.027-.013.005-.002L22 11.381V9a3 3 0 0 0-3-3h-2V5a3 3 0 0 0-3-3h-4Zm5 4V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v1h6Zm6.447 7.894.553-.276V19a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-5.382l.553.276.002.002.004.002.013.006.041.02.151.07c.13.06.318.144.557.242.478.198 1.163.46 2.01.72C7.019 15.476 9.37 16 12 16c2.628 0 4.98-.525 6.67-1.044a22.95 22.95 0 0 0 2.01-.72 15.994 15.994 0 0 0 .707-.312l.041-.02.013-.006.004-.002.001-.001-.431-.866.432.865ZM12 10a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2H12Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                  <span className="m-1">Jobs</span>
+                </div>
+              ) : (
+                <div className="flex">
+                  <span className="flex items-center m-1">
+                    <svg
+                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 7H5a2 2 0 0 0-2 2v4m5-6h8M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m0 0h3a2 2 0 0 1 2 2v4m0 0v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6m18 0s-4 2-9 2-9-2-9-2m9-2h.01"
+                      />
+                    </svg>
+                  </span>
+                  <span className="m-1">Jobs</span>
+                </div>
+              )}
+            </li>
+          </Link>
+          <Link href="/communities">
+            <li
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+                pathname === "/communities" ? "font-bold" : ""
+              }`}
+            >
+              {pathname === "/communities" ? (
+                <div className="flex">
+                  <span className="flex items-center m-1">
+                    <svg
+                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M12 6a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm-1.5 8a4 4 0 0 0-4 4 2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-3Zm6.82-3.096a5.51 5.51 0 0 0-2.797-6.293 3.5 3.5 0 1 1 2.796 6.292ZM19.5 18h.5a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-1.1a5.503 5.503 0 0 1-.471.762A5.998 5.998 0 0 1 19.5 18ZM4 7.5a3.5 3.5 0 0 1 5.477-2.889 5.5 5.5 0 0 0-2.796 6.293A3.501 3.501 0 0 1 4 7.5ZM7.1 12H6a4 4 0 0 0-4 4 2 2 0 0 0 2 2h.5a5.998 5.998 0 0 1 3.071-5.238A5.505 5.505 0 0 1 7.1 12Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                  <span className="m-1">Communities</span>
+                </div>
+              ) : (
+                <div className="flex">
+                  <span className="flex items-center m-1">
+                    <svg
+                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-width="2"
+                        d="M4.5 17H4a1 1 0 0 1-1-1 3 3 0 0 1 3-3h1m0-3.05A2.5 2.5 0 1 1 9 5.5M19.5 17h.5a1 1 0 0 0 1-1 3 3 0 0 0-3-3h-1m0-3.05a2.5 2.5 0 1 0-2-4.45m.5 13.5h-7a1 1 0 0 1-1-1 3 3 0 0 1 3-3h3a3 3 0 0 1 3 3 1 1 0 0 1-1 1Zm-1-9.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z"
+                      />
+                    </svg>
+                  </span>
+                  <span className="m-1">Communities</span>
+                </div>
+              )}
+            </li>
+          </Link>
+          <Link href="/premium">
+            <li
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+                pathname === "/premium" ? "font-bold" : ""
+              }`}
+            >
+              {pathname === "/premium" ? (
+                <div className="flex">
+                  <span className="flex items-center m-1">
+                    <svg
+                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M13.795 10.533 20.68 2h-3.073l-5.255 6.517L7.69 2H1l7.806 10.91L1.47 22h3.074l5.705-7.07L15.31 22H22l-8.205-11.467Zm-2.38 2.95L9.97 11.464 4.36 3.627h2.31l4.528 6.317 1.443 2.02 6.018 8.409h-2.31l-4.934-6.89Z" />
+                    </svg>
+                  </span>
+                  <span className="m-1">Premium</span>
+                </div>
+              ) : (
+                <div className="flex">
+                  <span className="flex items-center m-1">
+                    <svg
+                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M13.795 10.533 20.68 2h-3.073l-5.255 6.517L7.69 2H1l7.806 10.91L1.47 22h3.074l5.705-7.07L15.31 22H22l-8.205-11.467Zm-2.38 2.95L9.97 11.464 4.36 3.627h2.31l4.528 6.317 1.443 2.02 6.018 8.409h-2.31l-4.934-6.89Z" />
+                    </svg>
+                  </span>
+                  <span className="m-1">Premium</span>
+                </div>
+              )}
+            </li>
+          </Link>
+          <Link href="/verifiedorgs">
+            <li
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+                pathname === "/verifiedorgs" ? "font-bold" : ""
+              }`}
+            >
+              {pathname === "/verifiedorgs" ? (
+                <div className="flex">
+                  <span className="flex items-center m-1">
+                    <svg
+                      viewBox="0 0 16 16"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="#ffffff"
+                      className="bi bi-lightning-fill w-6 h-6 text-gray-800 dark:text-white"
+                    >
+                      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                      <g
+                        id="SVGRepo_tracerCarrier"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></g>
+                      <g id="SVGRepo_iconCarrier">
+                        <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5z"></path>
+                      </g>
+                    </svg>
+                  </span>
+                  <span className="m-1">Verified Orgs</span>
+                </div>
+              ) : (
+                <div className="flex">
+                  <span className="flex items-center m-1">
+                    <svg
+                      viewBox="0 0 16 16"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="#ffffff"
+                      className="bi bi-lightning-fill w-6 h-6 text-gray-800 dark:text-white"
+                    >
+                      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                      <g
+                        id="SVGRepo_tracerCarrier"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></g>
+                      <g id="SVGRepo_iconCarrier">
+                        <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5z"></path>
+                      </g>
+                    </svg>
+                  </span>
+                  <span className="m-1">Verified Orgs</span>
+                </div>
+              )}
+            </li>
+          </Link>
+          <Link href="/profile">
+            <li
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+                pathname === "/profile" ? "font-bold" : ""
+              }`}
+            >
+              {pathname === "/profile" ? (
+                <div className="flex">
+                  <span className="flex items-center ml-0 m-1">
+                    <svg
+                      className="w-[30px] h-[30px] text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                  <span className="m-1">Profile</span>
+                </div>
+              ) : (
+                <div className="flex">
+                  <span className="flex items-center ml-0 m-1">
+                    <svg
+                      className="w-[30px] h-[30px] text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                      />
+                    </svg>
+                  </span>
+                  <span className="m-1">Profile</span>
+                </div>
+              )}
+            </li>
+          </Link>
+          <Link href="/posts">
+            <li className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 pointer-events-none">
+              <div className="flex">
+                <span className="flex items-center ml-0 m-1">
+                  <svg
+                    className="w-[30px] h-[30px] text-gray-800 dark:text-white"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9.529 9.988a2.502 2.502 0 1 1 5 .191A2.441 2.441 0 0 1 12 12.582V14m-.01 3.008H12M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                    />
+                  </svg>
+                </span>
+                <span className="m-1">More</span>
+              </div>
+            </li>
+          </Link>
           <Link href="/protected">
             <li className=" flex rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-700 transition delay-50 text-left">
               <span className="m-1">
