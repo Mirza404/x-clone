@@ -66,12 +66,12 @@ export default function NavMenu() {
   return (
     <div>
       <nav className="mt-0 m-5 px-2">
-        <ul>
+        <ul className="flex flex-col">
           <Link href="/posts">
             <button className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2">
               <span className="flex items-center m-1">
                 <svg
-                  className="w-6 h-6 text-gray-800 dark:text-white"
+                  className="w-8 h-8 text-gray-800 dark:text-white"
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -86,7 +86,7 @@ export default function NavMenu() {
           </Link>
           <Link href="/posts">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left mr-0 my-1 ${
                 pathname === "/posts" ? "font-bold" : ""
               }`}
             >
@@ -94,7 +94,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="14"
@@ -115,7 +115,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="14"
@@ -147,7 +147,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -169,7 +169,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -200,7 +200,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -217,7 +217,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -249,7 +249,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -275,7 +275,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -307,7 +307,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -324,7 +324,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -356,7 +356,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -377,7 +377,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -409,7 +409,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -430,7 +430,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -461,7 +461,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -478,7 +478,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center m-1">
                     <svg
-                      className="w-6 h-6 text-gray-800 dark:text-white"
+                      className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -507,7 +507,7 @@ export default function NavMenu() {
                       viewBox="0 0 16 16"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="#ffffff"
-                      className="bi bi-lightning-fill w-6 h-6 text-gray-800 dark:text-white"
+                      className="bi bi-lightning-fill w-8 h-8 text-gray-800 dark:text-white"
                     >
                       <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
                       <g
@@ -529,7 +529,7 @@ export default function NavMenu() {
                       viewBox="0 0 16 16"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="#ffffff"
-                      className="bi bi-lightning-fill w-6 h-6 text-gray-800 dark:text-white"
+                      className="bi bi-lightning-fill w-8 h-8 text-gray-800 dark:text-white"
                     >
                       <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
                       <g
@@ -557,7 +557,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center ml-0 m-1">
                     <svg
-                      className="w-[30px] h-[30px] text-gray-800 dark:text-white"
+                      className="w-9 h-9 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -578,7 +578,7 @@ export default function NavMenu() {
                 <div className="flex">
                   <span className="flex items-center ml-0 m-1">
                     <svg
-                      className="w-[30px] h-[30px] text-gray-800 dark:text-white"
+                      className="w-9 h-9 text-gray-800 dark:text-white"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -603,7 +603,7 @@ export default function NavMenu() {
               <div className="flex">
                 <span className="flex items-center ml-1 m-1">
                   <svg
-                    className="w-[25px] h-[25px] text-gray-800 dark:text-white"
+                    className="w-8 h-8 text-gray-800 dark:text-white"
                     aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -624,7 +624,7 @@ export default function NavMenu() {
               </div>
             </li>
           </Link>
-          <div className="flex justify-center items-center text-center rounded-full bg-white text-black hover:bg-gray-300 transition duration-300 w-[250px] h-[58px]">
+          <div className="flex justify-center items-center text-center rounded-full bg-white text-black hover:bg-gray-300 transition duration-300 w-[250px] h-[58px] my-3">
             <Link
               href="/newPost"
               className="mt-4 w-full pb-3  transition duration-300 text-lg font-bold"

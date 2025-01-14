@@ -26,7 +26,6 @@ body {
   }
 }
 
-/* Add this to your CSS file, e.g., frontend/src/app/styles/tweet.css */
 .tweet-content {
   max-width: 600px;
   overflow-wrap: break-word;
