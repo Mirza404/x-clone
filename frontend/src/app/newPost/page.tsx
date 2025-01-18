@@ -74,8 +74,8 @@ const NewPostPage = () => {
 
   return (
     <>
-      <div className="flex items-top justify-center bg-black bg-opacity-50 backdrop-blur-sm mt-0 h-[223px] min-w-[600px]">
-        <div className="bg-black border border-gray-500 p-6 shadow-lg w-full max-w-md min-w-[600px] min-h-[200px] m-0">
+      <div className="flex items-top justify-center bg-black bg-opacity-50 backdrop-blur-sm mt-0 h-[223px] min-w-[569px]">
+        <div className="bg-black border border-gray-500 p-6 shadow-lg w-full max-w-md min-w-[569px] min-h-[200px] m-0">
           <textarea
             className="w-full p-3 border border-gray-300 text-white bg-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="What is happening?!"

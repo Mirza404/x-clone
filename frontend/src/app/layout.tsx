@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import NavMenu from "./components/NavMenu";
-import { getServerSession } from "next-auth";
+import SideBar from "./components/SideBar";
 import SessionProvider from "./components/SessionProvider";
 import QueryProvider from "@/query-client-provider";
-import PostList from "./posts/page";
-import Post from "./components/Post";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -21,7 +19,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "X Clone",
-  description: "Project 2",
+  description: "Clone of the popular X website",
 };
 
 export default async function RootLayout({
@@ -36,9 +34,12 @@ export default async function RootLayout({
       >
         <QueryProvider>
           <SessionProvider>
-            <main className="mx-auto max-w-5xl text-2xl flex gap-2 text-white">
-              <NavMenu />
-              {children}
+            <main className="flex justify-center mx-auto max-w-5xl text-2xl gap-2 text-white">
+              <div className="flex justify-center items-start">
+                <NavMenu />
+                {children}
+                <SideBar />
+              </div>
             </main>
           </SessionProvider>
         </QueryProvider>

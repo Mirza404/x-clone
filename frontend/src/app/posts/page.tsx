@@ -67,12 +67,12 @@ export const Page: React.FC<PostListProps> = () => {
   if (postsQuery.isError) return <pre>Error</pre>;
 
   return (
-    <div>
+    <div className="flex justify-center flex-col m-0">
       <NewPostPage />
       {postsQuery.data?.map((post: Post) => (
         <div
           key={post.id}
-          className="relative p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content min-w-[600px] min-h-[200px]"
+          className="relative p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[569px] min-h-[200px]"
         >
           <div className="flex items-center mb-2 text-sm text-gray-400">
             <span className="font-bold">{post.name}</span>
@@ -138,10 +138,7 @@ export const Page: React.FC<PostListProps> = () => {
                     Delete
                   </button>
                   <button
-                    onClick={() => 
-                      router.push(`/posts/${post.id}/editPost`)
-                    
-                    }
+                    onClick={() => router.push(`/posts/${post.id}/editPost`)}
                     className="flex items-center w-full px-4 py-2 text-left text-white hover:bg-gray-800"
                   >
                     <span className="mr-2">
