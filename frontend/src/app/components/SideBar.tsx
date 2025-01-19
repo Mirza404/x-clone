@@ -50,7 +50,7 @@ const SideBar = () => {
         <Link href="/posts" className="m-1 hover:underline">Ads info</Link>
         <Link href="/posts" className="m-1 hover:underline">More</Link>
         <Link href="/posts" className="m-1 hover:underline">© 2025 X Corp.</Link>
-        <Link href="/posts" className="m-1 hover:underline">Developed by <Link href="/posts">Mirza Abdulahović</Link></Link>
+        <span  className="m-1 ">Developed by <Link href="/posts" className="hover:underline">Mirza Abdulahović</Link></span>
       </footer>
     </div>
   );

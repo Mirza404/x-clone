@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 const ACTIVE_ROUTE = "py-1 px-2 text-gray-300 bg-gray-700";
@@ -13,29 +13,35 @@ function AuthButton() {
   const [loading, setLoading] = useState(true);
 
   return (
-    <div className="flex flex-col items-center justify-center rounded overflow-hidden shadow-lg ">
+    <div className="flex flex-row justify-center rounded overflow-hidden shadow-lg ">
       {session ? (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-row items-center">
           {loading && (
             <div className="spinner">
               <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"></div>
             </div>
           )}
-          <img
-            className="w-24 h-24 rounded-full border border-gray-300"
-            src={session.user?.image ?? "https://via.placeholder.com/150"}
-            onLoad={() => setLoading(false)}
-            onError={() => setLoading(false)}
-          />
-          <div className="px-6 py-4 text-center">
-            <div className="font-bold text-xl mb-2">{session.user?.name}</div>
-          </div>
           <button
-            className=" flex rounded-full p-2 text-white hover:bg-white hover:text-black transition delay-50 text-left"
+            className="flex rounded-full p-2 text-white hover:bg-gray-900  transition delay-50 text-left"
             onClick={() => signOut()}
           >
+            {/* <Link href="/posts"> */}
+            <img
+              className="w-9 h-9 rounded-full border border-gray-300"
+              src={session.user?.image ?? "https://via.placeholder.com/150"}
+              onLoad={() => setLoading(false)}
+              onError={() => setLoading(false)}
+            />
+            <div className="mx-2 text-center items-start">
+              <span className="font-bold text-sm mb-2">
+                {session.user?.name}
+              </span>
+            </div>
+            <span>
             Sign out
+            </span>
           </button>
+          {/* </Link> */}
         </div>
       ) : (
         <div className="flex flex-col items-center">
@@ -634,6 +640,9 @@ export default function NavMenu() {
           </div>
         </ul>
       </nav>
+      <div>
+        <AuthButton />
+      </div>
     </div>
   );
 }
