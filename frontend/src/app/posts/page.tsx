@@ -10,6 +10,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import NewPostPage from "../newPost/page";
 import { Toaster } from "react-hot-toast";
+import CustomToaster from "../components/customToaster";
 import { LoadingBarContainer } from "react-top-loading-bar";
 
 export interface PostListProps {
@@ -175,9 +176,7 @@ export const Page: React.FC<PostListProps> = () => {
           </div>
         </div>
       ))}
-      <div>
-        <Toaster position="top-right" reverseOrder={false} />
-      </div>
+      <CustomToaster />
     </div>
   );
 };

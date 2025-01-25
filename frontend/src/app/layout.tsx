@@ -5,7 +5,7 @@ import NavMenu from "./components/NavMenu";
 import SideBar from "./components/SideBar";
 import SessionProvider from "./components/SessionProvider";
 import QueryProvider from "@/query-client-provider";
-import { LoadingBarContainer } from "react-top-loading-bar";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

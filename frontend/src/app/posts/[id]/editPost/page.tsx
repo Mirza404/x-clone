@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Toaster } from "react-hot-toast";
+import CustomToaster from "@/app/components/customToaster";
 import classNames from "classnames";
 
 function EditPostPage({ params }: { params: { id: string } }) {
@@ -107,7 +107,7 @@ function EditPostPage({ params }: { params: { id: string } }) {
             </button>
           </>
         )}
-        <Toaster position="top-right" />
+        <CustomToaster />
       </div>
     </>
   );
