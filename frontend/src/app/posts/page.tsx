@@ -10,6 +10,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import NewPostPage from "../newPost/page";
 import { Toaster } from "react-hot-toast";
+import { LoadingBarContainer } from "react-top-loading-bar";
 
 export interface PostListProps {
   allPosts: Post[];
@@ -21,6 +22,7 @@ export const Page: React.FC<PostListProps> = () => {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const { data: session } = useSession();
+  // const ref = useRef<LoadingBarRef>(null);
 
   const toggleDropdown = (id: string) => {
     setDropdownOpen(dropdownOpen === id ? null : id);
@@ -68,11 +70,14 @@ export const Page: React.FC<PostListProps> = () => {
 
   return (
     <div className="flex justify-center flex-col m-0">
-      <NewPostPage />
+      <LoadingBarContainer>
+        <NewPostPage />
+      </LoadingBarContainer>
+
       {postsQuery.data?.map((post: Post) => (
         <div
           key={post.id}
-          className="relative p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[569px] min-h-[200px]"
+          className="relative p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px]"
         >
           <div className="flex items-center mb-2 text-sm text-gray-400">
             <span className="font-bold">{post.name}</span>

@@ -5,6 +5,7 @@ import NavMenu from "./components/NavMenu";
 import SideBar from "./components/SideBar";
 import SessionProvider from "./components/SessionProvider";
 import QueryProvider from "@/query-client-provider";
+import { LoadingBarContainer } from "react-top-loading-bar";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -41,6 +42,7 @@ export default async function RootLayout({
                 <SideBar />
               </div>
             </main>
+            cou
           </SessionProvider>
         </QueryProvider>
       </body>

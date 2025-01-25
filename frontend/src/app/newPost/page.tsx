@@ -9,15 +9,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import classNames from "classnames";
 import { Toaster } from "react-hot-toast";
+import { useLoadingBar } from "react-top-loading-bar";
 
 const NewPostPage = () => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
-  const [toastShown, setToastShown] = useState(false);
+  const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
   const router = useRouter();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const { start, complete } = useLoadingBar({
+    color: "#3b82f6",
+    height: 2,
+  });
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -60,6 +65,7 @@ const NewPostPage = () => {
       );
     },
     onSuccess: () => {
+      complete();
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       setLoading(false);
       toast.success("Post created successfully");
@@ -74,8 +80,9 @@ const NewPostPage = () => {
 
   return (
     <>
-      <div className="flex items-top justify-center bg-black bg-opacity-50 backdrop-blur-sm mt-0 h-[223px] min-w-[569px]">
-        <div className="bg-black border border-gray-500 p-6 shadow-lg w-full max-w-md min-w-[569px] min-h-[200px] m-0">
+      <div className="flex items-top justify-center bg-black bg-opacity-50 backdrop-blur-sm mt-0 h-[223px] ">
+        
+        <div className="bg-black border border-gray-500 p-6 shadow-lg w-full max-w-md min-w-[598px] min-h-[200px] m-0">
           <textarea
             className="w-full p-3 border border-gray-300 text-white bg-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="What is happening?!"
@@ -92,7 +99,10 @@ const NewPostPage = () => {
                   loading || content.trim() === "",
               }
             )}
-            onClick={() => newPostMutation.mutate()}
+            onClick={() => {
+              start();
+              newPostMutation.mutate();
+            }}
             disabled={loading || content.trim() === ""}
           >
             Post

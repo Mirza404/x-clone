@@ -13,7 +13,7 @@ function AuthButton() {
   const [loading, setLoading] = useState(true);
 
   return (
-    <div className="flex flex-row justify-center rounded overflow-hidden shadow-lg ">
+    <div className="flex flex-row justify-center rounded m-3 overflow-hidden shadow-lg w-[250px]">
       {session ? (
         <div className="flex flex-row items-center">
           {loading && (
@@ -32,13 +32,28 @@ function AuthButton() {
               onLoad={() => setLoading(false)}
               onError={() => setLoading(false)}
             />
-            <div className="mx-2 text-center items-start">
-              <span className="font-bold text-sm mb-2">
+            <div className="mx-2 text-center items-center">
+              <span className="font-bold text-sm mr-2">
                 {session.user?.name}
               </span>
             </div>
-            <span>
-            Sign out
+            <span className="flex text-sm items-center ">
+              <svg
+                className="w-6 h-6 text-gray-800 dark:text-white"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                  d="M6 12h.01m6 0h.01m5.99 0h.01"
+                />
+              </svg>
             </span>
           </button>
           {/* </Link> */}
@@ -58,7 +73,22 @@ function AuthButton() {
               className=" flex rounded-full p-2 text-white hover:bg-white hover:text-black transition delay-50 text-left"
               onClick={() => signIn()}
             >
-              Sign in
+              <svg
+                className="w-6 h-6 text-gray-800 dark:text-white"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                  d="M6 12h.01m6 0h.01m5.99 0h.01"
+                />
+              </svg>
             </button>
           </div>
         </div>
