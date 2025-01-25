@@ -10,7 +10,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import NewPostPage from "../newPost/page";
 import { Toaster } from "react-hot-toast";
-import CustomToaster from "../components/customToaster";
+import CustomToaster from "../components/CustomToaster";
 import { LoadingBarContainer } from "react-top-loading-bar";
 
 export interface PostListProps {

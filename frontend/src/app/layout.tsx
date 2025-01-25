@@ -42,7 +42,6 @@ export default async function RootLayout({
                 <SideBar />
               </div>
             </main>
-            cou
           </SessionProvider>
         </QueryProvider>
       </body>
