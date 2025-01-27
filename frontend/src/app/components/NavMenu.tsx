@@ -1,105 +1,7 @@
 "use client";
 import Link from "next/link";
-import { signIn, signOut, useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import ProfileTab from "./ProfileTab";
 import { usePathname } from "next/navigation";
-//import globals css
-// import "../styles/globals.css";
-
-const ACTIVE_ROUTE = "py-1 px-2 text-gray-300 bg-gray-700";
-const INACTIVE_ROUTE =
-  "py-1 px-2 text-gray-500 hover:text-gray-300 hover:bg-gray-700";
-
-function ProfileTab() {
-  const { data: session } = useSession();
-  const [loading, setLoading] = useState(true);
-
-  return (
-    <div className="flex flex-row justify-center rounded m-3 overflow-hidden shadow-lg w-[250px]">
-      {session ? (
-        <div className="w-[250px] h-20">
-          <div className="flex flex-row items-center">
-            {loading && (
-              <div className="spinner">
-                <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"></div>
-              </div>
-            )}
-            <button
-              className="flex rounded-full p-2 text-white hover:bg-gray-900  transition delay-50 text-left"
-              onClick={() => signOut()}
-            >
-              {/* <Link href="/posts"> */}
-              <img
-                className="w-9 h-9 rounded-full border border-gray-300"
-                src={session.user?.image ?? "https://via.placeholder.com/150"}
-                onLoad={() => setLoading(false)}
-                onError={() => setLoading(false)}
-              />
-              <div className="mx-2 text-center items-center">
-                <span className="font-bold text-sm mr-2">
-                  {session.user?.name}
-                </span>
-              </div>
-              <span className="flex text-sm items-center ">
-                <svg
-                  className="w-6 h-6 text-gray-800 dark:text-white"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeWidth="2"
-                    d="M6 12h.01m6 0h.01m5.99 0h.01"
-                  />
-                </svg>
-              </span>
-            </button>
-            {/* </Link> */}
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center">
-          <img
-            className="w-24 h-24 rounded-full border border-gray-300"
-            src="https://via.placeholder.com/150"
-            alt="Placeholder Image"
-          />
-          <div className="px-6 py-4 text-center">
-            <div className="font-bold text-xl mb-2">Not signed in</div>
-          </div>
-          <div className="flex items-center justify-center">
-            <button
-              className=" flex rounded-full p-2 text-white hover:bg-white hover:text-black transition delay-50 text-left"
-              onClick={() => signIn()}
-            >
-              <svg
-                className="w-6 h-6 text-gray-800 dark:text-white"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeWidth="2"
-                  d="M6 12h.01m6 0h.01m5.99 0h.01"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function NavMenu() {
   const pathname = usePathname();
@@ -256,7 +158,9 @@ export default function NavMenu() {
                       <path d="M17.133 12.632v-1.8a5.406 5.406 0 0 0-4.154-5.262.955.955 0 0 0 .021-.106V3.1a1 1 0 0 0-2 0v2.364a.955.955 0 0 0 .021.106 5.406 5.406 0 0 0-4.154 5.262v1.8C6.867 15.018 5 15.614 5 16.807 5 17.4 5 18 5.538 18h12.924C19 18 19 17.4 19 16.807c0-1.193-1.867-1.789-1.867-4.175ZM8.823 19a3.453 3.453 0 0 0 6.354 0H8.823Z" />
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Notifications</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Notifications
+                  </span>
                 </div>
               ) : (
                 <div className="flex">
@@ -279,7 +183,9 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Notifications</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Notifications
+                  </span>
                 </div>
               )}
             </li>
@@ -314,7 +220,9 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Messages</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Messages
+                  </span>
                 </div>
               ) : (
                 <div className="flex">
@@ -337,7 +245,9 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Messages</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Messages
+                  </span>
                 </div>
               )}
             </li>
@@ -363,7 +273,9 @@ export default function NavMenu() {
                       <path d="M7.833 2c-.507 0-.98.216-1.318.576A1.92 1.92 0 0 0 6 3.89V21a1 1 0 0 0 1.625.78L12 18.28l4.375 3.5A1 1 0 0 0 18 21V3.889c0-.481-.178-.954-.515-1.313A1.808 1.808 0 0 0 16.167 2H7.833Z" />
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Bookmarks</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Bookmarks
+                  </span>
                 </div>
               ) : (
                 <div className="flex">
@@ -386,7 +298,9 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Bookmarks</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Bookmarks
+                  </span>
                 </div>
               )}
             </li>
@@ -469,7 +383,9 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Communities</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Communities
+                  </span>
                 </div>
               ) : (
                 <div className="flex">
@@ -491,7 +407,9 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Communities</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Communities
+                  </span>
                 </div>
               )}
             </li>
@@ -565,7 +483,9 @@ export default function NavMenu() {
                       </g>
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Verified Orgs</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Verified Orgs
+                  </span>
                 </div>
               ) : (
                 <div className="flex">
@@ -587,7 +507,9 @@ export default function NavMenu() {
                       </g>
                     </svg>
                   </span>
-                  <span className="flex items-center m-1 text-xl">Verified Orgs</span>
+                  <span className="flex items-center m-1 text-xl">
+                    Verified Orgs
+                  </span>
                 </div>
               )}
             </li>
@@ -679,7 +601,7 @@ export default function NavMenu() {
           </div>
         </ul>
       </nav>
-      <div>
+      <div className="absolute w-[13em] m-0">
         <ProfileTab />
       </div>
     </div>
