@@ -31,3 +31,13 @@ body {
   overflow-wrap: break-word;
   white-space: pre-wrap;
 }
+
+/* <span className="flex items-center m-1 text-xl mr-5">Home</span> */
+.menuItemText {
+  display: flex;
+  align-items: center;
+  margin: 1rem;
+  font-size: 1.25rem /* 20px */;
+  line-height: 1.75rem /* 28px */;
+  /* margin-right: 1.25rem  */
+}

@@ -3,60 +3,64 @@ import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+//import globals css
+// import "../styles/globals.css";
 
 const ACTIVE_ROUTE = "py-1 px-2 text-gray-300 bg-gray-700";
 const INACTIVE_ROUTE =
   "py-1 px-2 text-gray-500 hover:text-gray-300 hover:bg-gray-700";
 
-function AuthButton() {
+function ProfileTab() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
 
   return (
     <div className="flex flex-row justify-center rounded m-3 overflow-hidden shadow-lg w-[250px]">
       {session ? (
-        <div className="flex flex-row items-center">
-          {loading && (
-            <div className="spinner">
-              <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"></div>
-            </div>
-          )}
-          <button
-            className="flex rounded-full p-2 text-white hover:bg-gray-900  transition delay-50 text-left"
-            onClick={() => signOut()}
-          >
-            {/* <Link href="/posts"> */}
-            <img
-              className="w-9 h-9 rounded-full border border-gray-300"
-              src={session.user?.image ?? "https://via.placeholder.com/150"}
-              onLoad={() => setLoading(false)}
-              onError={() => setLoading(false)}
-            />
-            <div className="mx-2 text-center items-center">
-              <span className="font-bold text-sm mr-2">
-                {session.user?.name}
+        <div className="w-[250px] h-20">
+          <div className="flex flex-row items-center">
+            {loading && (
+              <div className="spinner">
+                <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"></div>
+              </div>
+            )}
+            <button
+              className="flex rounded-full p-2 text-white hover:bg-gray-900  transition delay-50 text-left"
+              onClick={() => signOut()}
+            >
+              {/* <Link href="/posts"> */}
+              <img
+                className="w-9 h-9 rounded-full border border-gray-300"
+                src={session.user?.image ?? "https://via.placeholder.com/150"}
+                onLoad={() => setLoading(false)}
+                onError={() => setLoading(false)}
+              />
+              <div className="mx-2 text-center items-center">
+                <span className="font-bold text-sm mr-2">
+                  {session.user?.name}
+                </span>
+              </div>
+              <span className="flex text-sm items-center ">
+                <svg
+                  className="w-6 h-6 text-gray-800 dark:text-white"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="2"
+                    d="M6 12h.01m6 0h.01m5.99 0h.01"
+                  />
+                </svg>
               </span>
-            </div>
-            <span className="flex text-sm items-center ">
-              <svg
-                className="w-6 h-6 text-gray-800 dark:text-white"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeWidth="2"
-                  d="M6 12h.01m6 0h.01m5.99 0h.01"
-                />
-              </svg>
-            </span>
-          </button>
-          {/* </Link> */}
+            </button>
+            {/* </Link> */}
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center">
@@ -122,13 +126,13 @@ export default function NavMenu() {
           </Link>
           <Link href="/posts">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left mr-0 my-1 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left mr-0 my-1 w-fit ${
                 pathname === "/posts" ? "font-bold" : ""
               }`}
             >
               {pathname === "/posts" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -145,11 +149,13 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Home</span>
+                  <span className="flex items-center m-1 text-xl mr-5">
+                    Home
+                  </span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -168,20 +174,23 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Home</span>
+                  <span className="flex items-center m-1 text-xl mr-5">
+                    Home
+                  </span>
                 </div>
               )}
             </li>
           </Link>
+          {/* EXPLORE BUTTON */}
           <Link href="/explore">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/explore" ? "font-bold" : ""
               }`}
             >
               {pathname === "/explore" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -199,11 +208,11 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Explore</span>
+                  <span className="flex items-center m-1 text-xl">Explore</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -221,20 +230,20 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Explore</span>
+                  <span className="flex items-center m-1 text-xl">Explore</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/notifications">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/notifications" ? "font-bold" : ""
               }`}
             >
               {pathname === "/notifications" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -247,11 +256,11 @@ export default function NavMenu() {
                       <path d="M17.133 12.632v-1.8a5.406 5.406 0 0 0-4.154-5.262.955.955 0 0 0 .021-.106V3.1a1 1 0 0 0-2 0v2.364a.955.955 0 0 0 .021.106 5.406 5.406 0 0 0-4.154 5.262v1.8C6.867 15.018 5 15.614 5 16.807 5 17.4 5 18 5.538 18h12.924C19 18 19 17.4 19 16.807c0-1.193-1.867-1.789-1.867-4.175ZM8.823 19a3.453 3.453 0 0 0 6.354 0H8.823Z" />
                     </svg>
                   </span>
-                  <span className="m-1">Notifications</span>
+                  <span className="flex items-center m-1 text-xl">Notifications</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -270,20 +279,20 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Notifications</span>
+                  <span className="flex items-center m-1 text-xl">Notifications</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/messages">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/messages" ? "font-bold" : ""
               }`}
             >
               {pathname === "/messages" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -305,11 +314,11 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Messages</span>
+                  <span className="flex items-center m-1 text-xl">Messages</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -328,20 +337,20 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Messages</span>
+                  <span className="flex items-center m-1 text-xl">Messages</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/bookmarks">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/bookmarks" ? "font-bold" : ""
               }`}
             >
               {pathname === "/bookmarks" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -354,11 +363,11 @@ export default function NavMenu() {
                       <path d="M7.833 2c-.507 0-.98.216-1.318.576A1.92 1.92 0 0 0 6 3.89V21a1 1 0 0 0 1.625.78L12 18.28l4.375 3.5A1 1 0 0 0 18 21V3.889c0-.481-.178-.954-.515-1.313A1.808 1.808 0 0 0 16.167 2H7.833Z" />
                     </svg>
                   </span>
-                  <span className="m-1">Bookmarks</span>
+                  <span className="flex items-center m-1 text-xl">Bookmarks</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -377,20 +386,20 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Bookmarks</span>
+                  <span className="flex items-center m-1 text-xl">Bookmarks</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/jobs">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/jobs" ? "font-bold" : ""
               }`}
             >
               {pathname === "/jobs" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -407,11 +416,11 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Jobs</span>
+                  <span className="flex items-center m-1 text-xl">Jobs</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -430,20 +439,20 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Jobs</span>
+                  <span className="flex items-center m-1 text-xl">Jobs</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/communities">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/communities" ? "font-bold" : ""
               }`}
             >
               {pathname === "/communities" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -460,11 +469,11 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Communities</span>
+                  <span className="flex items-center m-1 text-xl">Communities</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -482,20 +491,20 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Communities</span>
+                  <span className="flex items-center m-1 text-xl">Communities</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/premium">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/premium" ? "font-bold" : ""
               }`}
             >
               {pathname === "/premium" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -508,11 +517,11 @@ export default function NavMenu() {
                       <path d="M13.795 10.533 20.68 2h-3.073l-5.255 6.517L7.69 2H1l7.806 10.91L1.47 22h3.074l5.705-7.07L15.31 22H22l-8.205-11.467Zm-2.38 2.95L9.97 11.464 4.36 3.627h2.31l4.528 6.317 1.443 2.02 6.018 8.409h-2.31l-4.934-6.89Z" />
                     </svg>
                   </span>
-                  <span className="m-1">Premium</span>
+                  <span className="flex items-center m-1 text-xl">Premium</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       className="w-8 h-8 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -525,20 +534,20 @@ export default function NavMenu() {
                       <path d="M13.795 10.533 20.68 2h-3.073l-5.255 6.517L7.69 2H1l7.806 10.91L1.47 22h3.074l5.705-7.07L15.31 22H22l-8.205-11.467Zm-2.38 2.95L9.97 11.464 4.36 3.627h2.31l4.528 6.317 1.443 2.02 6.018 8.409h-2.31l-4.934-6.89Z" />
                     </svg>
                   </span>
-                  <span className="m-1">Premium</span>
+                  <span className="flex items-center m-1 text-xl">Premium</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/verifiedorgs">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/verifiedorgs" ? "font-bold" : ""
               }`}
             >
               {pathname === "/verifiedorgs" ? (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       viewBox="0 0 16 16"
                       xmlns="http://www.w3.org/2000/svg"
@@ -556,11 +565,11 @@ export default function NavMenu() {
                       </g>
                     </svg>
                   </span>
-                  <span className="m-1">Verified Orgs</span>
+                  <span className="flex items-center m-1 text-xl">Verified Orgs</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center m-1">
+                  <span className="flex items-center m-1 mr-3">
                     <svg
                       viewBox="0 0 16 16"
                       xmlns="http://www.w3.org/2000/svg"
@@ -578,20 +587,20 @@ export default function NavMenu() {
                       </g>
                     </svg>
                   </span>
-                  <span className="m-1">Verified Orgs</span>
+                  <span className="flex items-center m-1 text-xl">Verified Orgs</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/profile">
             <li
-              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 ${
+              className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                 pathname === "/profile" ? "font-bold" : ""
               }`}
             >
               {pathname === "/profile" ? (
                 <div className="flex">
-                  <span className="flex items-center ml-0 m-1">
+                  <span className="flex items-center ml-0 m-1 mr-3">
                     <svg
                       className="w-9 h-9 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -608,11 +617,11 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Profile</span>
+                  <span className="flex items-center m-1 text-xl">Profile</span>
                 </div>
               ) : (
                 <div className="flex">
-                  <span className="flex items-center ml-0 m-1">
+                  <span className="flex items-center ml-0 m-1 mr-3">
                     <svg
                       className="w-9 h-9 text-gray-800 dark:text-white"
                       aria-hidden="true"
@@ -629,15 +638,15 @@ export default function NavMenu() {
                       />
                     </svg>
                   </span>
-                  <span className="m-1">Profile</span>
+                  <span className="flex items-center m-1 text-xl">Profile</span>
                 </div>
               )}
             </li>
           </Link>
           <Link href="/posts">
-            <li className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 pointer-events-none">
+            <li className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 pointer-events-none w-fit">
               <div className="flex">
-                <span className="flex items-center ml-1 m-1">
+                <span className="flex items-center ml-1 m-1 mr-3">
                   <svg
                     className="w-8 h-8 text-gray-800 dark:text-white"
                     aria-hidden="true"
@@ -656,7 +665,7 @@ export default function NavMenu() {
                     />
                   </svg>
                 </span>
-                <span className="m-1">More</span>
+                <span className="flex items-center m-1 text-xl">More</span>
               </div>
             </li>
           </Link>
@@ -671,7 +680,7 @@ export default function NavMenu() {
         </ul>
       </nav>
       <div>
-        <AuthButton />
+        <ProfileTab />
       </div>
     </div>
   );
