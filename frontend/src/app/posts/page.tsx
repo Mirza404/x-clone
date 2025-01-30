@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import NewPostPage from "../newPost/page";
+import PostListInfinite from "../components/PostListInfinite";
 import { Toaster } from "react-hot-toast";
 import CustomToaster from "../components/CustomToaster";
 import { LoadingBarContainer } from "react-top-loading-bar";
@@ -127,6 +128,8 @@ export const Page: React.FC<PostListProps> = () => {
           </div>
         </div>
       ))}
+      <div>SEPARATE</div>
+      <PostListInfinite />
       <CustomToaster />
     </div>
   );

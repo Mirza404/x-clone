@@ -5,6 +5,7 @@ import NavMenu from "./components/NavMenu";
 import SideBar from "./components/SideBar";
 import SessionProvider from "./components/SessionProvider";
 import QueryProvider from "@/query-client-provider";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 
 const geistSans = localFont({
@@ -28,6 +29,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const queryClient = new QueryClient();
   return (
     <html lang="en">
       <body
