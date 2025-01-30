@@ -32,7 +32,6 @@ async function allPosts(
       content: post.content,
       createdAt: post.createdAt,
     }));
-
     res.status(200).json({ posts: postsWithId, totalPages, currentPage: page });
   } catch (e) {
     console.error("Error getting posts:", e);
