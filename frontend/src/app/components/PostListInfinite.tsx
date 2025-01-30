@@ -4,7 +4,7 @@ import type { Post } from "../components/Post";
 import { getPostsPaginated } from "../posts/fetchInfo";
 
 function PostListInfinite() {
-  const fetchPosts = ({ pageParam = 0 }) => getPostsPaginated(pageParam);
+  const fetchPosts = ({ pageParam = 1 }) => getPostsPaginated(pageParam);
   const [page, setPage] = useState(0);
 
   const {
@@ -17,7 +17,7 @@ function PostListInfinite() {
   } = useInfiniteQuery({
     queryKey: ["Iposts"],
     queryFn: fetchPosts,
-    initialPageParam: 0,
+    initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage || undefined,
   });
 
@@ -29,15 +29,13 @@ function PostListInfinite() {
     return <p>Error: "Error happened"</p>;
   }
   console.log("data:", data);
-  
-  
 
   return (
     <>
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
-          {group?.posts?.data?.map((post: Post) => (
-            <p key={post.id}>{post.name}</p>
+          {group?.posts?.posts?.map((post: Post) => (
+            <p key={post.id}>{post.content}</p>
           ))}
         </Fragment>
       ))}
