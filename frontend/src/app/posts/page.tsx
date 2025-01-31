@@ -10,7 +10,6 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import NewPostPage from "../newPost/page";
 import PostListInfinite from "../components/PostListInfinite";
-import { Toaster } from "react-hot-toast";
 import CustomToaster from "../components/CustomToaster";
 import { LoadingBarContainer } from "react-top-loading-bar";
 import DropDownMenu from "../components/DropDownMenu";
@@ -77,7 +76,7 @@ export const Page: React.FC<PostListProps> = () => {
         <NewPostPage />
       </LoadingBarContainer>
 
-      {postsQuery.data?.map((post: Post) => (
+      {/* {postsQuery.data?.map((post: Post) => (
         <div
           key={post.id}
           className="relative p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px]"
@@ -127,8 +126,7 @@ export const Page: React.FC<PostListProps> = () => {
               )}
           </div>
         </div>
-      ))}
-      <div>SEPARATE</div>
+      ))} */}
       <PostListInfinite />
       <CustomToaster />
     </div>
