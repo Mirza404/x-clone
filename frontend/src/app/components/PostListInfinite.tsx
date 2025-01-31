@@ -109,6 +109,12 @@ function PostListInfinite() {
               key={post.id}
               className="relative group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px] post-hover"
             >
+              <img
+                className="flex w-10 h-10 rounded-full"
+                src={session?.user?.image ?? "https://via.placeholder.com/150"}
+                onLoad={() => setLoading(false)}
+                onError={() => setLoading(false)}
+              />
               {/* Header: Name, date */}
               <div className="flex items-center mb-2 text-sm text-gray-400">
                 <span className="font-bold">{post.name}</span>
@@ -121,7 +127,7 @@ function PostListInfinite() {
                 </span>
               </div>
               {/* Main part */}
-              <div className="bg-transparent p-4 ">
+              <div className="bg-transparent text-base ">
                 <div className="text-white">
                   {showMore
                     ? post.content
