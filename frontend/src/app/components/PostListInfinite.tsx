@@ -1,10 +1,12 @@
+"use client";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
 import type { Post } from "../components/Post";
 import { getPostsPaginated } from "../posts/fetchInfo";
 import PostComponent from "../components/Post";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useInView } from "react-intersection-observer";
 import type { PostListProps } from "../posts/page";
 import DropDownMenu from "../components/DropDownMenu";
 import toast from "react-hot-toast";
@@ -24,6 +26,7 @@ function PostListInfinite() {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const { data: session } = useSession();
   const queryClient = useQueryClient();
+  const { ref, inView } = useInView();
 
   const toggleDropdown = (id: string) => {
     setDropdownOpen(dropdownOpen === id ? null : id);
@@ -80,6 +83,12 @@ function PostListInfinite() {
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage || undefined,
   });
+
+  useEffect(() => {
+    if (inView) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, inView]);
 
   if (status === "pending") {
     return <p>Loading...</p>;
@@ -146,17 +155,12 @@ function PostListInfinite() {
           ))}
         </Fragment>
       ))}
-      <div>
-        <button
-          onClick={() => fetchNextPage()}
-          disabled={!hasNextPage || isFetchingNextPage}
-        >
-          {isFetchingNextPage
-            ? "Loading more..."
-            : hasNextPage
-            ? "Load More"
-            : "Nothing more to load"}
-        </button>
+      <div ref={ref}>
+        {isFetchingNextPage
+          ? "Loading more..."
+          : hasNextPage
+          ? "Load More"
+          : "Nothing more to load"}
       </div>
       <div>{isFetching && !isFetchingNextPage ? "Fetching..." : null}</div>
     </>
