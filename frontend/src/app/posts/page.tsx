@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import NewPostPage from "../newPost/page";
 import PostListInfinite from "../components/PostListInfinite";
 import CustomToaster from "../components/CustomToaster";
-import { LoadingBarContainer } from "react-top-loading-bar";
 
 export interface PostListProps {
   allPosts: Post[];
@@ -28,9 +27,7 @@ export const Page: React.FC<PostListProps> = () => {
 
   return (
     <div className="flex justify-center flex-col m-0">
-      <LoadingBarContainer>
-        <NewPostPage />
-      </LoadingBarContainer>
+      <NewPostPage />
       <PostListInfinite />
       <CustomToaster />
     </div>

@@ -18,7 +18,7 @@ const Post: React.FC<Post> = ({ id, content, name, author, createdAt }) => {
   
 
   return (
-    <div className="bg-black p-4">
+    <div className="bg-black p-4 hover:bg-gray-800">
       
       <div className="text-white">
         {showMore ? content : `${content.substring(0, 300)}`}

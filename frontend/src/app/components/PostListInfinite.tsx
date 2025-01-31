@@ -27,6 +27,8 @@ function PostListInfinite() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const { ref, inView } = useInView();
+  const [showMore, setShowMore] = useState(false);
+  const toggleShowMore = () => setShowMore(!showMore);
 
   const toggleDropdown = (id: string) => {
     setDropdownOpen(dropdownOpen === id ? null : id);
@@ -105,8 +107,9 @@ function PostListInfinite() {
           {group?.posts?.posts?.map((post: Post) => (
             <div
               key={post.id}
-              className="relative p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px]"
+              className="relative group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px] post-hover"
             >
+              {/* Header: Name, date */}
               <div className="flex items-center mb-2 text-sm text-gray-400">
                 <span className="font-bold">{post.name}</span>
                 <span className="mx-1">·</span>
@@ -117,13 +120,20 @@ function PostListInfinite() {
                   })}
                 </span>
               </div>
-              <PostComponent
-                id={post.id}
-                content={post.content}
-                name={post.name}
-                author={post.author}
-                createdAt={post.createdAt}
-              />
+              {/* Main part */}
+              <div className="bg-transparent p-4 ">
+                <div className="text-white">
+                  {showMore
+                    ? post.content
+                    : `${post.content.substring(0, 300)}`}
+                  {post.content.length > 300 && (
+                    <button onClick={toggleShowMore} className="text-blue-500">
+                      {showMore ? "Show less" : "Read more"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {/* Dropdown */}
               <div className="absolute top-2 right-2 mr-2">
                 <button
                   className="p-1 rounded-full hover:bg-gray-800 transition delay-100"
