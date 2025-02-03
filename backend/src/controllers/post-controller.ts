@@ -38,11 +38,9 @@ async function allPosts(
           id: post._id,
           content: post.content,
           createdAt: post.createdAt,
-          author: {
-            id: post.author,
-            name: user?.name || "Unknown",
-            image: user?.image || "",
-          },
+          author: post.author,
+          authorName: user?.name || "Unknown",
+          authorImage: user?.image || "https://via.placeholder.com/150",
         };
       })
     );

@@ -1,7 +1,7 @@
 "use client";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState, Fragment, useEffect } from "react";
-import type { Post } from "../components/Post";
+import type { Post } from "../posts/fetchInfo";
 import { getPostsPaginated } from "../posts/fetchInfo";
 import PostComponent from "../components/Post";
 import { useSession } from "next-auth/react";
@@ -105,19 +105,21 @@ function PostListInfinite() {
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
           {group?.posts?.posts?.map((post: Post) => (
+            
             <div
               key={post.id}
               className="relative group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px] post-hover"
             >
+              
               <img
                 className="flex w-10 h-10 rounded-full"
-                src={session?.user?.image ?? "https://via.placeholder.com/150"}
+                src={post?.authorImage ?? "https://via.placeholder.com/150"}
                 onLoad={() => setLoading(false)}
                 onError={() => setLoading(false)}
               />
               {/* Header: Name, date */}
               <div className="flex items-center mb-2 text-sm text-gray-400">
-                <span className="font-bold">{post.name}</span>
+                <span className="font-bold">{post.authorName}</span>
                 <span className="mx-1">·</span>
                 <span>
                   {new Date(post.createdAt).toLocaleDateString(undefined, {

@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { fetchPosts } from "./fetchInfo";
-import type { Post } from "../components/Post";
+import type { Post } from "./fetchInfo";
 import { useQuery } from "@tanstack/react-query";
 import NewPostPage from "../newPost/page";
 import PostListInfinite from "../components/PostListInfinite";

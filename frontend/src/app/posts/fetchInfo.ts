@@ -5,7 +5,10 @@ export interface Post {
   id: string;
   author: string;
   content: string;
+  name: string;
   createdAt: Date;
+  authorName: string;
+  authorImage: string;
 }
 
 export const fetchPosts = async () => {

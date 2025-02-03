@@ -2,12 +2,14 @@
 import React from "react";
 import { useState } from "react";
 
-export interface Post {
+interface Post {
   id: string;
   content: string;
   name: string;
   author: string;
   createdAt: Date;
+  authorName: string;
+  authorImage: string;
 }
 
 const Post: React.FC<Post> = ({ id, content, name, author, createdAt }) => {
