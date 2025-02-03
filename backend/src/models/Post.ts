@@ -1,5 +1,4 @@
 import mongoose, { Document } from "mongoose";
-
 const PostSchema = new mongoose.Schema({
   content: {
     type: String,

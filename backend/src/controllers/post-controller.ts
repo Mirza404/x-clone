@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Post from "../models/Post";
 import { NextFunction, Request, Response } from "express";
-import { getUserIdByEmail, getUserNameByEmail } from "./user-controllers";
+import { getUserIdByEmail } from "./user-controllers";
 
 async function allPosts(
   req: Request,
@@ -14,29 +14,49 @@ async function allPosts(
       return;
     }
 
-    const limit = parseInt(req.query.limit as string) || 10; // Default limit is 10
-    const page = parseInt(req.query.page as string) || 1; // Default page is 1
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
 
+    // Fetch posts
     const posts = await Post.find()
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
+
+    // Fetch user data for each post's author directly from the MongoDB users collection
+    const postsWithUserData = await Promise.all(
+      posts.map(async (post) => {
+        //@ts-ignore
+        const user = await mongoose.connection.db.collection("users").findOne(
+          { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
+          { projection: { name: 1, image: 1 } } // Only fetch name & image
+        );
+
+        return {
+          id: post._id,
+          content: post.content,
+          createdAt: post.createdAt,
+          author: {
+            id: post.author,
+            name: user?.name || "Unknown",
+            image: user?.image || "",
+          },
+        };
+      })
+    );
+
     const totalPosts = await Post.countDocuments();
     const totalPages = Math.ceil(totalPosts / limit);
 
-    const postsWithId = posts.map((post) => ({
-      id: post._id,
-      name: post.name,
-      author: post.author,
-      content: post.content,
-      createdAt: post.createdAt,
-    }));
-    res.status(200).json({ posts: postsWithId, totalPages, currentPage: page });
+    res
+      .status(200)
+      .json({ posts: postsWithUserData, totalPages, currentPage: page });
   } catch (e) {
     console.error("Error getting posts:", e);
     if (!res.headersSent) {
-      res.status(500).json({ message: e });
+      res.status(500).json({ message: "Internal Server Error" });
     }
   }
 }
@@ -89,7 +109,6 @@ async function createPost(
     }
 
     const author = await getUserIdByEmail(email);
-    const name = await getUserNameByEmail(email);
 
     if (!author || !content) {
       res.status(400).json({ message: "Author and content are required" });
