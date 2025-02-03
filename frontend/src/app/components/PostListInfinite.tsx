@@ -119,7 +119,7 @@ function PostListInfinite() {
               />
               {/* Header: Name, date */}
               <div className="flex items-center mb-2 text-sm text-gray-400">
-                <span className="font-bold">{post.authorName}</span>
+                <span className="font-bold">{post.name}</span>
                 <span className="mx-1">·</span>
                 <span>
                   {new Date(post.createdAt).toLocaleDateString(undefined, {

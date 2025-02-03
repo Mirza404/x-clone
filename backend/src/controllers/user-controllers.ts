@@ -31,7 +31,9 @@ export async function getUserNameByID(author: string): Promise<String> {
       throw new Error("No database connection");
     }
     const usersCollection = db.collection("users"); // Adjust collection name as needed
-    const user = await usersCollection.findOne({ author });
+    const user = await usersCollection.findOne({
+      _id: new mongoose.Types.ObjectId(author),
+    });
 
     if (!user) {
       throw new Error("User not found");

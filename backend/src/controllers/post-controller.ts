@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Post from "../models/Post";
 import { NextFunction, Request, Response } from "express";
-import { getUserIdByEmail } from "./user-controllers";
+import { getUserIdByEmail, getUserNameByID } from "./user-controllers";
 
 async function allPosts(
   req: Request,
@@ -31,15 +31,15 @@ async function allPosts(
         //@ts-ignore
         const user = await mongoose.connection.db.collection("users").findOne(
           { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
-          { projection: { name: 1, image: 1 } } // Only fetch name & image
+          { projection: { image: 1 } } // Only fetch name & image
         );
 
         return {
           id: post._id,
           content: post.content,
+          name: post.name,
           createdAt: post.createdAt,
           author: post.author,
-          authorName: user?.name || "Unknown",
           authorImage: user?.image || "https://via.placeholder.com/150",
         };
       })
@@ -106,10 +106,22 @@ async function createPost(
       return;
     }
 
+    console.log(`Finding user by email: ${email}`);
     const author = await getUserIdByEmail(email);
+    console.log("Author ID type:", typeof author);
+    console.log(`Found author ID: ${author}`);
+    console.log("author to string: ", author.toString());
 
-    if (!author || !content) {
-      res.status(400).json({ message: "Author and content are required" });
+    if (!author) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const name = await getUserNameByID(author.toString().trim());
+    console.log(`Found author name: ${name}`);
+
+    if (!content) {
+      res.status(400).json({ message: "Content is required" });
       return;
     }
 
@@ -123,10 +135,35 @@ async function createPost(
     const dateString = date.toDateString();
     const dateTime = `${dateString} ${timeString}`;
 
-    const post = new Post({ author, name, content, createdAt: dateTime });
-    await post.save();
+    // Fetch user info from the "users" collection
+    //@ts-ignore
+    const user = await mongoose.connection.db
+      .collection("users")
+      .findOne(
+        { _id: new mongoose.Types.ObjectId(author) },
+        { projection: { image: 1 } }
+      );
 
-    res.status(201).json({ message: "Post created successfully", post });
+    const newPost = new Post({
+      author,
+      name,
+      content,
+      createdAt: dateTime,
+      authorImage: user?.image || "https://via.placeholder.com/150",
+    });
+    await newPost.save();
+
+    res.status(201).json({
+      message: "Post created successfully",
+      post: {
+        id: newPost._id,
+        author: newPost.author,
+        name: newPost.name,
+        content: newPost.content,
+        createdAt: newPost.createdAt,
+        authorImage: user?.image || "https://via.placeholder.com/150",
+      },
+    });
   } catch (e) {
     console.error("Error creating post:", e);
     if (!res.headersSent) {

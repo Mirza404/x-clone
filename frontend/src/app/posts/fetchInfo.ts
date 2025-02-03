@@ -7,7 +7,6 @@ export interface Post {
   content: string;
   name: string;
   createdAt: Date;
-  authorName: string;
   authorImage: string;
 }
 
@@ -38,9 +37,9 @@ export async function getPostsPaginated(page: number) {
     const res = await axios.get(`${serverUrl}/api/post/`, {
       params: { page: page, sort: "createdAt", limit: 5 },
     });
-    console.log('Response:', res); // Log the entire response
+    console.log("Response:", res); // Log the entire response
     const totalPages = res.data.totalPages;
-    console.log('Total Pages:', totalPages); // Log the total pages
+    console.log("Total Pages:", totalPages); // Log the total pages
     const hasNext = page < totalPages;
     return {
       nextPage: hasNext ? page + 1 : undefined,
