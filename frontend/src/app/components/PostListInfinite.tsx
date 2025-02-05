@@ -3,23 +3,20 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState, Fragment, useEffect } from "react";
 import type { Post } from "../posts/fetchInfo";
 import { getPostsPaginated } from "../posts/fetchInfo";
-import PostComponent from "../components/Post";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useInView } from "react-intersection-observer";
-import type { PostListProps } from "../posts/page";
 import DropDownMenu from "../components/DropDownMenu";
 import toast from "react-hot-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { fetchPosts } from "../posts/fetchInfo";
-import CustomToaster from "../components/CustomToaster";
 import { useQueryClient } from "@tanstack/react-query";
+import LoadCircle from "../components/LoadCircle";
 
 function PostListInfinite() {
   const fetchPostsPaginated = ({ pageParam = 1 }) =>
     getPostsPaginated(pageParam);
-  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const router = useRouter();
@@ -105,46 +102,49 @@ function PostListInfinite() {
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
           {group?.posts?.posts?.map((post: Post) => (
-            
             <div
               key={post.id}
-              className="relative group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px] post-hover"
+              className="relative flex flex-row group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px] post-hover"
             >
-              
               <img
-                className="flex w-10 h-10 rounded-full"
+                className="flex w-10 h-10 rounded-full mr-4"
                 src={post?.authorImage ?? "https://via.placeholder.com/150"}
                 onLoad={() => setLoading(false)}
                 onError={() => setLoading(false)}
               />
               {/* Header: Name, date */}
-              <div className="flex items-center mb-2 text-sm text-gray-400">
-                <span className="font-bold">{post.name}</span>
-                <span className="mx-1">·</span>
-                <span>
-                  {new Date(post.createdAt).toLocaleDateString(undefined, {
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </span>
-              </div>
-              {/* Main part */}
-              <div className="bg-transparent text-base ">
-                <div className="text-white">
-                  {showMore
-                    ? post.content
-                    : `${post.content.substring(0, 300)}`}
-                  {post.content.length > 300 && (
-                    <button onClick={toggleShowMore} className="text-blue-500">
-                      {showMore ? "Show less" : "Read more"}
-                    </button>
-                  )}
+              <div className="flex flex-col">
+                <div className="flex items-center mb-2 text-sm text-gray-400">
+                  <span className="font-bold">{post.name}</span>
+                  <span className="mx-1">·</span>
+                  <span>
+                    {new Date(post.createdAt).toLocaleDateString(undefined, {
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+                {/* Main part */}
+                <div className="bg-transparent text-base ">
+                  <div className="text-white">
+                    {showMore
+                      ? post.content
+                      : `${post.content.substring(0, 300)}`}
+                    {post.content.length > 300 && (
+                      <button
+                        onClick={toggleShowMore}
+                        className="text-blue-500"
+                      >
+                        {showMore ? "Show less" : "Read more"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               {/* Dropdown */}
               <div className="absolute top-2 right-2 mr-2">
                 <button
-                  className="p-1 rounded-full hover:bg-gray-800 transition delay-100"
+                  className="p-1 rounded-full hover:bg-blue-500 hover:bg-opacity-20 transition delay-100"
                   onClick={() => toggleDropdown(post.id)}
                 >
                   <svg
@@ -174,11 +174,13 @@ function PostListInfinite() {
         </Fragment>
       ))}
       <div ref={ref}>
-        {isFetchingNextPage
-          ? "Loading more..."
-          : hasNextPage
-          ? "Load More"
-          : "Nothing more to load"}
+        {isFetchingNextPage ? (
+          <LoadCircle />
+        ) : hasNextPage ? (
+          "Load More"
+        ) : (
+          "Nothing more to load."
+        )}
       </div>
       <div>{isFetching && !isFetchingNextPage ? "Fetching..." : null}</div>
     </>
