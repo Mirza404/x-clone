@@ -144,7 +144,7 @@ function PostListInfinite() {
               {/* Dropdown */}
               <div className="absolute top-2 right-2 mr-2">
                 <button
-                  className="p-1 rounded-full hover:bg-blue-500 hover:bg-opacity-20 transition delay-100"
+                  className="p-1 rounded-full hover:bg-[#1D9BF0] hover:bg-opacity-20 transition delay-100"
                   onClick={() => toggleDropdown(post.id)}
                 >
                   <svg

@@ -32,8 +32,14 @@ body {
   white-space: pre-wrap;
 }
 
+/* #080808 convert this to rgb
+copilot
+ */
+
+.post-hover {
+  transition: background-color 180ms ease-in-out;
+}
 .post-hover:hover {
   --tw-bg-opacity: 1;
-  background-color: rgb(31 41 55 / var(--tw-bg-opacity, 1));
-  transition: background-color 150ms ease-in-out;
+  background-color: rgb(8 8 8 / var(--tw-bg-opacity, 1));
 }
