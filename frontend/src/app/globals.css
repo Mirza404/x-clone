@@ -43,3 +43,12 @@ copilot
   --tw-bg-opacity: 1;
   background-color: rgb(8 8 8 / var(--tw-bg-opacity, 1));
 }
+
+.hover-svg svg {
+  transition: fill 180ms ease-in-out, stroke 180ms ease-in-out;
+}
+
+.hover-svg:hover svg {
+  fill: #1d9bf0;
+  stroke: #1d9bf0;
+}

@@ -10,6 +10,7 @@ import axios from "axios";
 import classNames from "classnames";
 import CustomToaster from "../components/CustomToaster";
 import LoadingBar from "../components/CustomLoadBar";
+import FileUpload from "../components/FileUpload";
 
 const NewPostPage = () => {
   const [content, setContent] = useState("");
@@ -103,6 +104,7 @@ const NewPostPage = () => {
           >
             Post
           </button>
+          <FileUpload />
         </div>
       </div>
       <CustomToaster />
