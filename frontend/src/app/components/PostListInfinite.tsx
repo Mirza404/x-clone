@@ -90,7 +90,7 @@ function PostListInfinite() {
   }, [fetchNextPage, inView]);
 
   if (status === "pending") {
-    return <p>Loading...</p>;
+    <LoadCircle />;
   }
 
   if (status === "error") {
@@ -107,8 +107,9 @@ function PostListInfinite() {
               className="relative flex flex-row group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px] post-hover"
             >
               <img
-                className="flex w-10 h-10 rounded-full mr-4"
+                className="flex items-stretch min-w-10 h-10 rounded-full mr-4 "
                 src={post?.authorImage ?? "https://via.placeholder.com/150"}
+                referrerPolicy="no-referrer"
                 onLoad={() => setLoading(false)}
                 onError={() => setLoading(false)}
               />

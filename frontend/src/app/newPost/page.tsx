@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useMutation } from "@tanstack/react-query";
 import { fetchPosts } from "../posts/fetchInfo";
@@ -20,6 +20,8 @@ const NewPostPage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const { data: session } = useSession();
+
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -77,12 +79,19 @@ const NewPostPage = () => {
 
   return (
     <>
-      <div className="flex items-top justify-center bg-black bg-opacity-50 backdrop-blur-sm mt-0 h-[223px] ">
+      <div className="flex items-top justify-center bg-black bg-opacity-50 backdrop-blur-sm mt-0 max-h-[153px] ">
         <LoadingBar progress={progress} />
-        <div className="bg-black border border-gray-500 p-6 shadow-lg w-full max-w-md min-w-[598px] min-h-[200px] m-0">
+        <div className="flex  bg-black border border-gray-500 p-6 shadow-lg w-full max-w-md min-w-[598px] min-h-[200px] m-0">
+          <img
+            className="flex w-10 h-10 rounded-full mr-4"
+            src={session?.user?.image ?? "https://via.placeholder.com/150"}
+            onLoad={() => setLoading(false)}
+            onError={() => setLoading(false)}
+          />
           <textarea
-            className="w-full p-3 border border-gray-300  text-white bg-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 text-white bg-black rounded-lg focus:outline-none"
             placeholder="What is happening?!"
+            // 514x52
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
