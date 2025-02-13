@@ -6,6 +6,12 @@ const PostSchema = new mongoose.Schema({
     minLength: 1,
     maxLength: 380,
   },
+  images: {
+    type: [String],
+    maxLength: 8,
+    minLength: 0,
+    required: false,
+  },
   author: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
