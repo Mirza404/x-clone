@@ -139,6 +139,13 @@ function PostListInfinite() {
                         {showMore ? "Show less" : "Read more"}
                       </button>
                     )}
+                    {post?.images?.map((image, i) => (
+                      <img
+                        key={i}
+                        src={image}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ))}
                   </div>
                 </div>
               </div>

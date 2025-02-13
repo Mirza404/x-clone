@@ -5,6 +5,7 @@ export interface Post {
   id: string;
   author: string;
   content: string;
+  images: [string];
   name: string;
   createdAt: Date;
   authorImage: string;
