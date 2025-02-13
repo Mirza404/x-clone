@@ -10,13 +10,13 @@ import axios from "axios";
 import CustomToaster from "../components/CustomToaster";
 import LoadingBar from "../components/CustomLoadBar";
 import FileUpload from "../components/FileUpload";
-import Link from "next/link";
 import classNames from "classnames";
 
 const NewPostPage = () => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -39,8 +39,20 @@ const NewPostPage = () => {
       }
     };
 
-    fetchSession();
-  }, [router]);
+    const handleImageUpload = (event: Event) => {
+      const customEvent = event as CustomEvent<string[]>;
+      console.log("Received images from FileUpload:", customEvent.detail);
+      setImages(customEvent.detail);
+    };
+
+    fetchSession(); // Ensure session logic runs
+
+    window.addEventListener("imagesUploaded", handleImageUpload);
+
+    return () => {
+      window.removeEventListener("imagesUploaded", handleImageUpload);
+    };
+  }, [router]); // Single dependency array
 
   const postsQuery = useQuery({
     queryKey: ["posts"],
@@ -55,6 +67,7 @@ const NewPostPage = () => {
         {
           content,
           email,
+          images,
         },
         {
           headers: {
@@ -65,11 +78,12 @@ const NewPostPage = () => {
     },
     onSuccess: () => {
       setProgress(100);
-      queryClient.invalidateQueries({ queryKey: ["Iposts"] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
       toast.success("Your post was sent.");
       setLoading(false);
       router.push("/posts");
       setContent("");
+      setImages([]); // Reset images after posting
     },
     onError: (error: Error) => {
       setLoading(false);
@@ -87,6 +101,7 @@ const NewPostPage = () => {
             <img
               className="flex w-10 h-10 rounded-full"
               src={session?.user?.image ?? "https://via.placeholder.com/150"}
+              referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
               onError={() => setLoading(false)}
             />
