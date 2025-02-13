@@ -31,12 +31,13 @@ async function allPosts(
         //@ts-ignore
         const user = await mongoose.connection.db.collection("users").findOne(
           { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
-          { projection: { image: 1 } } // Only fetch name & image
+          { projection: { image: 1 } }
         );
 
         return {
           id: post._id,
           content: post.content,
+          images: post.images,
           name: post.name,
           createdAt: post.createdAt,
           author: post.author,
@@ -113,7 +114,9 @@ async function createPost(req: Request, res: Response): Promise<void> {
     const name = await getUserNameByID(author.toString().trim());
 
     if (!content && (!images || images.length === 0)) {
-      res.status(400).json({ message: "Post must have content or at least one image" });
+      res
+        .status(400)
+        .json({ message: "Post must have content or at least one image" });
       return;
     }
 
@@ -127,7 +130,10 @@ async function createPost(req: Request, res: Response): Promise<void> {
     //@ts-ignore
     const user = await mongoose.connection.db
       .collection("users")
-      .findOne({ _id: new mongoose.Types.ObjectId(author) }, { projection: { image: 1 } });
+      .findOne(
+        { _id: new mongoose.Types.ObjectId(author) },
+        { projection: { image: 1 } }
+      );
 
     const newPost = new Post({
       author,
@@ -151,7 +157,6 @@ async function createPost(req: Request, res: Response): Promise<void> {
     }
   }
 }
-
 
 async function deletePost(
   req: Request,
