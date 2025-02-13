@@ -93,13 +93,9 @@ async function getPost(
   }
 }
 
-async function createPost(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+async function createPost(req: Request, res: Response): Promise<void> {
   try {
-    const { content, email } = req.body;
+    const { content, email, images } = req.body; // Accept images array
 
     if (!email) {
       res.status(400).json({ message: "Email is required" });
@@ -108,9 +104,6 @@ async function createPost(
 
     console.log(`Finding user by email: ${email}`);
     const author = await getUserIdByEmail(email);
-    console.log("Author ID type:", typeof author);
-    console.log(`Found author ID: ${author}`);
-    console.log("author to string: ", author.toString());
 
     if (!author) {
       res.status(404).json({ message: "User not found" });
@@ -118,10 +111,9 @@ async function createPost(
     }
 
     const name = await getUserNameByID(author.toString().trim());
-    console.log(`Found author name: ${name}`);
 
-    if (!content) {
-      res.status(400).json({ message: "Content is required" });
+    if (!content && (!images || images.length === 0)) {
+      res.status(400).json({ message: "Post must have content or at least one image" });
       return;
     }
 
@@ -130,47 +122,36 @@ async function createPost(
       return;
     }
 
-    const date = new Date();
-    const timeString = date.toTimeString().split(" ")[0];
-    const dateString = date.toDateString();
-    const dateTime = `${dateString} ${timeString}`;
+    const date = new Date().toISOString();
 
-    // Fetch user info from the "users" collection
     //@ts-ignore
     const user = await mongoose.connection.db
       .collection("users")
-      .findOne(
-        { _id: new mongoose.Types.ObjectId(author) },
-        { projection: { image: 1 } }
-      );
+      .findOne({ _id: new mongoose.Types.ObjectId(author) }, { projection: { image: 1 } });
 
     const newPost = new Post({
       author,
       name,
       content,
-      createdAt: dateTime,
+      images, // Store array of image URLs
+      createdAt: date,
       authorImage: user?.image || "https://via.placeholder.com/150",
     });
+
     await newPost.save();
 
     res.status(201).json({
       message: "Post created successfully",
-      post: {
-        id: newPost._id,
-        author: newPost.author,
-        name: newPost.name,
-        content: newPost.content,
-        createdAt: newPost.createdAt,
-        authorImage: user?.image || "https://via.placeholder.com/150",
-      },
+      post: newPost, // Send full post object
     });
   } catch (e) {
     console.error("Error creating post:", e);
     if (!res.headersSent) {
-      res.status(500).json({ message: e });
+      res.status(500).json({ message: "Internal server error" });
     }
   }
 }
+
 
 async function deletePost(
   req: Request,
