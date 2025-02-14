@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
-import CustomToaster from "@/app/components/CustomToaster";
+import CustomToaster from "@/app/components/ui/CustomToaster";
 import classNames from "classnames";
 
 function EditPostPage({ params }: { params: { id: string } }) {

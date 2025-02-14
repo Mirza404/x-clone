@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { getSession, useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useMutation } from "@tanstack/react-query";
-import { fetchPosts } from "../posts/fetchInfo";
+import { fetchPosts } from "../utils/fetchInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import CustomToaster from "../components/CustomToaster";
-import LoadingBar from "../components/CustomLoadBar";
-import FileUpload from "../components/FileUpload";
+import CustomToaster from "../components/ui/CustomToaster";
+import LoadingBar from "../components/ui/CustomLoadBar";
+import FileUpload from "../utils/FileUpload";
 import classNames from "classnames";
 
 const NewPostPage = () => {

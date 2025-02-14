@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import NavMenu from "./components/NavMenu";
-import SideBar from "./components/SideBar";
-import SessionProvider from "./components/SessionProvider";
+import NavMenu from "./components/ui/NavMenu";
+import SideBar from "./components/ui/SideBar";
+import SessionProvider from "./utils/SessionProvider";
 import QueryProvider from "@/query-client-provider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";

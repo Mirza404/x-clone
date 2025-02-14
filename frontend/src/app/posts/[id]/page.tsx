@@ -1,7 +1,7 @@
 "use client";
-import { getPost } from "../fetchInfo";
+import { getPost } from "../../utils/fetchInfo";
 import React, { useState, useEffect } from "react";
-import PostComponent from "../../components/Post";
+import PostComponent from "../../components/posts/PostItem";
 import axios from "axios";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
