@@ -104,7 +104,7 @@ function PostListInfinite() {
           {group?.posts?.posts?.map((post: Post) => (
             <div
               key={post.id}
-              className="relative flex flex-row group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[200px] post-hover"
+              className="relative flex flex-row group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover"
             >
               <img
                 className="flex items-stretch min-w-10 h-10 rounded-full mr-2 "
@@ -139,13 +139,20 @@ function PostListInfinite() {
                         {showMore ? "Show less" : "Read more"}
                       </button>
                     )}
-                    {post?.images?.map((image, i) => (
-                      <img
-                        key={i}
-                        src={image}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    ))}
+
+                    <div
+                      className={
+                        post.images && post.images.length > 0 ? "" : "hidden"
+                      }
+                    >
+                      {post.images?.map((image, i) => (
+                        <img
+                          key={i}
+                          src={image}
+                          className="mt-2 w-full p-3 pl-0 object-cover rounded-lg"
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

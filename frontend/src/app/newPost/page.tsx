@@ -78,7 +78,7 @@ const NewPostPage = () => {
     },
     onSuccess: () => {
       setProgress(100);
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["Iposts"] });
       toast.success("Your post was sent.");
       setLoading(false);
       router.push("/posts");
