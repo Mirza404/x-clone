@@ -104,7 +104,7 @@ function PostListInfinite() {
           {group?.posts?.posts?.map((post: Post) => (
             <div
               key={post.id}
-              className="relative flex flex-row group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover"
+              className="relative flex flex-row group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover overflow-visible"
             >
               <img
                 className="flex items-stretch min-w-10 h-10 rounded-full mr-2 "
@@ -158,6 +158,8 @@ function PostListInfinite() {
               </div>
               {/* Dropdown */}
               <div className="absolute top-2 right-2 mr-2">
+              {/* <div className="absolute top-10 right-0 bg-gray-800 p-2 shadow-lg rounded-lg z-50"> */}
+
                 <button
                   className="p-1 rounded-full hover:bg-[#1D9BF0] hover:bg-opacity-20 transition delay-100 hover-svg"
                   onClick={() => toggleDropdown(post.id)}

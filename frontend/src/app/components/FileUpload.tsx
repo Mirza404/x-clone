@@ -5,6 +5,8 @@ const FileUpload = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const presetName = "x_clone";
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -25,11 +27,11 @@ const FileUpload = () => {
     for (const file of newFiles) {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset", "x_clone");
+      formData.append("upload_preset", presetName);
 
       try {
         const response = await axios.post(
-          "https://api.cloudinary.com/v1_1/dhumjqe9v/image/upload",
+          `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
           formData
         );
         uploadedUrls.push(response.data.secure_url);
@@ -48,13 +50,20 @@ const FileUpload = () => {
   // Send the uploaded images to the parent component
   const onImagesUploaded = (imageUrls: string[]) => {
     if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("imagesUploaded", { detail: imageUrls }));
+      window.dispatchEvent(
+        new CustomEvent("imagesUploaded", { detail: imageUrls })
+      );
     }
   };
 
   return (
     <div>
-      <input type="file" multiple onChange={handleFileChange} disabled={uploading} />
+      <input
+        type="file"
+        multiple
+        onChange={handleFileChange}
+        disabled={uploading}
+      />
       {uploading && <p>Uploading...</p>}
     </div>
   );

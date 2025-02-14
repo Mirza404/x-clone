@@ -8,7 +8,7 @@ interface DropdownProps {
 
 const Dropdown: React.FC<DropdownProps> = ({ onDelete, onEdit }) => {
   return (
-    <div className="absolute right-0 mt-2 w-48 bg-black border rounded shadow-[0_0_px_rgba(128,128,128,1)]">
+    <div className="absolute right-0 mt-2 w-48 bg-black border rounded shadow-[0_0_px_rgba(128,128,128,1)] z-50">
       <button
         onClick={onDelete}
         className="flex items-center w-full px-4 py-2 text-left text-white hover:bg-gray-800"
