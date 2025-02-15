@@ -1,18 +1,8 @@
 "use client";
 import { useState, Fragment, useEffect } from "react";
 import type { Post } from "../../utils/fetchInfo";
-import { getPostsPaginated, fetchPosts } from "../../utils/fetchInfo";
-import { useRouter } from "next/navigation";
 import { useInView } from "react-intersection-observer";
 import PostItem from "./PostItem";
-import toast from "react-hot-toast";
-import axios from "axios";
-import {
-  useQuery,
-  useMutation,
-  useInfiniteQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
 import {
   useFetchPosts,
   useFetchInfinitePosts,
@@ -21,12 +11,6 @@ import {
 import LoadCircle from "../ui/LoadCircle";
 
 function PostListInfinite() {
-  const fetchPostsPaginated = ({ pageParam = 1 }) =>
-    getPostsPaginated(pageParam);
-  const [loading, setLoading] = useState(true);
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const { ref, inView } = useInView();
   const postsQuery = useFetchPosts();
   const deletePostMutation = useDeletePost();

@@ -37,7 +37,7 @@ export default function PostItem({
         </div>
         {/* Main part */}
         <div className="bg-transparent text-sm ">
-          <div className="text-white">
+          <div className="text-white break-all whitespace-pre-wrap">
             {showMore ? post.content : `${post.content.substring(0, 300)}`}
             {post.content.length > 300 && (
               <button

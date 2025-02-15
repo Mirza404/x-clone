@@ -1,12 +1,11 @@
 "use client";
+import axios from "axios";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSession, useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useMutation } from "@tanstack/react-query";
-import { fetchPosts } from "../utils/fetchInfo";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import CustomToaster from "../components/ui/CustomToaster";
 import LoadingBar from "../components/ui/CustomLoadBar";
 import FileUpload from "../utils/FileUpload";
@@ -53,11 +52,6 @@ const NewPostPage = () => {
       window.removeEventListener("imagesUploaded", handleImageUpload);
     };
   }, [router]); // Single dependency array
-
-  const postsQuery = useQuery({
-    queryKey: ["posts"],
-    queryFn: () => fetchPosts(),
-  });
 
   const newPostMutation = useMutation({
     mutationFn: () => {
