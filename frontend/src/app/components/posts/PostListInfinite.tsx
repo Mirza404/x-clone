@@ -1,16 +1,23 @@
 "use client";
-import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState, Fragment, useEffect } from "react";
 import type { Post } from "../../utils/fetchInfo";
-import { getPostsPaginated } from "../../utils/fetchInfo";
+import { getPostsPaginated, fetchPosts } from "../../utils/fetchInfo";
 import { useRouter } from "next/navigation";
 import { useInView } from "react-intersection-observer";
 import PostItem from "./PostItem";
 import toast from "react-hot-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import { fetchPosts } from "../../utils/fetchInfo";
-import { useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  useFetchPosts,
+  useFetchInfinitePosts,
+  useDeletePost,
+} from "../../utils/mutations";
 import LoadCircle from "../ui/LoadCircle";
 
 function PostListInfinite() {
@@ -21,36 +28,10 @@ function PostListInfinite() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { ref, inView } = useInView();
-
-  const postsQuery = useQuery({
-    queryKey: ["posts"],
-    queryFn: () => fetchPosts(),
-  });
-
-  const deletePostMutation = useMutation({
-    mutationFn: async (id: string) => {
-      setLoading(true);
-      try {
-        return await axios.delete(`${serverUrl}/api/post/delete`, {
-          data: { id },
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-      } catch (error: any) {
-        throw new Error(error.message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    onSuccess: () => {
-      toast.success("Post deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ["Iposts"] }); // Invalidates the infinite query
-    },
-    onError: (error: any) => {
-      toast.error(`Error deleting post: ${error.message}`);
-    },
-  });
+  const postsQuery = useFetchPosts();
+  const deletePostMutation = useDeletePost();
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
+    useFetchInfinitePosts();
 
   if (postsQuery.isLoading)
     return (
@@ -59,20 +40,6 @@ function PostListInfinite() {
       </div>
     );
   if (postsQuery.isError) return <pre>Error</pre>;
-
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetching,
-    isFetchingNextPage,
-    status,
-  } = useInfiniteQuery({
-    queryKey: ["Iposts"],
-    queryFn: fetchPostsPaginated,
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.nextPage || undefined,
-  });
 
   useEffect(() => {
     if (inView) {
@@ -110,7 +77,6 @@ function PostListInfinite() {
           "Nothing more to load."
         )}
       </div>
-      <div>{isFetching && !isFetchingNextPage ? "Fetching..." : null}</div>
     </>
   );
 }
