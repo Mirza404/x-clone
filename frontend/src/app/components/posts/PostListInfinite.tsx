@@ -1,4 +1,3 @@
-"use client";
 import { useState, Fragment, useEffect } from "react";
 import type { Post } from "../../utils/fetchInfo";
 import { useInView } from "react-intersection-observer";
@@ -17,6 +16,12 @@ function PostListInfinite() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
     useFetchInfinitePosts();
 
+  useEffect(() => {
+    if (inView) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, inView]);
+
   if (postsQuery.isLoading)
     return (
       <div className="flex justify-center p-4 min-w-[600px] min-h-[200px]">
@@ -25,14 +30,8 @@ function PostListInfinite() {
     );
   if (postsQuery.isError) return <pre>Error</pre>;
 
-  useEffect(() => {
-    if (inView) {
-      fetchNextPage();
-    }
-  }, [fetchNextPage, inView]);
-
   if (status === "pending") {
-    <LoadCircle />;
+    return <LoadCircle />;
   }
 
   if (status === "error") {

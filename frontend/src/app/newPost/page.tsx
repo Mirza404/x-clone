@@ -85,9 +85,11 @@ const NewPostPage = () => {
     },
   });
 
+
+
   return (
     <>
-      <div className="flex justify-center bg-black bg-opacity-50 backdrop-blur-sm min-h-[116px]">
+      <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm min-h-[116px]">
         <LoadingBar progress={progress} />
         {/*  BORDER DOBAR OVDJE */}
         <div className="flex w-full flex-row bg-black bg-opacity-50 backdrop-blur-sm  mt-0 min-w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
@@ -102,10 +104,25 @@ const NewPostPage = () => {
           </div>
           <div className="flex flex-col py-3">
             <textarea
-              className="flex min-w-[514px] h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
+              className="flex min-w-[513px] h-7 py-0.5 text-white justify-center bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
               placeholder="What is happening?!"
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                const value = target.value;
+
+                // Set a min-height to prevent shrinking below 116px
+                const minHeight = 28; // Ensure min height
+                const maxHeight = 300; // Prevent unlimited expansion
+                
+                if (value === "") {
+                  target.style.height = `${minHeight}px`;
+                } else {
+                  target.style.height = `${minHeight}px`; // Reset first
+                  target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`; // Expand if needed
+                }
+              }}
             />
             <div className="w-[518px] h-[48px] py-0.5 mt-1.5">
               <div className="flex flex-row w-full h-full items-center justify-between">
