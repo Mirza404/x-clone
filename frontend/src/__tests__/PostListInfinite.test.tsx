@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom";
 import { getPostsPaginated } from "../app/utils/fetchInfo"; // adjust import if necessary
 
-// Mock the API call
 jest.mock("../app/utils/fetchInfo", () => ({
   getPostsPaginated: jest.fn().mockResolvedValue({
     data: { posts: [{}, {}, {}], totalPages: 9, currentPage: 1 },
@@ -20,6 +19,5 @@ test("PostListInfinite renders without crashing", async () => {
     </QueryClientProvider>
   );
 
-  // Wait for async operations to finish
   await waitFor(() => expect(container).toBeInTheDocument());
 });
