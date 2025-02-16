@@ -22,16 +22,11 @@ function PostListInfinite() {
     }
   }, [fetchNextPage, inView]);
 
-  if (postsQuery.isLoading)
-    return (
-      <div className="flex justify-center p-4 min-w-[600px] min-h-[200px]">
-        <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"></div>
-      </div>
-    );
+  if (postsQuery.isLoading) return <LoadCircle data-testid="load-circle" />;
   if (postsQuery.isError) return <pre>Error</pre>;
 
   if (status === "pending") {
-    return <LoadCircle />;
+    return <LoadCircle data-testid="load-circle" />;
   }
 
   if (status === "error") {
@@ -53,7 +48,7 @@ function PostListInfinite() {
       ))}
       <div ref={ref}>
         {isFetchingNextPage ? (
-          <LoadCircle />
+          <LoadCircle data-testid="load-circle" />
         ) : hasNextPage ? (
           "Load More"
         ) : (

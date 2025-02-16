@@ -12,6 +12,10 @@ jest.mock("../app/utils/fetchInfo", () => ({
 
 const queryClient = new QueryClient();
 
+test("making sure jest is configured properly", () => {
+  expect(true).toBe(true);
+});
+
 test("PostListInfinite renders without crashing", async () => {
   const { container } = render(
     <QueryClientProvider client={queryClient}>
