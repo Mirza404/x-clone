@@ -82,7 +82,7 @@ test("PostListInfinite renders LoadCircle while loading", async () => {
   );
 
   await waitFor(
-    () => expect(screen.getByTestId("load-circle")).toBeInTheDocument(),
+    () => expect(screen.getByTestId("load-circle-wrapper")).toBeInTheDocument(),
     { timeout: 5000 } // Allow more time for React to process state updates
   );
 });
