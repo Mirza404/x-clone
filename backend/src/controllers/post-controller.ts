@@ -215,12 +215,7 @@ async function editPost(
     }
   }
 }
-
-async function addLike(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+async function addLike(req: Request, res: Response): Promise<void> {
   try {
     const { id, email } = req.body;
 
@@ -235,130 +230,35 @@ async function addLike(
     }
 
     const author = await getUserIdByEmail(email);
-
     if (!author) {
       res.status(404).json({ message: "User not found" });
       return;
     }
 
     const post = await Post.findById(id);
-
     if (!post) {
       res.status(404).json({ message: "Post not found" });
       return;
     }
 
-    if (post.likes.includes(author)) {
-      removeLike(req, res, next);
-      return;
-    }
+    const updateAction = post.likes.includes(author)
+      ? { $pull: { likes: author } } // Remove like
+      : { $addToSet: { likes: author } }; // Add like
 
-    post.likes.push(author);
-    await post.save();
+    const updatedPost = await Post.findByIdAndUpdate(id, updateAction, {
+      new: true,
+    })
+      .populate("likes", "username email profilePicture") 
+      .lean();
 
-    res.status(200).json({ message: "Post liked successfully" });
+    res.status(200).json({
+      message: post.likes.includes(author) ? "Post unliked" : "Post liked",
+      likes: updatedPost?.likes, 
+    });
   } catch (e) {
-    console.error("Error liking post:", e);
+    console.error("Error liking/unliking post:", e);
     if (!res.headersSent) {
-      res.status(500).json({ message: e });
-    }
-  }
-}
-
-async function removeLike(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { id, email } = req.body;
-
-    if (!id || !email) {
-      res.status(400).json({ message: "Post ID and email are required" });
-      return;
-    }
-
-    if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: "Database not connected" });
-      return;
-    }
-
-    const author = await getUserIdByEmail(email);
-
-    if (!author) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    const post = await Post.findById(id);
-
-    if (!post) {
-      res.status(404).json({ message: "Post not found" });
-      return;
-    }
-
-    if (!post.likes.includes(author)) {
-      res.status(400).json({ message: "Post not liked" });
-      return;
-    }
-
-    post.likes = post.likes.filter((like) => like !== author);
-    await post.save();
-
-    res.status(200).json({ message: "Post unliked successfully" });
-  } catch (e) {
-    console.error("Error unliking post:", e);
-    if (!res.headersSent) {
-      res.status(500).json({ message: e });
-    }
-  }
-}
-
-async function addComment(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { id, email, content } = req.body;
-
-    if (!id || !email || !content) {
-      res
-        .status(400)
-        .json({ message: "Post ID, email, and content are required" });
-      return;
-    }
-
-    if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: "Database not connected" });
-      return;
-    }
-
-    const author = await getUserIdByEmail(email);
-
-    if (!author) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    const post = await Post.findById(id);
-
-    if (!post) {
-      res.status(404).json({ message: "Post not found" });
-      return;
-    }
-
-    const newComment = new Comment({ author, content });
-    await newComment.save();
-
-    post.comments.push(newComment._id);
-    await post.save();
-
-    res.status(200).json({ message: "Comment added successfully" });
-  } catch (e) {
-    console.error("Error adding comment:", e);
-    if (!res.headersSent) {
-      res.status(500).json({ message: e });
+      res.status(500).json({ message: "Internal server error" });
     }
   }
 }
