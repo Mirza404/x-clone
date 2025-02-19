@@ -215,4 +215,103 @@ async function editPost(
   }
 }
 
+async function addLike(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id, email } = req.body;
+
+    if (!id || !email) {
+      res.status(400).json({ message: "Post ID and email are required" });
+      return;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: "Database not connected" });
+      return;
+    }
+
+    const author = await getUserIdByEmail(email);
+
+    if (!author) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const post = await Post.findById(id);
+
+    if (!post) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    if (post.likes.includes(author)) {
+      removeLike(req, res, next);
+      return;
+    }
+
+    post.likes.push(author);
+    await post.save();
+
+    res.status(200).json({ message: "Post liked successfully" });
+  } catch (e) {
+    console.error("Error liking post:", e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: e });
+    }
+  }
+}
+
+
+async function removeLike(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id, email } = req.body;
+
+    if (!id || !email) {
+      res.status(400).json({ message: "Post ID and email are required" });
+      return;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: "Database not connected" });
+      return;
+    }
+
+    const author = await getUserIdByEmail(email);
+
+    if (!author) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const post = await Post.findById(id);
+
+    if (!post) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    if (!post.likes.includes(author)) {
+      res.status(400).json({ message: "Post not liked" });
+      return;
+    }
+
+    post.likes = post.likes.filter((like) => like !== author);
+    await post.save();
+
+    res.status(200).json({ message: "Post unliked successfully" });
+  } catch (e) {
+    console.error("Error unliking post:", e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: e });
+    }
+  }
+}
+
 export { allPosts, getPost, createPost, deletePost, editPost };
