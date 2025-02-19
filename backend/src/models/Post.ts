@@ -34,8 +34,9 @@ const PostSchema = new mongoose.Schema({
   },
   comments: {
     type: [mongoose.Schema.Types.ObjectId],
+    ref: "Comment",
     default: [],
-  }
+  },
 });
 
 PostSchema.index({ author: 1, createdAt: -1 });

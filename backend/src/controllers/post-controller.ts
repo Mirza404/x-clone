@@ -314,4 +314,50 @@ async function removeLike(
   }
 }
 
+// async function addComment(
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<void> {
+//   try {
+//     const { id, email, content } = req.body;
+
+//     if (!id || !email || !content) {
+//       res
+//         .status(400)
+//         .json({ message: "Post ID, email, and content are required" });
+//       return;
+//     }
+
+//     if (mongoose.connection.readyState !== 1) {
+//       res.status(500).json({ message: "Database not connected" });
+//       return;
+//     }
+
+//     const author = await getUserIdByEmail(email);
+
+//     if (!author) {
+//       res.status(404).json({ message: "User not found" });
+//       return;
+//     }
+
+//     const post = await Post.findById(id);
+
+//     if (!post) {
+//       res.status(404).json({ message: "Post not found" });
+//       return;
+//     }
+
+//     post.comments.push({ author, content });
+//     await post.save();
+
+//     res.status(200).json({ message: "Comment added successfully" });
+//   } catch (e) {
+//     console.error("Error adding comment:", e);
+//     if (!res.headersSent) {
+//       res.status(500).json({ message: e });
+//     }
+//   }
+// }
+
 export { allPosts, getPost, createPost, deletePost, editPost };
