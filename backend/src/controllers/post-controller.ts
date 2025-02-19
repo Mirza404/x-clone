@@ -25,7 +25,6 @@ async function allPosts(
       .limit(limit)
       .lean();
 
-    // Fetch user data for each post's author directly from the MongoDB users collection
     const postsWithUserData = await Promise.all(
       posts.map(async (post) => {
         //@ts-ignore

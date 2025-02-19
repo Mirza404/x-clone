@@ -28,6 +28,14 @@ const PostSchema = new mongoose.Schema({
     default: Date.now,
     required: true,
   },
+  likes: {
+    type: [mongoose.Schema.Types.ObjectId],
+    default: [],
+  },
+  comments: {
+    type: [mongoose.Schema.Types.ObjectId],
+    default: [],
+  }
 });
 
 PostSchema.index({ author: 1, createdAt: -1 });
