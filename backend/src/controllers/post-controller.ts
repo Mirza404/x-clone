@@ -40,6 +40,7 @@ async function allPosts(
           images: post.images,
           name: post.name,
           createdAt: post.createdAt,
+          likes: post.likes,
           author: post.author,
           authorImage: user?.image || "https://via.placeholder.com/150",
         };
@@ -142,6 +143,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
       images, // Store array of image URLs
       createdAt: date,
       authorImage: user?.image || "https://via.placeholder.com/150",
+      likes: [], // Initialize empty likes array
     });
 
     await newPost.save();
@@ -215,23 +217,38 @@ async function editPost(
     }
   }
 }
+
+async function getLikes(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    const post = await Post.findById(id)
+      .populate("likes", "username email profilePicture")
+      .lean();
+
+    if (!post) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    res.status(200).json({ likes: post.likes });
+  } catch (e) {
+    console.error("Error fetching likes:", e);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 async function addLike(req: Request, res: Response): Promise<void> {
   try {
-    const { id, email } = req.body;
+    const { id, authorId } = req.body;
 
-    if (!id || !email) {
-      res.status(400).json({ message: "Post ID and email are required" });
+    if (!id || !authorId) {
+      res.status(400).json({ message: "Post ID and author ID are required" });
       return;
     }
 
     if (mongoose.connection.readyState !== 1) {
       res.status(500).json({ message: "Database not connected" });
-      return;
-    }
-
-    const author = await getUserIdByEmail(email);
-    if (!author) {
-      res.status(404).json({ message: "User not found" });
       return;
     }
 
@@ -241,19 +258,19 @@ async function addLike(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const updateAction = post.likes.includes(author)
-      ? { $pull: { likes: author } } // Remove like
-      : { $addToSet: { likes: author } }; // Add like
+    const updateAction = post.likes.includes(authorId)
+      ? { $pull: { likes: authorId } } // Remove like
+      : { $addToSet: { likes: authorId } }; // Add like
 
     const updatedPost = await Post.findByIdAndUpdate(id, updateAction, {
       new: true,
     })
-      .populate("likes", "username email profilePicture") 
+      .populate("likes", "username email profilePicture")
       .lean();
 
     res.status(200).json({
-      message: post.likes.includes(author) ? "Post unliked" : "Post liked",
-      likes: updatedPost?.likes, 
+      message: post.likes.includes(authorId) ? "Post unliked" : "Post liked",
+      likes: updatedPost?.likes,
     });
   } catch (e) {
     console.error("Error liking/unliking post:", e);
@@ -263,47 +280,12 @@ async function addLike(req: Request, res: Response): Promise<void> {
   }
 }
 
-// async function removeComment(
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ): Promise<void> {
-//   try {
-//     const { id, email } = req.body;
-
-//     if (!id || !email) {
-//       res.status(400).json({ message: "Comment ID and email are required" });
-//       return;
-//     }
-
-//     if (mongoose.connection.readyState !== 1) {
-//       res.status(500).json({ message: "Database not connected" });
-//       return;
-//     }
-
-//     const author = await getUserIdByEmail(email);
-
-//     if (!author) {
-//       res.status(404).json({ message: "User not found" });
-//       return;
-//     }
-
-//     const comment = await Comment.findById(id);
-
-//     if (!comment) {
-//       res.status(404).json({ message: "Comment not found" });
-//       return;
-//     }
-
-//     await comment.delete();
-
-//     res.status(200).json({ message: "Comment removed successfully" });
-//   } catch (e) {
-//     console.error("Error removing comment:", e);
-//     if (!res.headersSent) {
-//       res.status(500).json({ message: e });
-//     }
-//   }
-// }
-
-export { allPosts, getPost, createPost, deletePost, editPost };
+export {
+  allPosts,
+  getPost,
+  createPost,
+  deletePost,
+  editPost,
+  addLike,
+  getLikes,
+};
