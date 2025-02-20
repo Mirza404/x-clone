@@ -5,10 +5,11 @@ const FileUpload = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const presetName = "x_clone";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  console.log("Cloudinary Cloud Name:", cloudinaryCloudName);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -17,6 +18,8 @@ const FileUpload = () => {
 
       // Automatically trigger upload after files are set
       uploadImages(newFiles);
+    } else {
+      console.error("No files selected");
     }
   };
 
@@ -39,6 +42,7 @@ const FileUpload = () => {
         uploadedUrls.push(response.data.secure_url);
       } catch (error) {
         console.error("Upload failed:", error);
+        alert("Upload failed. Please try again.");
       }
     }
 
