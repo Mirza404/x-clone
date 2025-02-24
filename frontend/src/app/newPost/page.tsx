@@ -1,6 +1,6 @@
 "use client";
 import axios from "axios";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getSession, useSession } from "next-auth/react";
 import toast from "react-hot-toast";
@@ -21,6 +21,7 @@ const NewPostPage = () => {
   const router = useRouter();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const { data: session } = useSession();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -53,6 +54,12 @@ const NewPostPage = () => {
     };
   }, [router]); // Single dependency array
 
+  const resetTextareaHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "28px"; // Reset to min height
+    }
+  };
+
   const newPostMutation = useMutation({
     mutationFn: () => {
       setLoading(true);
@@ -77,7 +84,8 @@ const NewPostPage = () => {
       setLoading(false);
       router.push("/posts");
       setContent("");
-      setImages([]); // Reset images after posting
+      setImages([]);
+      resetTextareaHeight(); // Add this line
     },
     onError: (error: Error) => {
       setLoading(false);
@@ -85,14 +93,11 @@ const NewPostPage = () => {
     },
   });
 
-
-
   return (
     <>
       <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm min-h-[116px]">
         <LoadingBar progress={progress} />
-        {/*  BORDER DOBAR OVDJE */}
-        <div className="flex w-full flex-row bg-black bg-opacity-50 backdrop-blur-sm  mt-0 min-w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
+        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm  mt-0 w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
           <div className="pt-2 mr-2">
             <img
               className="flex w-10 h-10 rounded-full"
@@ -104,6 +109,7 @@ const NewPostPage = () => {
           </div>
           <div className="flex flex-col py-3">
             <textarea
+              ref={textareaRef}
               className="flex min-w-[513px] h-7 py-0.5 text-white justify-center bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
               placeholder="What is happening?!"
               value={content}
@@ -111,16 +117,17 @@ const NewPostPage = () => {
               onInput={(e) => {
                 const target = e.target as HTMLTextAreaElement;
                 const value = target.value;
+                const minHeight = 28;
+                const maxHeight = 300;
 
-                // Set a min-height to prevent shrinking below 116px
-                const minHeight = 28; // Ensure min height
-                const maxHeight = 300; // Prevent unlimited expansion
-                
                 if (value === "") {
                   target.style.height = `${minHeight}px`;
                 } else {
-                  target.style.height = `${minHeight}px`; // Reset first
-                  target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`; // Expand if needed
+                  target.style.height = `${minHeight}px`;
+                  target.style.height = `${Math.min(
+                    target.scrollHeight,
+                    maxHeight
+                  )}px`;
                 }
               }}
             />
