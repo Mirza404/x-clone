@@ -7,6 +7,7 @@ export default function NavMenu() {
   const pathname = usePathname();
   return (
     <div>
+    <div className="flex flex-col h-fit text-white">
       <nav className="mt-0 m-5 px-2">
         <ul className="flex flex-col">
           <Link href="/posts">
@@ -126,8 +127,8 @@ export default function NavMenu() {
                     >
                       <path
                         stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-width="2"
+                        strokeLinecap="round"
+                        strokeWidth="2"
                         d="m21 21-3.5-3.5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
                       />
                     </svg>
@@ -176,9 +177,9 @@ export default function NavMenu() {
                     >
                       <path
                         stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
                         d="M12 5.365V3m0 2.365a5.338 5.338 0 0 1 5.133 5.368v1.8c0 2.386 1.867 2.982 1.867 4.175 0 .593 0 1.292-.538 1.292H5.538C5 18 5 17.301 5 16.708c0-1.193 1.867-1.789 1.867-4.175v-1.8A5.338 5.338 0 0 1 12 5.365ZM8.733 18c.094.852.306 1.54.944 2.112a3.48 3.48 0 0 0 4.646 0c.638-.572 1.236-1.26 1.33-2.112h-6.92Z"
                       />
                     </svg>
@@ -238,9 +239,9 @@ export default function NavMenu() {
                     >
                       <path
                         stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
                         d="M9 17h6l3 3v-3h2V9h-2M4 4h11v8H9l-3 3v-3H4V4Z"
                       />
                     </svg>
@@ -291,9 +292,9 @@ export default function NavMenu() {
                     >
                       <path
                         stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
                         d="m17 21-5-4-5 4V3.889a.92.92 0 0 1 .244-.629.808.808 0 0 1 .59-.26h8.333a.81.81 0 0 1 .589.26.92.92 0 0 1 .244.63V21Z"
                       />
                     </svg>
@@ -346,9 +347,9 @@ export default function NavMenu() {
                     >
                       <path
                         stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
                         d="M8 7H5a2 2 0 0 0-2 2v4m5-6h8M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m0 0h3a2 2 0 0 1 2 2v4m0 0v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6m18 0s-4 2-9 2-9-2-9-2m9-2h.01"
                       />
                     </svg>
@@ -401,8 +402,8 @@ export default function NavMenu() {
                     >
                       <path
                         stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-width="2"
+                        strokeLinecap="round"
+                        strokeWidth="2"
                         d="M4.5 17H4a1 1 0 0 1-1-1 3 3 0 0 1 3-3h1m0-3.05A2.5 2.5 0 1 1 9 5.5M19.5 17h.5a1 1 0 0 0 1-1 3 3 0 0 0-3-3h-1m0-3.05a2.5 2.5 0 1 0-2-4.45m.5 13.5h-7a1 1 0 0 1-1-1 3 3 0 0 1 3-3h3a3 3 0 0 1 3 3 1 1 0 0 1-1 1Zm-1-9.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z"
                       />
                     </svg>
@@ -472,11 +473,11 @@ export default function NavMenu() {
                       fill="#ffffff"
                       className="bi bi-lightning-fill w-8 h-8 text-gray-800 dark:text-white"
                     >
-                      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
                       <g
                         id="SVGRepo_tracerCarrier"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       ></g>
                       <g id="SVGRepo_iconCarrier">
                         <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5z"></path>
@@ -496,11 +497,11 @@ export default function NavMenu() {
                       fill="#ffffff"
                       className="bi bi-lightning-fill w-8 h-8 text-gray-800 dark:text-white"
                     >
-                      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
                       <g
                         id="SVGRepo_tracerCarrier"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       ></g>
                       <g id="SVGRepo_iconCarrier">
                         <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5z"></path>
@@ -600,10 +601,11 @@ export default function NavMenu() {
             </Link>
           </div>
         </ul>
-      </nav>
-      <div className="absolute w-[13em] m-0">
+      <div className="w-fit mt-2">
         <ProfileTab />
       </div>
+      </nav>
+    </div>
     </div>
   );
 }
