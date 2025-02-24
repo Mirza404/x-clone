@@ -3,6 +3,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import DropDownMenu from "./DropDownMenu";
 import type { Post } from "../../utils/fetchInfo";
+import LikeButton from "../ui/LikeButton";
 
 export default function PostItem({
   post,
@@ -15,9 +16,10 @@ export default function PostItem({
   const router = useRouter();
   const [showMore, setShowMore] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const authorId: string = session?.user?.id ?? "";
 
   return (
-    <div className="relative flex flex-row group p-4 border border-gray-500 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover overflow-visible">
+    <div className="relative flex flex-row group p-4 border border-gray-700 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover overflow-visible">
       <img
         className="flex items-stretch min-w-10 h-10 rounded-full mr-2"
         src={post?.authorImage ?? "https://via.placeholder.com/150"}
@@ -59,6 +61,14 @@ export default function PostItem({
               </div>
             )}
           </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <LikeButton
+            postId={post.id}
+            authorId={authorId}
+            initialLikes={post.likes}
+          />
+          {/* Other post actions */}
         </div>
       </div>
       {/* Dropdown */}

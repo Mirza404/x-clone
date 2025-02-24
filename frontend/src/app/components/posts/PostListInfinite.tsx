@@ -27,9 +27,9 @@ function PostListInfinite() {
       <div data-testid="load-circle-wrapper">
         <LoadCircle />
       </div>
-      // <LoadCircle data-testid="load-circle"/>
     );
-  if (postsQuery.isError) return <pre>Error</pre>;
+  if (postsQuery.isError)
+    return <div data-testid="error-wrapper">Error: "Error happened"</div>;
 
   if (status === "pending") {
     return (
@@ -40,7 +40,7 @@ function PostListInfinite() {
   }
 
   if (status === "error") {
-    return <p>Error: "Error happened"</p>;
+    return <div data-testid="error-wrapper">Error: "Error happened"</div>;
   }
 
   return (
@@ -48,11 +48,13 @@ function PostListInfinite() {
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
           {group?.posts?.posts?.map((post: Post) => (
-            <PostItem
-              key={post.id}
-              post={post}
-              onDelete={() => deletePostMutation.mutate(post.id)}
-            />
+            <div className="divide-y divide-gray-800">
+              <PostItem
+                key={post.id}
+                post={post}
+                onDelete={() => deletePostMutation.mutate(post.id)}
+              />
+            </div>
           ))}
         </Fragment>
       ))}
