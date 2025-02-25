@@ -134,6 +134,7 @@ export default function PostItem({
           <DropDownMenu
             onDelete={onDelete}
             onEdit={() => router.push(`/posts/${post.id}/editPost`)}
+            onClose={() => setDropdownOpen(false)}
           />
         )}
       </div>
