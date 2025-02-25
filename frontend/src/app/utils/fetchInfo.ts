@@ -1,10 +1,10 @@
-import { PageProps } from ".next/types/app/layout";
 import axios from "axios";
 
 export interface Post {
   id: string;
   author: string;
   content: string;
+  likes: [string];
   images: [string];
   name: string;
   createdAt: Date;
@@ -15,13 +15,6 @@ export const fetchPosts = async () => {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const response = await axios.get(`${serverUrl}/api/post/`);
   return response.data.posts;
-};
-
-const fetchPostsLength = async () => {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const response = await axios.get(`${serverUrl}/api/post/`);
-  const posts = response.data.posts;
-  return posts.length;
 };
 
 export async function getPost(id: string) {

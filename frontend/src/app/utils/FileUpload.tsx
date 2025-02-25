@@ -1,64 +1,24 @@
 import { useState, useRef } from "react";
-import axios from "axios";
 
-const FileUpload = () => {
-  const [files, setFiles] = useState<File[]>([]);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const presetName = "x_clone";
+export const removeImage = (
+  fileToRemove: File,
+  setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>
+) => {
+  setSelectedFiles((prevFiles) =>
+    prevFiles.filter((file) => file !== fileToRemove)
+  );
+};
+
+const FileUpload = ({ onImagesUploaded }) => {
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  console.log("Cloudinary Cloud Name:", cloudinaryCloudName);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const newFiles = Array.from(event.target.files);
-      setFiles((prevFiles) => [...prevFiles, ...newFiles]);
-
-      // Automatically trigger upload after files are set
-      uploadImages(newFiles);
-    } else {
-      console.error("No files selected");
-    }
-  };
-
-  const uploadImages = async (newFiles: File[]) => {
-    if (newFiles.length === 0) return;
-
-    setUploading(true);
-    const uploadedUrls: string[] = [];
-
-    for (const file of newFiles) {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", presetName);
-
-      try {
-        const response = await axios.post(
-          `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
-          formData
-        );
-        uploadedUrls.push(response.data.secure_url);
-      } catch (error) {
-        console.error("Upload failed:", error);
-        alert("Upload failed. Please try again.");
-      }
-    }
-
-    setUploading(false);
-    setUploadedImages((prevImages) => [...prevImages, ...uploadedUrls]);
-
-    // Pass uploaded images to the parent (Posts Page)
-    onImagesUploaded(uploadedUrls);
-  };
-
-  // Send the uploaded images to the parent component
-  const onImagesUploaded = (imageUrls: string[]) => {
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("imagesUploaded", { detail: imageUrls })
-      );
+      setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+      // Pass the files to parent for preview
+      onImagesUploaded(newFiles);
     }
   };
 
@@ -69,37 +29,33 @@ const FileUpload = () => {
   };
 
   return (
-    <div className="hover:bg-[#1D9BF0] hover:bg-opacity-20 transition delay-100 p-2 rounded-full">
+    <div>
       <input
+        ref={fileInputRef}
         type="file"
         multiple
         onChange={handleFileChange}
-        disabled={uploading}
-        ref={fileInputRef}
-        style={{ display: "none" }}
+        className="hidden"
       />
-      <svg
-        className="w-6 h-6 text-gray-800 dark:text-white"
-        aria-hidden="true"
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        fill="#1d9bf0"
-        viewBox="0 0 24 24"
+      <button
         onClick={handleSvgClick}
+        className="p-2 rounded-full hover:bg-gray-800 transition-colors"
       >
-        <path
-          fillRule="evenodd"
-          d="M13 10a1 1 0 0 1 1-1h.01a1 1 0 1 1 0 2H14a1 1 0 0 1-1-1Z"
-          clipRule="evenodd"
-        />
-        <path
-          fillRule="evenodd"
-          d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12c0 .556-.227 1.06-.593 1.422A.999.999 0 0 1 20.5 20H4a2.002 2.002 0 0 1-2-2V6Zm6.892 12 3.833-5.356-3.99-4.322a1 1 0 0 0-1.549.097L4 12.879V6h16v9.95l-3.257-3.619a1 1 0 0 0-1.557.088L11.2 18H8.892Z"
-          clipRule="evenodd"
-        />
-      </svg>
-      {uploading && <p>Uploading...</p>}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="w-5 h-5"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+          />
+        </svg>
+      </button>
     </div>
   );
 };
