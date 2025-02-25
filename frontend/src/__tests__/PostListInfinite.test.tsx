@@ -49,9 +49,9 @@ jest.mock("../app/utils/mutations", () => ({
     hasNextPage: true,
     isFetchingNextPage: false,
     status: "pending",
-    isLoading: true,
+    isLoading: false,
   }),
-  useDeletePost: jest.fn(), // Add this line to mock useDeletePost
+  useDeletePost: jest.fn(),
 }));
 
 const queryClient = new QueryClient();
@@ -81,8 +81,7 @@ test("PostListInfinite renders LoadCircle while loading", async () => {
     </QueryClientProvider>
   );
 
-  await waitFor(
-    () => expect(screen.getByTestId("load-circle-wrapper")).toBeInTheDocument(),
-    { timeout: 5000 } // Allow more time for React to process state updates
+  await waitFor(() =>
+    expect(screen.getByTestId("load-circle-wrapper")).toBeInTheDocument()
   );
 });

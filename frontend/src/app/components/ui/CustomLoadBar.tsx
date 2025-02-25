@@ -16,12 +16,12 @@ const CustomLoadBar: React.FC<CustomLoadBarProps> = ({ progress }) => {
         setCurrentProgress((prev) => {
           if (prev >= 100) {
             clearInterval(interval);
-            setTimeout(() => setCurrentProgress(0), 500); // Add delay before hiding
+            setTimeout(() => setCurrentProgress(0), 500); 
             return 100;
           }
           return Math.min(100, prev + 5);
         });
-      }, 16); // Smoother animation with 60fps
+      }, 16); 
       return () => clearInterval(interval);
     } else {
       setCurrentProgress(progress);
