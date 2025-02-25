@@ -15,11 +15,12 @@ const NewPostPage = () => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
   const router = useRouter();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -31,44 +32,74 @@ const NewPostPage = () => {
       } else {
         if (session.user.email) {
           setEmail(session.user.email);
-          console.log("email found: ", session.user.email);
-        } else {
-          console.log("no email found");
         }
         setLoading(false);
       }
     };
 
-    const handleImageUpload = (event: Event) => {
-      const customEvent = event as CustomEvent<string[]>;
-      console.log("Received images from FileUpload:", customEvent.detail);
-      setImages(customEvent.detail);
-    };
-
-    fetchSession(); // Ensure session logic runs
-
-    window.addEventListener("imagesUploaded", handleImageUpload);
-
-    return () => {
-      window.removeEventListener("imagesUploaded", handleImageUpload);
-    };
-  }, [router]); // Single dependency array
+    fetchSession();
+  }, [router]);
 
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "28px"; // Reset to min height
+      textareaRef.current.style.height = "28px";
     }
   };
 
+  const uploadImages = async (files: File[]) => {
+    if (files.length === 0) return [];
+
+    const uploadedUrls: string[] = [];
+    const totalFiles = files.length;
+    let completedUploads = 0;
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "x_clone");
+
+      try {
+        const response = await axios.post(
+          `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
+          formData
+        );
+        uploadedUrls.push(response.data.secure_url);
+        completedUploads++;
+        setProgress((completedUploads / totalFiles) * 50); // Use first 50% for uploads
+      } catch (error) {
+        console.error("Upload failed:", error);
+        toast.error("Image upload failed. Please try again.");
+        throw error;
+      }
+    }
+
+    return uploadedUrls;
+  };
+
+  const handleImagesUploaded = (files: File[]) => {
+    setSelectedFiles(files);
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedFiles(files => files.filter((_, i) => i !== index));
+  };
+
   const newPostMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       setLoading(true);
-      return axios.post(
+      setProgress(0);
+      
+      // First upload images
+      const uploadedUrls = await uploadImages(selectedFiles);
+      
+      // Then create post
+      setProgress(50); // Start second 50% for post creation
+      const response = await axios.post(
         `${serverUrl}/api/post/new`,
         {
           content,
           email,
-          images,
+          images: uploadedUrls,
         },
         {
           headers: {
@@ -76,19 +107,21 @@ const NewPostPage = () => {
           },
         }
       );
+      setProgress(100);
+      return response;
     },
     onSuccess: () => {
-      setProgress(100);
       queryClient.invalidateQueries({ queryKey: ["Iposts"] });
       toast.success("Your post was sent.");
       setLoading(false);
       router.push("/posts");
       setContent("");
-      setImages([]);
-      resetTextareaHeight(); // Add this line
+      setSelectedFiles([]);
+      resetTextareaHeight();
     },
     onError: (error: Error) => {
       setLoading(false);
+      setProgress(0);
       toast.error(`Error creating post: ${error.message}`);
     },
   });
@@ -97,7 +130,7 @@ const NewPostPage = () => {
     <>
       <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm min-h-[116px]">
         <LoadingBar progress={progress} />
-        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm  mt-0 w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
+        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
           <div className="pt-2 mr-2">
             <img
               className="flex w-10 h-10 rounded-full"
@@ -131,13 +164,41 @@ const NewPostPage = () => {
                 }
               }}
             />
+            {selectedFiles.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={URL.createObjectURL(file) || "/placeholder.svg"}
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 p-1 rounded-full bg-black bg-opacity-75 text-gray-400 hover:text-white transition-colors"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="w-[518px] h-[48px] py-0.5 mt-1.5">
               <div className="flex flex-row w-full h-full items-center justify-between">
-                {/* Buttons, justified left */}
                 <div className="flex items-center space-x-2">
-                  <FileUpload />
+                  <FileUpload onImagesUploaded={handleImagesUploaded} />
                 </div>
-                {/* Post button, justified right */}
                 <button
                   className={classNames(
                     "flex justify-center items-center text-center rounded-full px-3 h-9 text-base font-bold transition duration-300",
@@ -148,10 +209,7 @@ const NewPostPage = () => {
                         loading || content.trim() === "",
                     }
                   )}
-                  onClick={() => {
-                    setProgress(0);
-                    newPostMutation.mutate();
-                  }}
+                  onClick={() => newPostMutation.mutate()}
                   disabled={loading || content.trim() === ""}
                 >
                   Post
