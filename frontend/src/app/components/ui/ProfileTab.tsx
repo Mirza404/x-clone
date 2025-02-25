@@ -24,9 +24,6 @@ const ProfileTab = () => {
           <span className="block font-medium text-[15px] leading-5 truncate">
             {session?.user?.name}
           </span>
-          <span className="block text-[15px] text-gray-500 truncate">
-            @{session?.user?.email?.split("@")[0]}
-          </span>
         </div>
         <span className="flex items-center justify-center w-8">
           <svg

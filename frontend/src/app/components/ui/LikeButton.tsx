@@ -45,7 +45,7 @@ export default function LikeButton({
   return (
     <button
       onClick={() => likeMutation.mutate()}
-      className="flex items-center gap-2 group"
+      className="flex items-center gap-2"
       aria-label={isLiked ? "Unlike post" : "Like post"}
     >
       {isLiked ? (
@@ -62,7 +62,7 @@ export default function LikeButton({
         </svg>
       ) : (
         <svg
-          className="w-6 h-6 text-gray-500 group-hover:text-red-500 transition-colors"
+          className="w-6 h-6 text-gray-500 hover:text-red-500 transition-colors"
           aria-hidden="true"
           xmlns="http://www.w3.org/2000/svg"
           width="24"

@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import type React from "react";
+import { useState, useEffect } from "react";
 
 interface CustomLoadBarProps {
   progress: number;
@@ -13,12 +16,13 @@ const CustomLoadBar: React.FC<CustomLoadBarProps> = ({ progress }) => {
         setCurrentProgress((prev) => {
           if (prev >= 100) {
             clearInterval(interval);
-            setCurrentProgress(0);
-            return 0;
+            setTimeout(() => setCurrentProgress(0), 500); // Add delay before hiding
+            return 100;
           }
-          return prev + 5;
+          return Math.min(100, prev + 5);
         });
-      }, 1);
+      }, 16); // Smoother animation with 60fps
+      return () => clearInterval(interval);
     } else {
       setCurrentProgress(progress);
     }
@@ -29,11 +33,11 @@ const CustomLoadBar: React.FC<CustomLoadBarProps> = ({ progress }) => {
   }
 
   return (
-    <div className="absolute top-[0.05rem] w-full h-[0.15rem] bg-gray-200 rounded-none">
+    <div className="absolute top-0 left-0 w-full h-1 bg-gray-200">
       <div
-        className="relative top-0 left-0 h-[0.15rem] bg-blue-500 rounded-none"
+        className="h-full bg-blue-500 transition-all duration-300 ease-out"
         style={{ width: `${currentProgress}%` }}
-      ></div>
+      />
     </div>
   );
 };
