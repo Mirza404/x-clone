@@ -2,7 +2,11 @@ import type React from "react";
 import { useState, useRef } from "react";
 import { Image } from "lucide-react";
 
-const FileUpload = ({ onImagesUploaded }) => {
+interface FileUploadProps {
+  onImagesUploaded: (files: File[]) => void;
+}
+
+const FileUpload: React.FC<FileUploadProps> = ({ onImagesUploaded }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
