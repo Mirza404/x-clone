@@ -35,7 +35,7 @@ export default function PostItem({
   };
 
   return (
-    <div className="relative flex flex-row group p-4 border border-gray-700 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover overflow-visible">
+    <div className="relative flex flex-row p-4 border border-gray-700 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover overflow-visible">
       <img
         className="flex items-stretch min-w-10 h-10 rounded-full mr-2"
         src={post?.authorImage ?? "https://via.placeholder.com/150"}

@@ -128,9 +128,9 @@ const NewPostPage = () => {
 
   return (
     <>
-      <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm min-h-[116px]">
+      <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm w-[598px] min-h-[116px]">
         <LoadingBar progress={progress} />
-        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
+        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 mx-auto px-4 pt-2 border border-gray-700 shadow-lg w-[598px]">
           {/* Key fix: Make the profile picture container non-shrinkable with fixed width */}
           <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
             <img

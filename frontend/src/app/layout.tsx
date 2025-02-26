@@ -37,13 +37,25 @@ export default async function RootLayout({
       >
         <QueryProvider>
           <SessionProvider>
-            <main className="flex justify-center mx-auto max-w-5xl text-2xl gap-2 text-white">
-              <div className="flex justify-center items-start">
-                <NavMenu />
-                {children}
-                <SideBar />
-              </div>
-            </main>
+            <div id="bog-otac" className="flex justify-center mx-80 max-w-5xl text-2xl text-white">
+              {/* Main content layout with proper spacing */}
+              <main className="flex justify-center w-full">
+                {/* Left spacer to account for fixed NavMenu */}
+                <div className="w-[275px] flex-shrink-0">
+                  <NavMenu />
+                </div>
+
+                {/* Center content - the children */}
+                <div className="flex-1 min-w-0 max-w-[598px] border-x border-gray-700 mr-32">
+                  {children}
+                </div>
+
+                {/* Right sidebar */}
+                <div className="fixed top-0 right-[22rem] w-[350px] flex-shrink-0">
+                  <SideBar />
+                </div>
+              </main>
+            </div>
           </SessionProvider>
         </QueryProvider>
       </body>

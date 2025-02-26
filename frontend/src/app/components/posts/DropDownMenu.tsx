@@ -2,17 +2,7 @@
 
 import type React from "react";
 import { useEffect, useRef } from "react";
-import {
-  Trash2,
-  Pencil,
-  UserPlus,
-  VolumeX,
-  Ban,
-  BarChart2,
-  Code2,
-  Eye,
-  Flag,
-} from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 
 interface DropdownProps {
   onDelete: () => void;
@@ -39,7 +29,7 @@ const Dropdown: React.FC<DropdownProps> = ({ onDelete, onEdit, onClose }) => {
 
   const menuItems = [
     { icon: Pencil, label: "Edit post", onClick: onEdit },
-    { icon: Trash2, label: "Delete post", onClick: onDelete, danger: true }
+    { icon: Trash2, label: "Delete post", onClick: onDelete, danger: true },
   ];
 
   return (
