@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 export default function NavMenu() {
   const pathname = usePathname();
   return (
-    <div >
+    <div className="fixed top-0 left-72 max-w-[259px]">
       <div className="flex flex-col h-fit text-white">
-        <nav className="mt-0 m-5 px-2">
-          <ul className="flex flex-col">
-            <Link href="/posts">
+        <nav className="mt-0 m-5 px-2 max-w-[259px]">
+          <ul className="flex flex-col max-w-[259px]">
+            <Link href="/posts" className="max-w-[259px]">
               <button className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2">
                 <span className="flex items-center m-1">
                   <svg
@@ -27,7 +27,7 @@ export default function NavMenu() {
                 </span>
               </button>
             </Link>
-            <Link href="/posts">
+            <Link href="/posts" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left mr-0 my-1 w-fit ${
                   pathname === "/posts" ? "font-bold" : ""
@@ -85,7 +85,7 @@ export default function NavMenu() {
               </li>
             </Link>
             {/* EXPLORE BUTTON */}
-            <Link href="/explore">
+            <Link href="/explore" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/explore" ? "font-bold" : ""
@@ -142,7 +142,7 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/notifications">
+            <Link href="/notifications" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/notifications" ? "font-bold" : ""
@@ -195,7 +195,7 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/messages">
+            <Link href="/messages" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/messages" ? "font-bold" : ""
@@ -257,7 +257,7 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/bookmarks">
+            <Link href="/bookmarks" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/bookmarks" ? "font-bold" : ""
@@ -310,7 +310,7 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/jobs">
+            <Link href="/jobs" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/jobs" ? "font-bold" : ""
@@ -363,7 +363,7 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/communities">
+            <Link href="/communities" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/communities" ? "font-bold" : ""
@@ -419,7 +419,7 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/premium">
+            <Link href="/premium" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/premium" ? "font-bold" : ""
@@ -466,7 +466,7 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/verifiedorgs">
+            <Link href="/verifiedorgs" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/verifiedorgs" ? "font-bold" : ""
@@ -523,7 +523,7 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/profile">
+            <Link href="/profile" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
                   pathname === "/profile" ? "font-bold" : ""
@@ -578,8 +578,8 @@ export default function NavMenu() {
                 )}
               </li>
             </Link>
-            <Link href="/posts">
-              <li className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 pointer-events-none w-fit">
+            <Link href="/posts" className="max-w-[259px]">
+              <li className="flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 pointer-events-none max-w-[259px]">
                 <div className="flex">
                   <span className="flex items-center ml-1 m-1 mr-3">
                     <svg
@@ -613,7 +613,7 @@ export default function NavMenu() {
               </Link>
             </div>
           </ul>
-          <div className="w-fit mt-2">
+          <div className="w-fit mt-10">
             <ProfileTab />
           </div>
         </nav>
