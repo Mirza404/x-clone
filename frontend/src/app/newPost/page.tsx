@@ -81,17 +81,17 @@ const NewPostPage = () => {
   };
 
   const removeImage = (index: number) => {
-    setSelectedFiles(files => files.filter((_, i) => i !== index));
+    setSelectedFiles((files) => files.filter((_, i) => i !== index));
   };
 
   const newPostMutation = useMutation({
     mutationFn: async () => {
       setLoading(true);
       setProgress(0);
-      
+
       // First upload images
       const uploadedUrls = await uploadImages(selectedFiles);
-      
+
       // Then create post
       setProgress(50); // Start second 50% for post creation
       const response = await axios.post(
@@ -131,19 +131,21 @@ const NewPostPage = () => {
       <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm min-h-[116px]">
         <LoadingBar progress={progress} />
         <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
-          <div className="pt-2 mr-2">
+          {/* Key fix: Make the profile picture container non-shrinkable with fixed width */}
+          <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
             <img
-              className="flex w-10 h-10 rounded-full"
+              className="w-10 h-10 rounded-full"
               src={session?.user?.image ?? "https://via.placeholder.com/150"}
               referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
               onError={() => setLoading(false)}
             />
           </div>
-          <div className="flex flex-col py-3">
+          {/* Make the content area more responsive */}
+          <div className="flex flex-col py-3 flex-1 min-w-0">
             <textarea
               ref={textareaRef}
-              className="flex min-w-[513px] h-7 py-0.5 text-white justify-center bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
+              className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
               placeholder="What is happening?!"
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -164,14 +166,15 @@ const NewPostPage = () => {
                 }
               }}
             />
+            {/* Make images container responsive and constrained */}
             {selectedFiles.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-2 gap-2 mt-2 max-w-full">
                 {selectedFiles.map((file, index) => (
-                  <div key={index} className="relative group">
+                  <div key={index} className="relative group aspect-video">
                     <img
                       src={URL.createObjectURL(file) || "/placeholder.svg"}
                       alt="Preview"
-                      className="w-full h-48 object-cover rounded-lg"
+                      className="w-full h-full object-cover rounded-lg"
                     />
                     <button
                       onClick={() => removeImage(index)}
@@ -194,7 +197,8 @@ const NewPostPage = () => {
                 ))}
               </div>
             )}
-            <div className="w-[518px] h-[48px] py-0.5 mt-1.5">
+            {/* Make the bottom toolbar responsive */}
+            <div className="w-full h-[48px] py-0.5 mt-1.5">
               <div className="flex flex-row w-full h-full items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <FileUpload onImagesUploaded={handleImagesUploaded} />
