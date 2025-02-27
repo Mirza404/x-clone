@@ -8,6 +8,7 @@ import {
   useDeletePost,
 } from "../../utils/mutations";
 import LoadCircle from "../ui/LoadCircle";
+import Link from "next/link";
 
 function PostListInfinite() {
   const { ref, inView } = useInView();
@@ -48,12 +49,16 @@ function PostListInfinite() {
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
           {group?.posts?.posts?.map((post: Post) => (
-            <div className="divide-y divide-gray-800">
-              <PostItem
-                key={post.id}
-                post={post}
-                onDelete={() => deletePostMutation.mutate(post.id)}
-              />
+            <div>
+              <Link href={`/posts/${post.id}`}>
+                <div className="divide-y divide-gray-800">
+                  <PostItem
+                    key={post.id}
+                    post={post}
+                    onDelete={() => deletePostMutation.mutate(post.id)}
+                  />
+                </div>
+              </Link>
             </div>
           ))}
         </Fragment>
