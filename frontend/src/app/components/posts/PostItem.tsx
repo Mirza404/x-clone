@@ -7,7 +7,6 @@ import DropDownMenu from "./DropDownMenu";
 import type { Post } from "../../utils/fetchInfo";
 import LikeButton from "../ui/LikeButton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
 
 export default function PostItem({
   post,
@@ -22,6 +21,8 @@ export default function PostItem({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const authorId: string = session?.user?.id ?? "";
+
+  console.log(post);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) =>

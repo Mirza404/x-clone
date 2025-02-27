@@ -79,18 +79,35 @@ async function getPost(
       return;
     }
 
-    const post = await Post.findById(id);
+    const post = await Post.findById(id).lean();
 
     if (!post) {
       res.status(404).json({ message: "Post not found" });
       return;
     }
 
-    res.status(200).json({ post });
+    //@ts-ignore
+    const user = await mongoose.connection.db.collection("users").findOne(
+      { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
+      { projection: { image: 1 } }
+    );
+
+    const postWithUserData = {
+      id: post._id,
+      content: post.content,
+      images: post.images,
+      name: post.name,
+      createdAt: post.createdAt,
+      likes: post.likes,
+      author: post.author,
+      authorImage: user?.image || "https://via.placeholder.com/150",
+    };
+
+    res.status(200).json({ post: postWithUserData });
   } catch (e) {
     console.error("Error getting post:", e);
     if (!res.headersSent) {
-      res.status(500).json({ message: e });
+      res.status(500).json({ message: "Internal Server Error" });
     }
   }
 }
