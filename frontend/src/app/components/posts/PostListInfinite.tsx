@@ -1,4 +1,6 @@
-import { useState, Fragment, useEffect } from "react";
+"use client";
+
+import { Fragment, useEffect } from "react";
 import type { Post } from "../../utils/fetchInfo";
 import { useInView } from "react-intersection-observer";
 import PostItem from "./PostItem";
@@ -8,7 +10,6 @@ import {
   useDeletePost,
 } from "../../utils/mutations";
 import LoadCircle from "../ui/LoadCircle";
-import Link from "next/link";
 
 function PostListInfinite() {
   const { ref, inView } = useInView();
@@ -23,25 +24,12 @@ function PostListInfinite() {
     }
   }, [fetchNextPage, inView]);
 
-  if (postsQuery.isLoading)
-    return (
-      <div data-testid="load-circle-wrapper">
-        <LoadCircle />
-      </div>
-    );
-  if (postsQuery.isError)
-    return <div data-testid="error-wrapper">Error: "Error happened"</div>;
-
-  if (status === "pending") {
-    return (
-      <div data-testid="load-circle-wrapper">
-        <LoadCircle />
-      </div>
-    );
+  if (postsQuery.isLoading || status === "pending") {
+    return <LoadCircle />;
   }
 
-  if (status === "error") {
-    return <div data-testid="error-wrapper">Error: "Error happened"</div>;
+  if (postsQuery.isError || status === "error") {
+    return <div>Error: "Error happened"</div>;
   }
 
   return (
@@ -49,25 +37,18 @@ function PostListInfinite() {
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
           {group?.posts?.posts?.map((post: Post) => (
-            <div>
-              <Link href={`/posts/${post.id}`}>
-                <div className="divide-y divide-gray-800">
-                  <PostItem
-                    key={post.id}
-                    post={post}
-                    onDelete={() => deletePostMutation.mutate(post.id)}
-                  />
-                </div>
-              </Link>
+            <div key={post.id} className="relative">
+              <PostItem
+                post={post}
+                onDelete={() => deletePostMutation.mutate(post.id)}
+              />
             </div>
           ))}
         </Fragment>
       ))}
       <div ref={ref}>
         {isFetchingNextPage ? (
-          <div data-testid="load-circle-wrapper">
-            <LoadCircle />
-          </div>
+          <LoadCircle />
         ) : hasNextPage ? (
           "Load More"
         ) : (
