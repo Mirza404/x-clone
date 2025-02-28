@@ -1,3 +1,4 @@
+import type React from "react";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -5,7 +6,6 @@ import NavMenu from "./components/ui/NavMenu";
 import SideBar from "./components/ui/SideBar";
 import SessionProvider from "./utils/SessionProvider";
 import QueryProvider from "@/query-client-provider";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 
 const geistSans = localFont({
@@ -29,35 +29,33 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const queryClient = new QueryClient();
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
       >
         <QueryProvider>
           <SessionProvider>
-            <div className="flex justify-center mx-80 max-w-5xl text-2xl text-white">
-              {/* Main content layout with proper spacing */}
-              <main className="flex justify-center w-full">
-                {/* Left spacer to account for fixed NavMenu */}
+            <div className="flex justify-center min-h-screen">
+              {/* Main content layout */}
+              <div className="flex w-full max-w-[1265px] mx-auto">
+                {/* Left navigation */}
                 <div className="w-[275px] flex-shrink-0">
                   <NavMenu />
                 </div>
 
-                {/* Center content - the children */}
-                <div className="flex-1 min-w-0 max-w-[598px]mr-32">
-                  {children}
-                </div>
+                {/* Center content */}
+                <main className="w-[598px] min-h-screen">{children}</main>
 
                 {/* Right sidebar */}
-                <div className="fixed top-0 right-[22rem] w-[350px] flex-shrink-0">
+                <div className="w-[350px] ml-7">
                   <SideBar />
                 </div>
-              </main>
+              </div>
             </div>
           </SessionProvider>
         </QueryProvider>
+        <Toaster />
       </body>
     </html>
   );
