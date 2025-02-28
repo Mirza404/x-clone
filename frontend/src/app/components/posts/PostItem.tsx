@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import type React from "react";
+
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
@@ -23,20 +26,39 @@ export default function PostItem({
   const pathname = usePathname();
   const isCurrentPage = pathname === `/posts/${post.id}`;
 
-  const nextImage = () => {
+  const handlePostClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.closest(".interactive-element") ||
+      target.closest(".dropdown-menu") ||
+      target.closest(".like-button")
+    ) {
+      return;
+    }
+
+    router.push(`/posts/${post.id}`);
+  };
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCurrentImageIndex((prev) =>
       prev === (post.images?.length ?? 0) - 1 ? 0 : prev + 1
     );
   };
 
-  const prevImage = () => {
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCurrentImageIndex((prev) =>
       prev === 0 ? (post.images?.length ?? 0) - 1 : prev - 1
     );
   };
 
-  const postContent = (
-    <div className="relative flex flex-row p-4 border border-gray-700 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover overflow-visible">
+  return (
+    <div
+      className="relative flex flex-row p-4 border border-gray-700 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover overflow-visible cursor-pointer"
+      onClick={!isCurrentPage ? handlePostClick : undefined}
+    >
       <img
         className="flex items-stretch min-w-10 h-10 rounded-full mr-2"
         src={post?.authorImage ?? "https://via.placeholder.com/150"}
@@ -58,8 +80,11 @@ export default function PostItem({
             {showMore ? post.content : `${post.content.substring(0, 300)}`}
             {post.content.length > 300 && (
               <button
-                onClick={() => setShowMore(!showMore)}
-                className="text-blue-500"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMore(!showMore);
+                }}
+                className="text-blue-500 interactive-element"
               >
                 {showMore ? "Show less" : "Read more"}
               </button>
@@ -76,13 +101,13 @@ export default function PostItem({
                     <>
                       <button
                         onClick={prevImage}
-                        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75 transition-opacity"
+                        className="interactive-element absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75 transition-opacity"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       <button
                         onClick={nextImage}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75 transition-opacity"
+                        className="interactive-element absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75 transition-opacity"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
@@ -105,7 +130,10 @@ export default function PostItem({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-4 mt-2">
+        <div
+          className="flex items-center gap-4 mt-2 like-button"
+          onClick={(e) => e.stopPropagation()}
+        >
           <LikeButton
             postId={post.id}
             authorId={authorId}
@@ -113,9 +141,12 @@ export default function PostItem({
           />
         </div>
       </div>
-      <div className="absolute top-2 right-2 mr-2">
+      <div
+        className="absolute top-2 right-2 mr-2 interactive-element"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
-          className="p-1 rounded-full hover:bg-[#1D9BF0] hover:bg-opacity-20 transition-colors dropdown-trigger"
+          className="p-1 rounded-full hover:bg-[#1D9BF0] hover:bg-opacity-20 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             setDropdownOpen(!dropdownOpen);
@@ -144,13 +175,5 @@ export default function PostItem({
         )}
       </div>
     </div>
-  );
-
-  return isCurrentPage ? (
-    postContent
-  ) : (
-    <Link href={`/posts/${post.id}`} className="block">
-      {postContent}
-    </Link>
   );
 }
