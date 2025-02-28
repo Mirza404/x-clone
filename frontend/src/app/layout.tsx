@@ -48,7 +48,7 @@ export default async function RootLayout({
                 <main className="w-[598px] min-h-screen">{children}</main>
 
                 {/* Right sidebar */}
-                <div className="w-[350px] ml-7">
+                <div className="w-[350px] ml-2">
                   <SideBar />
                 </div>
               </div>
