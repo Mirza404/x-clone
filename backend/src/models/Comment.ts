@@ -1,4 +1,4 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document } from 'mongoose';
 
 const CommentSchema = new mongoose.Schema({
   content: {
@@ -9,14 +9,14 @@ const CommentSchema = new mongoose.Schema({
   },
   author: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: 'User',
     required: true,
   },
   createdAt: {
     type: Date,
     default: Date.now,
     required: true,
-  }
+  },
 });
 
-export default mongoose.model("Comment", CommentSchema);
+export default mongoose.model('Comment', CommentSchema);

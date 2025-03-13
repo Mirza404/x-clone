@@ -1,4 +1,4 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document } from 'mongoose';
 const PostSchema = new mongoose.Schema({
   content: {
     type: String,
@@ -14,7 +14,7 @@ const PostSchema = new mongoose.Schema({
   },
   author: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: 'User',
     required: true,
   },
   name: {
@@ -34,11 +34,11 @@ const PostSchema = new mongoose.Schema({
   },
   comments: {
     type: [mongoose.Schema.Types.ObjectId],
-    ref: "Comment",
+    ref: 'Comment',
     default: [],
   },
 });
 
 PostSchema.index({ author: 1, createdAt: -1 });
 
-export default mongoose.model("Post", PostSchema);
+export default mongoose.model('Post', PostSchema);

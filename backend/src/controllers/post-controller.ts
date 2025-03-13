@@ -1,17 +1,16 @@
-import mongoose from "mongoose";
-import Post from "../models/Post";
-import Comment from "src/models/Comment";
-import { NextFunction, Request, Response } from "express";
-import { getUserIdByEmail, getUserNameByID } from "./user-controllers";
+import mongoose from 'mongoose';
+import Post from '../models/Post';
+import Comment from 'src/models/Comment';
+import { NextFunction, Request, Response } from 'express';
+import { getUserIdByEmail, getUserNameByID } from './user-controllers';
 
 async function allPosts(
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: "Database not connected" });
+      res.status(500).json({ message: 'Database not connected' });
       return;
     }
 
@@ -29,7 +28,7 @@ async function allPosts(
     const postsWithUserData = await Promise.all(
       posts.map(async (post) => {
         //@ts-ignore
-        const user = await mongoose.connection.db.collection("users").findOne(
+        const user = await mongoose.connection.db.collection('users').findOne(
           { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
           { projection: { image: 1 } }
         );
@@ -42,7 +41,7 @@ async function allPosts(
           createdAt: post.createdAt,
           likes: post.likes,
           author: post.author,
-          authorImage: user?.image || "https://via.placeholder.com/150",
+          authorImage: user?.image || 'https://via.placeholder.com/150',
         };
       })
     );
@@ -54,40 +53,39 @@ async function allPosts(
       .status(200)
       .json({ posts: postsWithUserData, totalPages, currentPage: page });
   } catch (e) {
-    console.error("Error getting posts:", e);
+    console.error('Error getting posts:', e);
     if (!res.headersSent) {
-      res.status(500).json({ message: "Internal Server Error" });
+      res.status(500).json({ message: 'Internal Server Error' });
     }
   }
 }
 
 async function getPost(
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> {
   try {
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ message: "Post ID is required" });
+      res.status(400).json({ message: 'Post ID is required' });
       return;
     }
 
     if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: "Database not connected" });
+      res.status(500).json({ message: 'Database not connected' });
       return;
     }
 
     const post = await Post.findById(id).lean();
 
     if (!post) {
-      res.status(404).json({ message: "Post not found" });
+      res.status(404).json({ message: 'Post not found' });
       return;
     }
 
     //@ts-ignore
-    const user = await mongoose.connection.db.collection("users").findOne(
+    const user = await mongoose.connection.db.collection('users').findOne(
       { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
       { projection: { image: 1 } }
     );
@@ -100,14 +98,14 @@ async function getPost(
       createdAt: post.createdAt,
       likes: post.likes,
       author: post.author,
-      authorImage: user?.image || "https://via.placeholder.com/150",
+      authorImage: user?.image || 'https://via.placeholder.com/150',
     };
 
     res.status(200).json({ post: postWithUserData });
   } catch (e) {
-    console.error("Error getting post:", e);
+    console.error('Error getting post:', e);
     if (!res.headersSent) {
-      res.status(500).json({ message: "Internal Server Error" });
+      res.status(500).json({ message: 'Internal Server Error' });
     }
   }
 }
@@ -117,7 +115,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
     const { content, email, images } = req.body; // Accept images array
 
     if (!email) {
-      res.status(400).json({ message: "Email is required" });
+      res.status(400).json({ message: 'Email is required' });
       return;
     }
 
@@ -125,7 +123,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
     const author = await getUserIdByEmail(email);
 
     if (!author) {
-      res.status(404).json({ message: "User not found" });
+      res.status(404).json({ message: 'User not found' });
       return;
     }
 
@@ -134,12 +132,12 @@ async function createPost(req: Request, res: Response): Promise<void> {
     if (!content && (!images || images.length === 0)) {
       res
         .status(400)
-        .json({ message: "Post must have content or at least one image" });
+        .json({ message: 'Post must have content or at least one image' });
       return;
     }
 
     if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: "Database not connected" });
+      res.status(500).json({ message: 'Database not connected' });
       return;
     }
 
@@ -147,7 +145,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
 
     //@ts-ignore
     const user = await mongoose.connection.db
-      .collection("users")
+      .collection('users')
       .findOne(
         { _id: new mongoose.Types.ObjectId(author) },
         { projection: { image: 1 } }
@@ -159,47 +157,46 @@ async function createPost(req: Request, res: Response): Promise<void> {
       content,
       images, // Store array of image URLs
       createdAt: date,
-      authorImage: user?.image || "https://via.placeholder.com/150",
+      authorImage: user?.image || 'https://via.placeholder.com/150',
       likes: [], // Initialize empty likes array
     });
 
     await newPost.save();
 
     res.status(201).json({
-      message: "Post created successfully",
+      message: 'Post created successfully',
       post: newPost, // Send full post object
     });
   } catch (e) {
-    console.error("Error creating post:", e);
+    console.error('Error creating post:', e);
     if (!res.headersSent) {
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: 'Internal server error' });
     }
   }
 }
 
 async function deletePost(
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> {
   try {
     const { id } = req.body;
 
     if (!id) {
-      res.status(400).json({ message: "Post ID is required" });
+      res.status(400).json({ message: 'Post ID is required' });
       return;
     }
 
     if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: "Database not connected" });
+      res.status(500).json({ message: 'Database not connected' });
       return;
     }
 
     await Post.deleteOne({ _id: id });
 
-    res.status(200).json({ message: "Post deleted successfully" });
+    res.status(200).json({ message: 'Post deleted successfully' });
   } catch (e) {
-    console.error("Error deleting post:", e);
+    console.error('Error deleting post:', e);
     if (!res.headersSent) {
       res.status(500).json({ message: e });
     }
@@ -208,29 +205,44 @@ async function deletePost(
 
 async function editPost(
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> {
   try {
-    const { id, content } = req.body;
+    const { id, content, images } = req.body;
 
     if (!id || !content) {
-      res.status(400).json({ message: "Post ID and content are required" });
+      res.status(400).json({ message: 'Post ID and content are required' });
+      return;
+    }
+
+    if (!Array.isArray(images)) {
+      res.status(400).json({ message: 'Images must be an array' });
       return;
     }
 
     if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: "Database not connected" });
+      res.status(500).json({ message: 'Database not connected' });
       return;
     }
 
-    await Post.updateOne({ _id: id }, { content });
+    const updatedPost = await Post.findByIdAndUpdate(
+      id,
+      { content, images },
+      { new: true } // Returns the updated document
+    );
 
-    res.status(200).json({ message: "Post updated successfully" });
+    if (!updatedPost) {
+      res.status(404).json({ message: 'Post not found' });
+      return;
+    }
+
+    res
+      .status(200)
+      .json({ message: 'Post updated successfully', post: updatedPost });
   } catch (e) {
-    console.error("Error updating post:", e);
+    console.error('Error updating post:', e);
     if (!res.headersSent) {
-      res.status(500).json({ message: e });
+      res.status(500).json({ message: 'Internal server error' });
     }
   }
 }
@@ -240,18 +252,18 @@ async function getLikes(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
 
     const post = await Post.findById(id)
-      .populate("likes", "username email profilePicture")
+      .populate('likes', 'username email profilePicture')
       .lean();
 
     if (!post) {
-      res.status(404).json({ message: "Post not found" });
+      res.status(404).json({ message: 'Post not found' });
       return;
     }
 
     res.status(200).json({ likes: post.likes });
   } catch (e) {
-    console.error("Error fetching likes:", e);
-    res.status(500).json({ message: "Internal server error" });
+    console.error('Error fetching likes:', e);
+    res.status(500).json({ message: 'Internal server error' });
   }
 }
 
@@ -260,18 +272,18 @@ async function addLike(req: Request, res: Response): Promise<void> {
     const { id, authorId } = req.body;
 
     if (!id || !authorId) {
-      res.status(400).json({ message: "Post ID and author ID are required" });
+      res.status(400).json({ message: 'Post ID and author ID are required' });
       return;
     }
 
     if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: "Database not connected" });
+      res.status(500).json({ message: 'Database not connected' });
       return;
     }
 
     const post = await Post.findById(id);
     if (!post) {
-      res.status(404).json({ message: "Post not found" });
+      res.status(404).json({ message: 'Post not found' });
       return;
     }
 
@@ -282,17 +294,17 @@ async function addLike(req: Request, res: Response): Promise<void> {
     const updatedPost = await Post.findByIdAndUpdate(id, updateAction, {
       new: true,
     })
-      .populate("likes", "username email profilePicture")
+      .populate('likes', 'username email profilePicture')
       .lean();
 
     res.status(200).json({
-      message: post.likes.includes(authorId) ? "Post unliked" : "Post liked",
+      message: post.likes.includes(authorId) ? 'Post unliked' : 'Post liked',
       likes: updatedPost?.likes,
     });
   } catch (e) {
-    console.error("Error liking/unliking post:", e);
+    console.error('Error liking/unliking post:', e);
     if (!res.headersSent) {
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: 'Internal server error' });
     }
   }
 }
