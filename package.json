@@ -1,0 +1,28 @@
+{
+  "name": "xclone",
+  "version": "1.0.0",
+  "description": "A clone of the popular social media platform X, previously known as twitter.",
+  "main": "index.js",
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mirza404/x-clone.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Mirza404/x-clone/issues"
+  },
+  "homepage": "https://github.com/Mirza404/x-clone#readme",
+  "devDependencies": {
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "prettier": "^3.5.3"
+  }
+}
