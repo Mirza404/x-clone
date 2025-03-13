@@ -1,30 +1,27 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import toast from "react-hot-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import CustomToaster from "@/app/components/ui/CustomToaster";
-import LoadingBar from "@/app/components/ui/CustomLoadBar";
-import classNames from "classnames";
-import FileUpload from "@/app/utils/FileUpload";
+'use client';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import LoadingBar from '../../../components/ui/CustomLoadBar';
+import { uploadImages } from '../../../utils/imageUtils'; // Import the uploadImages function
+import FileUpload from '@/app/utils/FileUpload';
 
 function EditPostPage({ params }: { params: { id: string } }) {
   const id = params.id;
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const [loading, setLoading] = useState(false);
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const router = useRouter();
   const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
   const postsQuery = useQuery({
-    queryKey: ["posts", id],
+    queryKey: ['posts', id],
     queryFn: async () => {
       const { data } = await axios.get(`${serverUrl}/api/post/${id}`);
       return data.post;
@@ -37,36 +34,6 @@ function EditPostPage({ params }: { params: { id: string } }) {
       setExistingImages(postsQuery.data.images || []);
     }
   }, [postsQuery.data]);
-
-  const uploadImages = async (files: File[]) => {
-    if (files.length === 0) return [];
-
-    const uploadedUrls: string[] = [];
-    const totalFiles = files.length;
-    let completedUploads = 0;
-
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "x_clone");
-
-      try {
-        const response = await axios.post(
-          `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
-          formData
-        );
-        uploadedUrls.push(response.data.secure_url);
-        completedUploads++;
-        setProgress((completedUploads / totalFiles) * 50);
-      } catch (error) {
-        console.error("Upload failed:", error);
-        toast.error("Image upload failed. Please try again.");
-        throw error;
-      }
-    }
-
-    return uploadedUrls;
-  };
 
   const handleImagesUploaded = (files: File[]) => {
     setSelectedFiles(files);
@@ -84,13 +51,10 @@ function EditPostPage({ params }: { params: { id: string } }) {
     mutationFn: async () => {
       setLoading(true);
       setProgress(0);
-
       // Upload new images
       const uploadedUrls = await uploadImages(selectedFiles);
-
       // Combine with existing images
       const allImages = [...existingImages, ...uploadedUrls];
-
       setProgress(50);
       const response = await axios.patch(`${serverUrl}/api/post/edit`, {
         id,
@@ -101,15 +65,15 @@ function EditPostPage({ params }: { params: { id: string } }) {
       return response;
     },
     onSuccess: () => {
-      toast.success("Post updated successfully");
+      toast.success('Post updated successfully');
       setTimeout(() => {
-        router.push("/posts");
+        router.push('/posts');
       }, 1000);
     },
     onError: (error: any) => {
       setLoading(false);
       setProgress(0);
-      toast.error(error.response?.data?.message || "Failed to update the post");
+      toast.error(error.response?.data?.message || 'Failed to update the post');
     },
   });
 
@@ -121,7 +85,7 @@ function EditPostPage({ params }: { params: { id: string } }) {
           <div className="pt-2 mr-2">
             <img
               className="flex w-10 h-10 rounded-full"
-              src={session?.user?.image ?? "https://via.placeholder.com/150"}
+              src={session?.user?.image ?? 'https://via.placeholder.com/150'}
               referrerPolicy="no-referrer"
             />
           </div>
@@ -133,18 +97,17 @@ function EditPostPage({ params }: { params: { id: string } }) {
               onChange={(e) => setContent(e.target.value)}
               onInput={(e) => {
                 const target = e.target as HTMLTextAreaElement;
-                target.style.height = "auto";
+                target.style.height = 'auto';
                 target.style.height = `${Math.min(target.scrollHeight, 300)}px`;
               }}
             />
-
             {/* Existing Images */}
             {existingImages.length > 0 && (
               <div className="grid grid-cols-2 gap-2 mt-2">
                 {existingImages.map((image, index) => (
                   <div key={`existing-${index}`} className="relative group">
                     <img
-                      src={image || "/placeholder.svg"}
+                      src={image || '/placeholder.svg'}
                       alt="Existing"
                       className="w-full h-48 object-cover rounded-lg"
                     />
@@ -169,14 +132,13 @@ function EditPostPage({ params }: { params: { id: string } }) {
                 ))}
               </div>
             )}
-
             {/* New Images */}
             {selectedFiles.length > 0 && (
               <div className="grid grid-cols-2 gap-2 mt-2">
                 {selectedFiles.map((file, index) => (
                   <div key={`new-${index}`} className="relative group">
                     <img
-                      src={URL.createObjectURL(file) || "/placeholder.svg"}
+                      src={URL.createObjectURL(file) || '/placeholder.svg'}
                       alt="Preview"
                       className="w-full h-48 object-cover rounded-lg"
                     />
@@ -201,33 +163,19 @@ function EditPostPage({ params }: { params: { id: string } }) {
                 ))}
               </div>
             )}
-
-            <div className="w-full h-[48px] py-0.5 mt-1.5">
-              <div className="flex flex-row w-full h-full items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <FileUpload onImagesUploaded={handleImagesUploaded} />
-                </div>
-                <button
-                  className={classNames(
-                    "flex justify-center items-center text-center rounded-full px-3 h-9 text-base font-bold transition duration-300",
-                    {
-                      "bg-white text-black hover:bg-gray-300":
-                        !loading && content.trim() !== "",
-                      "bg-white text-black opacity-70 cursor-not-allowed":
-                        loading || content.trim() === "",
-                    }
-                  )}
-                  onClick={() => updatePostMutation.mutate()}
-                  disabled={loading || content.trim() === ""}
-                >
-                  Update
-                </button>
-              </div>
+            <div className="flex justify-between mt-4">
+              <FileUpload onImagesUploaded={handleImagesUploaded} />
+              <button
+                onClick={() => updatePostMutation.mutate()}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </div>
         </div>
       </div>
-      <CustomToaster />
     </>
   );
 }
