@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import type React from "react";
-import { useState, useEffect } from "react";
+import type React from 'react';
+import { useState, useEffect } from 'react';
 
 interface CustomLoadBarProps {
   progress: number;
@@ -16,12 +16,12 @@ const CustomLoadBar: React.FC<CustomLoadBarProps> = ({ progress }) => {
         setCurrentProgress((prev) => {
           if (prev >= 100) {
             clearInterval(interval);
-            setTimeout(() => setCurrentProgress(0), 500); 
+            setTimeout(() => setCurrentProgress(0), 500);
             return 100;
           }
           return Math.min(100, prev + 5);
         });
-      }, 16); 
+      }, 16);
       return () => clearInterval(interval);
     } else {
       setCurrentProgress(progress);

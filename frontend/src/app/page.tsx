@@ -1,7 +1,7 @@
-"use client";
-import React, { useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+'use client';
+import React, { useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function Page() {
   const { data: session } = useSession();
@@ -9,7 +9,7 @@ export default function Page() {
 
   useEffect(() => {
     if (session) {
-      router.push("/posts");
+      router.push('/posts');
     }
   }, [session, router]);
 

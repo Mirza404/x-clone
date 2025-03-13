@@ -1,27 +1,27 @@
-import type React from "react";
-import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "./globals.css";
-import NavMenu from "./components/ui/NavMenu";
-import SideBar from "./components/ui/SideBar";
-import SessionProvider from "./utils/SessionProvider";
-import QueryProvider from "@/query-client-provider";
-import { Toaster } from "react-hot-toast";
+import type React from 'react';
+import type { Metadata } from 'next';
+import localFont from 'next/font/local';
+import './globals.css';
+import NavMenu from './components/ui/NavMenu';
+import SideBar from './components/ui/SideBar';
+import SessionProvider from './utils/SessionProvider';
+import QueryProvider from '@/query-client-provider';
+import { Toaster } from 'react-hot-toast';
 
 const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+  src: './fonts/GeistVF.woff',
+  variable: '--font-geist-sans',
+  weight: '100 900',
 });
 const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+  src: './fonts/GeistMonoVF.woff',
+  variable: '--font-geist-mono',
+  weight: '100 900',
 });
 
 export const metadata: Metadata = {
-  title: "X Clone",
-  description: "Clone of the popular X website",
+  title: 'X Clone',
+  description: 'Clone of the popular X website',
 };
 
 export default async function RootLayout({

@@ -1,26 +1,26 @@
-"use client";
-import axios from "axios";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { getSession, useSession } from "next-auth/react";
-import toast from "react-hot-toast";
-import { useMutation } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import CustomToaster from "../components/ui/CustomToaster";
-import LoadingBar from "../components/ui/CustomLoadBar";
-import FileUpload from "../utils/FileUpload";
-import classNames from "classnames";
+'use client';
+import axios from 'axios';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { getSession, useSession } from 'next-auth/react';
+import toast from 'react-hot-toast';
+import { useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import CustomToaster from '../components/ui/CustomToaster';
+import LoadingBar from '../components/ui/CustomLoadBar';
+import FileUpload from '../utils/FileUpload';
+import classNames from 'classnames';
+import { resizeImage, uploadImages } from '../utils/imageUtils';
 
 const NewPostPage = () => {
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
   const router = useRouter();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -28,7 +28,7 @@ const NewPostPage = () => {
     const fetchSession = async () => {
       const session = await getSession();
       if (!session || !session.user) {
-        router.push("/api/auth/signin");
+        router.push('/api/auth/signin');
       } else {
         if (session.user.email) {
           setEmail(session.user.email);
@@ -42,38 +42,8 @@ const NewPostPage = () => {
 
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "28px";
+      textareaRef.current.style.height = '28px';
     }
-  };
-
-  const uploadImages = async (files: File[]) => {
-    if (files.length === 0) return [];
-
-    const uploadedUrls: string[] = [];
-    const totalFiles = files.length;
-    let completedUploads = 0;
-
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "x_clone");
-
-      try {
-        const response = await axios.post(
-          `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
-          formData
-        );
-        uploadedUrls.push(response.data.secure_url);
-        completedUploads++;
-        setProgress((completedUploads / totalFiles) * 50); // Use first 50% for uploads
-      } catch (error) {
-        console.error("Upload failed:", error);
-        toast.error("Image upload failed. Please try again.");
-        throw error;
-      }
-    }
-
-    return uploadedUrls;
   };
 
   const handleImagesUploaded = (files: File[]) => {
@@ -103,7 +73,7 @@ const NewPostPage = () => {
         },
         {
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
         }
       );
@@ -111,11 +81,11 @@ const NewPostPage = () => {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["Iposts"] });
-      toast.success("Your post was sent.");
+      queryClient.invalidateQueries({ queryKey: ['infinitePosts'] });
+      toast.success('Your post was sent.');
       setLoading(false);
-      router.push("/posts");
-      setContent("");
+      router.push('/posts');
+      setContent('');
       setSelectedFiles([]);
       resetTextareaHeight();
     },
@@ -135,7 +105,7 @@ const NewPostPage = () => {
           <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
             <img
               className="w-10 h-10 rounded-full"
-              src={session?.user?.image ?? "https://via.placeholder.com/150"}
+              src={session?.user?.image ?? 'https://via.placeholder.com/150'}
               referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
               onError={() => setLoading(false)}
@@ -155,7 +125,7 @@ const NewPostPage = () => {
                 const minHeight = 28;
                 const maxHeight = 300;
 
-                if (value === "") {
+                if (value === '') {
                   target.style.height = `${minHeight}px`;
                 } else {
                   target.style.height = `${minHeight}px`;
@@ -172,8 +142,9 @@ const NewPostPage = () => {
                 {selectedFiles.map((file, index) => (
                   <div key={index} className="relative group aspect-video">
                     <img
-                      src={URL.createObjectURL(file) || "/placeholder.svg"}
+                      src={URL.createObjectURL(file) || '/placeholder.svg'}
                       alt="Preview"
+                      loading="lazy"
                       className="w-full h-full object-cover rounded-lg"
                     />
                     <button
@@ -205,16 +176,16 @@ const NewPostPage = () => {
                 </div>
                 <button
                   className={classNames(
-                    "flex justify-center items-center text-center rounded-full px-3 h-9 text-base font-bold transition duration-300",
+                    'flex justify-center items-center text-center rounded-full px-3 h-9 text-base font-bold transition duration-300',
                     {
-                      "bg-white text-black hover:bg-gray-300":
-                        !loading && content.trim() !== "",
-                      "bg-white text-black opacity-70 cursor-not-allowed":
-                        loading || content.trim() === "",
+                      'bg-white text-black hover:bg-gray-300':
+                        !loading && content.trim() !== '',
+                      'bg-white text-black opacity-70 cursor-not-allowed':
+                        loading || content.trim() === '',
                     }
                   )}
                   onClick={() => newPostMutation.mutate()}
-                  disabled={loading || content.trim() === ""}
+                  disabled={loading || content.trim() === ''}
                 >
                   Post
                 </button>

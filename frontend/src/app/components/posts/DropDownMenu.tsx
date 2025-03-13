@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import type React from "react";
-import { useEffect, useRef } from "react";
-import { Trash2, Pencil } from "lucide-react";
+import type React from 'react';
+import { useEffect, useRef } from 'react';
+import { Trash2, Pencil } from 'lucide-react';
 
 interface DropdownProps {
   onDelete: () => void;
@@ -23,13 +23,13 @@ const Dropdown: React.FC<DropdownProps> = ({ onDelete, onEdit, onClose }) => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
   const menuItems = [
-    { icon: Pencil, label: "Edit post", onClick: onEdit },
-    { icon: Trash2, label: "Delete post", onClick: onDelete, danger: true },
+    { icon: Pencil, label: 'Edit post', onClick: onEdit },
+    { icon: Trash2, label: 'Delete post', onClick: onDelete, danger: true },
   ];
 
   return (
@@ -47,9 +47,9 @@ const Dropdown: React.FC<DropdownProps> = ({ onDelete, onEdit, onClose }) => {
             item.onClick();
           }}
           className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-900 transition-colors
-            ${item.danger ? "text-red-500" : "text-white"}
+            ${item.danger ? 'text-red-500' : 'text-white'}
             ${
-              index !== menuItems.length - 1 ? "border-b border-gray-800" : ""
+              index !== menuItems.length - 1 ? 'border-b border-gray-800' : ''
             }`}
         >
           <item.icon className="w-5 h-5 mr-3" />

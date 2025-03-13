@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from 'axios';
 
 export interface Post {
   id: string;
@@ -29,11 +29,11 @@ export async function getPostsPaginated(page: number) {
 
   try {
     const res = await axios.get(`${serverUrl}/api/post/`, {
-      params: { page: page, sort: "createdAt", limit: 5 },
+      params: { page: page, sort: 'createdAt', limit: 5 },
     });
-    console.log("Response:", res); // Log the entire response
+    console.log('Response:', res); // Log the entire response
     const totalPages = res.data.totalPages;
-    console.log("Total Pages:", totalPages); // Log the total pages
+    console.log('Total Pages:', totalPages); // Log the total pages
     const hasNext = page < totalPages;
     return {
       nextPage: hasNext ? page + 1 : undefined,
@@ -42,7 +42,7 @@ export async function getPostsPaginated(page: number) {
     };
   } catch (error: Error | any) {
     console.error(
-      "Error fetching posts:",
+      'Error fetching posts:',
       error.response ? error.response.data : error.message
     );
     return {

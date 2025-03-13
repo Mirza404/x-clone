@@ -45,7 +45,9 @@ copilot
 }
 
 .hover-svg svg {
-  transition: fill 180ms ease-in-out, stroke 180ms ease-in-out;
+  transition:
+    fill 180ms ease-in-out,
+    stroke 180ms ease-in-out;
 }
 
 .hover-svg:hover svg {

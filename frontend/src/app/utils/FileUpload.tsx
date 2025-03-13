@@ -1,6 +1,6 @@
-import type React from "react";
-import { useState, useRef } from "react";
-import { Image } from "lucide-react";
+import type React from 'react';
+import { useState, useRef } from 'react';
+import { Image } from 'lucide-react';
 
 interface FileUploadProps {
   onImagesUploaded: (files: File[]) => void;

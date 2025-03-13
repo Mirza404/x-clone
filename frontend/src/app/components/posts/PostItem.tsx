@@ -1,14 +1,16 @@
-"use client";
+'use client';
 
-import type React from "react";
+import type React from 'react';
 
-import { useRouter, usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useState } from "react";
-import DropDownMenu from "./DropDownMenu";
-import type { Post } from "../../utils/fetchInfo";
-import LikeButton from "../ui/LikeButton";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter, usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import DropDownMenu from './DropDownMenu';
+import type { Post } from '../../utils/fetchInfo';
+import LikeButton from '../ui/LikeButton';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { getPost } from '../../utils/fetchInfo';
 
 export default function PostItem({
   post,
@@ -22,17 +24,27 @@ export default function PostItem({
   const [showMore, setShowMore] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const authorId: string = session?.user?.id ?? "";
+  const authorId: string = session?.user?.id ?? '';
   const pathname = usePathname();
   const isCurrentPage = pathname === `/posts/${post.id}`;
+
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // Prefetch the individual post data when the component mounts
+    queryClient.prefetchQuery({
+      queryKey: ['posts', post.id],
+      queryFn: () => getPost(post.id),
+    });
+  }, [post.id, queryClient]);
 
   const handlePostClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on interactive elements
     const target = e.target as HTMLElement;
     if (
-      target.closest(".interactive-element") ||
-      target.closest(".dropdown-menu") ||
-      target.closest(".like-button")
+      target.closest('.interactive-element') ||
+      target.closest('.dropdown-menu') ||
+      target.closest('.like-button')
     ) {
       return;
     }
@@ -61,7 +73,7 @@ export default function PostItem({
     >
       <img
         className="flex items-stretch min-w-10 h-10 rounded-full mr-2"
-        src={post?.authorImage ?? "https://via.placeholder.com/150"}
+        src={post?.authorImage ?? 'https://via.placeholder.com/150'}
         referrerPolicy="no-referrer"
       />
       <div className="flex flex-col flex-1">
@@ -70,8 +82,8 @@ export default function PostItem({
           <span className="mx-1">·</span>
           <span>
             {new Date(post.createdAt).toLocaleDateString(undefined, {
-              month: "long",
-              day: "numeric",
+              month: 'long',
+              day: 'numeric',
             })}
           </span>
         </div>
@@ -86,14 +98,14 @@ export default function PostItem({
                 }}
                 className="text-blue-500 interactive-element"
               >
-                {showMore ? "Show less" : "Read more"}
+                {showMore ? 'Show less' : 'Read more'}
               </button>
             )}
             {post.images && post.images.length > 0 && (
               <div className="relative mt-2">
                 <div className="relative">
                   <img
-                    src={post.images[currentImageIndex] || "/placeholder.svg"}
+                    src={post.images[currentImageIndex] || '/placeholder.svg'}
                     className="w-full rounded-lg object-cover max-h-[512px]"
                     alt={`Post image ${currentImageIndex + 1}`}
                   />
@@ -117,8 +129,8 @@ export default function PostItem({
                             key={index}
                             className={`w-2 h-2 rounded-full ${
                               index === currentImageIndex
-                                ? "bg-white"
-                                : "bg-white bg-opacity-50"
+                                ? 'bg-white'
+                                : 'bg-white bg-opacity-50'
                             }`}
                           />
                         ))}

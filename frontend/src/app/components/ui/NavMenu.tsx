@@ -1,7 +1,7 @@
-"use client";
-import Link from "next/link";
-import ProfileTab from "./ProfileTab";
-import { usePathname } from "next/navigation";
+'use client';
+import Link from 'next/link';
+import ProfileTab from './ProfileTab';
+import { usePathname } from 'next/navigation';
 
 export default function NavMenu() {
   const pathname = usePathname();
@@ -30,10 +30,10 @@ export default function NavMenu() {
             <Link href="/posts" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left mr-0 my-1 w-fit ${
-                  pathname === "/posts" ? "font-bold" : ""
+                  pathname === '/posts' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/posts" ? (
+                {pathname === '/posts' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -88,10 +88,10 @@ export default function NavMenu() {
             <Link href="/explore" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/explore" ? "font-bold" : ""
+                  pathname === '/explore' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/explore" ? (
+                {pathname === '/explore' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -145,10 +145,10 @@ export default function NavMenu() {
             <Link href="/notifications" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/notifications" ? "font-bold" : ""
+                  pathname === '/notifications' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/notifications" ? (
+                {pathname === '/notifications' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -198,10 +198,10 @@ export default function NavMenu() {
             <Link href="/messages" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/messages" ? "font-bold" : ""
+                  pathname === '/messages' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/messages" ? (
+                {pathname === '/messages' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -260,10 +260,10 @@ export default function NavMenu() {
             <Link href="/bookmarks" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/bookmarks" ? "font-bold" : ""
+                  pathname === '/bookmarks' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/bookmarks" ? (
+                {pathname === '/bookmarks' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -313,10 +313,10 @@ export default function NavMenu() {
             <Link href="/jobs" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/jobs" ? "font-bold" : ""
+                  pathname === '/jobs' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/jobs" ? (
+                {pathname === '/jobs' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -366,10 +366,10 @@ export default function NavMenu() {
             <Link href="/communities" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/communities" ? "font-bold" : ""
+                  pathname === '/communities' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/communities" ? (
+                {pathname === '/communities' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -422,10 +422,10 @@ export default function NavMenu() {
             <Link href="/premium" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/premium" ? "font-bold" : ""
+                  pathname === '/premium' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/premium" ? (
+                {pathname === '/premium' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -469,10 +469,10 @@ export default function NavMenu() {
             <Link href="/verifiedorgs" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/verifiedorgs" ? "font-bold" : ""
+                  pathname === '/verifiedorgs' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/verifiedorgs" ? (
+                {pathname === '/verifiedorgs' ? (
                   <div className="flex">
                     <span className="flex items-center m-1 mr-3">
                       <svg
@@ -526,10 +526,10 @@ export default function NavMenu() {
             <Link href="/profile" className="max-w-[259px]">
               <li
                 className={`flex items-center rounded-full py-1 px-2 text-white hover:text-gray-300 hover:bg-gray-900 transition delay-50 text-left my-2 w-fit ${
-                  pathname === "/profile" ? "font-bold" : ""
+                  pathname === '/profile' ? 'font-bold' : ''
                 }`}
               >
-                {pathname === "/profile" ? (
+                {pathname === '/profile' ? (
                   <div className="flex">
                     <span className="flex items-center ml-0 m-1 mr-3">
                       <svg

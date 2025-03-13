@@ -1,8 +1,8 @@
-"use client";
-import { useState } from "react";
-import axios from "axios";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+'use client';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface LikeButtonProps {
   postId: string;
@@ -20,6 +20,11 @@ export default function LikeButton({
   const queryClient = useQueryClient();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
+  useEffect(() => {
+    setIsLiked(initialLikes.includes(authorId));
+    setLikeCount(initialLikes.length);
+  }, [initialLikes, authorId]);
+
   const likeMutation = useMutation({
     mutationFn: async () => {
       const response = await axios.post(`${serverUrl}/api/post/like`, {
@@ -33,7 +38,9 @@ export default function LikeButton({
       setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      // Invalidate the posts list
+      queryClient.invalidateQueries({ queryKey: ['infinitePosts'] }); // Invalidate the specific post query
+      queryClient.invalidateQueries({ queryKey: ['posts', postId] });
     },
     onError: () => {
       setIsLiked(!isLiked);
@@ -45,11 +52,11 @@ export default function LikeButton({
     <button
       onClick={() => likeMutation.mutate()}
       className="flex items-center gap-2 group"
-      aria-label={isLiked ? "Unlike post" : "Like post"}
+      aria-label={isLiked ? 'Unlike post' : 'Like post'}
     >
       <AnimatePresence mode="wait">
         <motion.div
-          key={isLiked ? "liked" : "unliked"}
+          key={isLiked ? 'liked' : 'unliked'}
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.8, opacity: 0 }}
@@ -86,7 +93,7 @@ export default function LikeButton({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className={`text-sm ${isLiked ? "text-red-500" : "text-gray-500"}`}
+            className={`text-sm ${isLiked ? 'text-red-500' : 'text-gray-500'}`}
           >
             {likeCount}
           </motion.span>

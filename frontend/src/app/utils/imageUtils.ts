@@ -3,8 +3,8 @@ export const resizeImage = async (file: File): Promise<File> => {
     const img = new Image();
     img.src = URL.createObjectURL(file);
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
 
       const maxSize = 1024; // Adjust based on your needs
 
@@ -44,13 +44,13 @@ export const uploadImages = async (files: File[]): Promise<string[]> => {
   try {
     const uploadPromises = resizedFiles.map(async (file) => {
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "x_clone");
+      formData.append('file', file);
+      formData.append('upload_preset', 'x_clone');
 
       return fetch(
         `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
         {
-          method: "POST",
+          method: 'POST',
           body: formData,
         }
       )
@@ -61,7 +61,7 @@ export const uploadImages = async (files: File[]): Promise<string[]> => {
     const uploadedUrls = await Promise.all(uploadPromises);
     return uploadedUrls;
   } catch (error) {
-    console.error("Upload failed:", error);
-    throw new Error("Image upload failed. Please try again.");
+    console.error('Upload failed:', error);
+    throw new Error('Image upload failed. Please try again.');
   }
 };

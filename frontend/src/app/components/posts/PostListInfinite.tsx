@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { Fragment, useEffect } from "react";
-import type { Post } from "../../utils/fetchInfo";
-import { useInView } from "react-intersection-observer";
-import PostItem from "./PostItem";
+import { Fragment, useEffect } from 'react';
+import type { Post } from '../../utils/fetchInfo';
+import { useInView } from 'react-intersection-observer';
+import PostItem from './PostItem';
 import {
   useFetchPosts,
   useFetchInfinitePosts,
   useDeletePost,
-} from "../../utils/mutations";
-import LoadCircle from "../ui/LoadCircle";
+} from '../../utils/mutations';
+import LoadCircle from '../ui/LoadCircle';
 
 function PostListInfinite() {
   const { ref, inView } = useInView();
@@ -24,11 +24,11 @@ function PostListInfinite() {
     }
   }, [fetchNextPage, inView]);
 
-  if (postsQuery.isLoading || status === "pending") {
+  if (postsQuery.isLoading || status === 'pending') {
     return <LoadCircle />;
   }
 
-  if (postsQuery.isError || status === "error") {
+  if (postsQuery.isError || status === 'error') {
     return <div>Error: "Error happened"</div>;
   }
 
@@ -50,9 +50,9 @@ function PostListInfinite() {
         {isFetchingNextPage ? (
           <LoadCircle />
         ) : hasNextPage ? (
-          "Load More"
+          'Load More'
         ) : (
-          "Nothing more to load."
+          'Nothing more to load.'
         )}
       </div>
     </>

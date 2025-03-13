@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 
 const ProfileTab = () => {
   const { data: session } = useSession();
@@ -15,7 +15,7 @@ const ProfileTab = () => {
       >
         <img
           className="w-10 h-10 rounded-full"
-          src={session?.user?.image ?? "https://via.placeholder.com/150"}
+          src={session?.user?.image ?? 'https://via.placeholder.com/150'}
           referrerPolicy="no-referrer"
           onLoad={() => setLoading(false)}
           onError={() => setLoading(false)}

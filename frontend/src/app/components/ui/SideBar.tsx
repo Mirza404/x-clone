@@ -1,5 +1,5 @@
-import React from "react";
-import Link from "next/link";
+import React from 'react';
+import Link from 'next/link';
 
 const SideBar = () => {
   return (
@@ -66,7 +66,7 @@ const SideBar = () => {
             © 2025 X Corp.
           </Link>
           <span className="m-1 ">
-            Developed by{" "}
+            Developed by{' '}
             <Link href="/posts" className="hover:underline">
               Mirza Abdulahović
             </Link>
