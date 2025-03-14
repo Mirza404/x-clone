@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 
 interface LikeButtonProps {
   postId: string;
@@ -19,6 +20,7 @@ export default function LikeButton({
   const [likeCount, setLikeCount] = useState(initialLikes.length);
   const queryClient = useQueryClient();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const pathName = usePathname();
 
   useEffect(() => {
     setIsLiked(initialLikes.includes(authorId));
@@ -38,9 +40,12 @@ export default function LikeButton({
       setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
     },
     onSuccess: () => {
-      // Invalidate the posts list
-      queryClient.invalidateQueries({ queryKey: ['infinitePosts'] }); // Invalidate the specific post query
-      queryClient.invalidateQueries({ queryKey: ['posts', postId] });
+      queryClient.invalidateQueries({
+        queryKey:
+          pathName === '/posts/[id]'
+            ? [['infinitePosts'], ['posts', postId]]
+            : [['posts', postId], ['infinitePosts']],
+      });
     },
     onError: () => {
       setIsLiked(!isLiked);

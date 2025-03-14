@@ -8,6 +8,8 @@ import axios from 'axios';
 import { fetchPosts, getPostsPaginated } from './fetchInfo';
 import toast from 'react-hot-toast';
 
+const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+
 export function useFetchPosts() {
   return useQuery({
     queryKey: ['posts'],
@@ -24,9 +26,10 @@ export function useFetchInfinitePosts() {
   });
 }
 
+export function useCreatePost() {}
+
 export function useDeletePost() {
   const queryClient = useQueryClient();
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -49,7 +52,6 @@ export function useDeletePost() {
 
 export function useUpdatePost() {
   const queryClient = useQueryClient();
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
   return useMutation({
     mutationFn: async ({
