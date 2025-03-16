@@ -6,7 +6,11 @@ import NavMenu from './components/ui/NavMenu';
 import SideBar from './components/ui/SideBar';
 import SessionProvider from './utils/SessionProvider';
 import QueryProvider from '@/query-client-provider';
-import { Toaster } from 'react-hot-toast';
+import CustomToaster from './components/ui/CustomToaster';
+import MobilePostButton from './components/mobile/MobilePostButton';
+import MobileHeader from './components/mobile/MobileHeader';
+import MobileNavBar from './components/mobile/MobileNavBar';
+import MobileTabs from './components/mobile/MobileTabs';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -35,30 +39,45 @@ export default async function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
       >
         <QueryProvider>
           <SessionProvider>
-            <div className="flex justify-center min-h-screen">
+            {/* Mobile Header - Only visible on mobile */}
+            <MobileHeader />
+
+            <div className="flex justify-center min-h-screen pb-14 md:pb-0">
               {/* Main content layout */}
               <div className="flex w-full max-w-[1265px] mx-auto">
-                {/* Left navigation */}
-                <div className="w-[275px] flex-shrink-0">
+                {/* Left navigation - Hidden on mobile */}
+                <div className="hidden md:block w-[275px] flex-shrink-0">
                   <NavMenu />
                 </div>
 
                 {/* Center content */}
-                <main className="w-[598px] min-h-screen">{children}</main>
+                <main className="w-full md:w-[598px] min-h-screen">
+                  {/* Mobile Tabs - Only visible on mobile */}
+                  <MobileTabs />
 
-                {/* Right sidebar */}
-                <div className="w-[350px] ml-2">
+                  {children}
+                  {/* Page Content */}
+
+                  {/* Mobile Post Button - Only visible on mobile */}
+                  <MobilePostButton />
+                </main>
+
+                {/* Right sidebar - Hidden on mobile */}
+                <div className="hidden md:block w-[350px] ml-2">
                   <SideBar />
                 </div>
               </div>
             </div>
+
+            {/* Mobile Navigation Bar - Only visible on mobile */}
+            <MobileNavBar />
           </SessionProvider>
         </QueryProvider>
-        <Toaster />
+        <CustomToaster />
       </body>
     </html>
   );

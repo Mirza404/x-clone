@@ -1,12 +1,11 @@
-import React from 'react';
 import Link from 'next/link';
 
 const SideBar = () => {
   return (
-    <div className="fixed top-0">
-      <div className="flex flex-col items-center justify-center rounded overflow-hidden shadow-lg mx-7 mt-0 p-0 w-[22.75rem]">
+    <div className="hidden md:block fixed top-0 right-72 h-screen pr-4">
+      <div className="flex flex-col items-center justify-center rounded overflow-hidden shadow-lg mx-7 mt-4 p-0 w-[22.75rem]">
         {/* Search Box */}
-        <div className="bg-black text-white rounded-full p-4 w-[105%] mt-1 pt-0">
+        <div className="bg-black text-white rounded-full p-4 w-full mt-1 pt-0">
           <div className="relative text-base w-full h-[110%]">
             <svg
               className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white"
@@ -41,7 +40,6 @@ const SideBar = () => {
           <button className="flex items-center text-center bg-blue-500 text-sm px-5 my-0 rounded-full w-28 h-9">
             <b>Subscribe</b>
           </button>
-          {/* Add subscribe content here */}
         </div>
         <footer className="flex flex-wrap justify-center text-sm text-gray-500 ">
           <Link href="/posts" className="m-1 hover:underline">

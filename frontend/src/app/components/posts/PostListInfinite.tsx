@@ -33,7 +33,7 @@ function PostListInfinite() {
   }
 
   return (
-    <>
+    <div className="w-full">
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
           {group?.posts?.posts?.map((post: Post) => (
@@ -46,16 +46,16 @@ function PostListInfinite() {
           ))}
         </Fragment>
       ))}
-      <div ref={ref}>
+      <div ref={ref} className="py-4 flex justify-center">
         {isFetchingNextPage ? (
           <LoadCircle />
         ) : hasNextPage ? (
-          'Load More'
+          <span className="text-gray-500">Load More</span>
         ) : (
-          'Nothing more to load.'
+          <span className="text-gray-500">Nothing more to load.</span>
         )}
       </div>
-    </>
+    </div>
   );
 }
 

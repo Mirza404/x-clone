@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation';
 export default function NavMenu() {
   const pathname = usePathname();
   return (
-    <div className="fixed top-0 left-72 max-w-[259px]">
-      <div className="flex flex-col h-fit text-white">
+    <div className="hidden md:block fixed top-0 left-72 h-screen pl-4 pr-8">
+      <div className="flex flex-col h-full text-white">
         <nav className="mt-0 m-5 px-2 max-w-[259px]">
           <ul className="flex flex-col max-w-[259px]">
             <Link href="/posts" className="max-w-[259px]">

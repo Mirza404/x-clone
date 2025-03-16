@@ -10,7 +10,7 @@ import CustomToaster from '../components/ui/CustomToaster';
 import LoadingBar from '../components/ui/CustomLoadBar';
 import FileUpload from '../utils/FileUpload';
 import classNames from 'classnames';
-import { resizeImage, uploadImages } from '../utils/imageUtils';
+import { uploadImages } from '../utils/imageUtils';
 
 const NewPostPage = () => {
   const [content, setContent] = useState('');
@@ -98,9 +98,9 @@ const NewPostPage = () => {
 
   return (
     <>
-      <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm w-[598px] min-h-[116px]">
+      <div className="hidden md:flex items-center justify-center bg-black w-full min-h-[116px] border-x border-t border-gray-800">
         <LoadingBar progress={progress} />
-        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 mx-auto px-4 pt-2 border border-gray-700 shadow-lg w-[598px]">
+        <div className="flex flex-row bg-black mt-0 mx-auto px-4 pt-2 border-b border-gray-800 shadow-lg w-full">
           {/* Key fix: Make the profile picture container non-shrinkable with fixed width */}
           <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
             <img
@@ -109,6 +109,7 @@ const NewPostPage = () => {
               referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
               onError={() => setLoading(false)}
+              alt="Profile"
             />
           </div>
           {/* Make the content area more responsive */}
@@ -129,10 +130,7 @@ const NewPostPage = () => {
                   target.style.height = `${minHeight}px`;
                 } else {
                   target.style.height = `${minHeight}px`;
-                  target.style.height = `${Math.min(
-                    target.scrollHeight,
-                    maxHeight
-                  )}px`;
+                  target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`;
                 }
               }}
             />

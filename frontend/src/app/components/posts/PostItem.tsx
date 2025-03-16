@@ -1,7 +1,6 @@
 'use client';
 
 import type React from 'react';
-
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
@@ -68,17 +67,18 @@ export default function PostItem({
 
   return (
     <div
-      className="relative flex flex-row p-4 border border-gray-700 rounded-none shadow-md bg-black m-0 tweet-content w-[598px] min-h-[98px] post-hover overflow-visible cursor-pointer"
+      className="relative flex flex-row p-4 border-b  border-x border-gray-800 bg-black m-0 tweet-content w-full min-h-[98px] post-hover overflow-visible cursor-pointer"
       onClick={!isCurrentPage ? handlePostClick : undefined}
     >
       <img
-        className="flex items-stretch min-w-10 h-10 rounded-full mr-2"
+        className="flex items-stretch min-w-10 h-10 rounded-full mr-3"
         src={post?.authorImage ?? '/Logo.png'}
         referrerPolicy="no-referrer"
+        alt={post.name || 'User'}
       />
       <div className="flex flex-col flex-1">
-        <div className="flex items-center mb-0 text-sm text-gray-400">
-          <span className="font-bold">{post.name}</span>
+        <div className="flex items-center mb-0.5 text-sm text-gray-400">
+          <span className="font-bold text-white">{post.name}</span>
           <span className="mx-1">·</span>
           <span>
             {new Date(post.createdAt).toLocaleDateString(undefined, {
@@ -96,7 +96,7 @@ export default function PostItem({
                   e.stopPropagation();
                   setShowMore(!showMore);
                 }}
-                className="text-blue-500 interactive-element"
+                className="text-blue-500 interactive-element ml-1"
               >
                 {showMore ? 'Show less' : 'Read more'}
               </button>
