@@ -73,7 +73,7 @@ export default function PostItem({
     >
       <img
         className="flex items-stretch min-w-10 h-10 rounded-full mr-2"
-        src={post?.authorImage ?? 'https://via.placeholder.com/150'}
+        src={post?.authorImage ?? '/Logo.png'}
         referrerPolicy="no-referrer"
       />
       <div className="flex flex-col flex-1">

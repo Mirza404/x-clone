@@ -85,7 +85,7 @@ function EditPostPage({ params }: { params: { id: string } }) {
           <div className="pt-2 mr-2">
             <img
               className="flex w-10 h-10 rounded-full"
-              src={session?.user?.image ?? 'https://via.placeholder.com/150'}
+              src={session?.user?.image ?? '/Logo.png'}
               referrerPolicy="no-referrer"
             />
           </div>

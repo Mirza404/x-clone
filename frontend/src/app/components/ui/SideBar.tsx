@@ -9,7 +9,7 @@ const SideBar = () => {
         <div className="bg-black text-white rounded-full p-4 w-[105%] mt-1 pt-0">
           <div className="relative text-base w-full h-[110%]">
             <svg
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-950 dark:text-white"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white"
               aria-hidden="true"
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -32,13 +32,13 @@ const SideBar = () => {
           </div>
         </div>
         {/* Subscribe Box */}
-        <div className="flex flex-col p-4 border border-gray-700 rounded-2xl shadow-md bg-black m-0 mb-4 max-w-[21.75rem] h-30">
+        <div className="flex flex-col p-4 border border-gray-700 rounded-2xl shadow-md bg-black m-0 mb-4 max-w-[21.75rem] h-30 text-white">
           <h2 className="text-xl font-bold my-0">Subscribe To Premium</h2>
           <p className="text-sm p-auto my-2">
             Subscribe to unlock new features and if eligible, receive a share of
             revenue.
           </p>
-          <button className="flex items-center text-center bg-blue-500 text-white text-sm px-5 my-0 rounded-full w-28 h-9">
+          <button className="flex items-center text-center bg-blue-500 text-sm px-5 my-0 rounded-full w-28 h-9">
             <b>Subscribe</b>
           </button>
           {/* Add subscribe content here */}

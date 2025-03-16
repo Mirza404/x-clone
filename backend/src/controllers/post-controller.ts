@@ -4,10 +4,7 @@ import Comment from 'src/models/Comment';
 import { NextFunction, Request, Response } from 'express';
 import { getUserIdByEmail, getUserNameByID } from './user-controllers';
 
-async function allPosts(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function allPosts(req: Request, res: Response): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
       res.status(500).json({ message: 'Database not connected' });
@@ -41,7 +38,7 @@ async function allPosts(
           createdAt: post.createdAt,
           likes: post.likes,
           author: post.author,
-          authorImage: user?.image || 'https://via.placeholder.com/150',
+          authorImage: user?.image,
         };
       })
     );
@@ -60,10 +57,7 @@ async function allPosts(
   }
 }
 
-async function getPost(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function getPost(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
 
@@ -98,7 +92,7 @@ async function getPost(
       createdAt: post.createdAt,
       likes: post.likes,
       author: post.author,
-      authorImage: user?.image || 'https://via.placeholder.com/150',
+      authorImage: user?.image,
     };
 
     res.status(200).json({ post: postWithUserData });
@@ -112,14 +106,13 @@ async function getPost(
 
 async function createPost(req: Request, res: Response): Promise<void> {
   try {
-    const { content, email, images } = req.body; // Accept images array
+    const { content, email, images } = req.body;
 
     if (!email) {
       res.status(400).json({ message: 'Email is required' });
       return;
     }
 
-    console.log(`Finding user by email: ${email}`);
     const author = await getUserIdByEmail(email);
 
     if (!author) {
@@ -157,7 +150,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
       content,
       images, // Store array of image URLs
       createdAt: date,
-      authorImage: user?.image || 'https://via.placeholder.com/150',
+      authorImage: user?.image,
       likes: [], // Initialize empty likes array
     });
 
@@ -175,10 +168,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
   }
 }
 
-async function deletePost(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function deletePost(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.body;
 
@@ -203,10 +193,7 @@ async function deletePost(
   }
 }
 
-async function editPost(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function editPost(req: Request, res: Response): Promise<void> {
   try {
     const { id, content, images } = req.body;
 
