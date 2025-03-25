@@ -1,13 +1,10 @@
 import mongoose from 'mongoose';
 import Post from '../models/Post';
-import Comment from 'src/models/Comment';
+import Comment from '../models/Comment';
 import { NextFunction, Request, Response } from 'express';
 import { getUserIdByEmail, getUserNameByID } from './user-controllers';
 
-async function allPosts(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function allPosts(req: Request, res: Response): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
       res.status(500).json({ message: 'Database not connected' });
@@ -60,10 +57,7 @@ async function allPosts(
   }
 }
 
-async function getPost(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function getPost(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
 
@@ -175,10 +169,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
   }
 }
 
-async function deletePost(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function deletePost(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.body;
 
@@ -203,10 +194,7 @@ async function deletePost(
   }
 }
 
-async function editPost(
-  req: Request,
-  res: Response
-): Promise<void> {
+async function editPost(req: Request, res: Response): Promise<void> {
   try {
     const { id, content, images } = req.body;
 
