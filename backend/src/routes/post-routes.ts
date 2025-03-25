@@ -8,6 +8,7 @@ import {
   addLike,
   getLikes,
 } from '../controllers/post-controller';
+import commentRoutes from './comment-routes';
 
 const postRoutes = Router();
 
@@ -18,5 +19,7 @@ postRoutes.delete('/delete', deletePost);
 postRoutes.patch('/edit', editPost);
 postRoutes.post('/like', addLike);
 postRoutes.get('/getLikes', getLikes);
+
+postRoutes.use('/:postId/comment', commentRoutes);
 
 export default postRoutes;
