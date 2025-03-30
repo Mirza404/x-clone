@@ -18,7 +18,7 @@ postRoutes.post('/new', createPost);
 postRoutes.delete('/delete', deletePost);
 postRoutes.patch('/edit', editPost);
 postRoutes.post('/like', addLike);
-postRoutes.get('/getLikes', getLikes);
+postRoutes.get('/getLikes/:id', getLikes);
 
 postRoutes.use('/:postId/comment', commentRoutes);
 
