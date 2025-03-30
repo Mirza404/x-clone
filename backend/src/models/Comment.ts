@@ -1,4 +1,5 @@
 import mongoose, { Document } from 'mongoose';
+import User from './User';
 
 const CommentSchema = new mongoose.Schema({
   content: {
