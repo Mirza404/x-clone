@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { NextFunction, Request, Response } from 'express';
-import { getUserIdByEmail, getUserNameByID } from './user-controllers';
+import { getUserIdByEmail, getUserNameByID } from './user-controller';
 
 async function allPosts(req: Request, res: Response): Promise<void> {
   try {
@@ -239,19 +239,29 @@ async function getLikes(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
 
-    const post = await Post.findById(id)
-      .populate('likes', 'username email profilePicture')
-      .lean();
+    if (!id) {
+      res.status(400).json({ message: 'Post ID is required' });
+      return;
+    }
 
+    const post = await Post.findById(id).lean();
     if (!post) {
       res.status(404).json({ message: 'Post not found' });
       return;
     }
 
-    res.status(200).json({ likes: post.likes });
+    // Manually fetch user names based on ObjectIDs in 'likes'
+    // @ts-ignore
+    const users = await mongoose.connection.db
+      .collection('users')
+      .find({ _id: { $in: post.likes } })
+      .project({ name: 1 }) // Only fetch 'name'
+      .toArray();
+
+    res.status(200).json({ likes: users });
   } catch (e) {
     console.error('Error fetching likes:', e);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 }
 
@@ -279,15 +289,10 @@ async function addLike(req: Request, res: Response): Promise<void> {
       ? { $pull: { likes: authorId } } // Remove like
       : { $addToSet: { likes: authorId } }; // Add like
 
-    const updatedPost = await Post.findByIdAndUpdate(id, updateAction, {
-      new: true,
-    })
-      .populate('likes', 'username email profilePicture')
-      .lean();
+    await Post.findByIdAndUpdate(id, updateAction, { new: true });
 
     res.status(200).json({
       message: post.likes.includes(authorId) ? 'Post unliked' : 'Post liked',
-      likes: updatedPost?.likes,
     });
   } catch (e) {
     console.error('Error liking/unliking post:', e);

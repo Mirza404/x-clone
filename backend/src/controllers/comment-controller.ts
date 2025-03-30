@@ -2,7 +2,63 @@ import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { Request, Response } from 'express';
-import { getUserIdByEmail, getUserNameByID } from './user-controllers';
+import { getUserIdByEmail, getUserNameByID } from './user-controller';
+
+async function allComments(req: Request, res: Response): Promise<void> {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: 'Database not connected' });
+      return;
+    }
+
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    // Fetch comments (excluding deleted ones)
+    const comments = await Comment.find({ deleted: false })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // Fetch author images separately from the users collection
+    const commentsWithUserData = await Promise.all(
+      comments.map(async (comment) => {
+        //@ts-ignore
+        const user = await mongoose.connection.db.collection('users').findOne(
+          { _id: new mongoose.Types.ObjectId(comment.author) }, // Convert author ID to ObjectId
+          { projection: { image: 1 } } // Only fetch profile image
+        );
+
+        return {
+          id: comment._id,
+          content: comment.content,
+          name: comment.name,
+          createdAt: comment.createdAt,
+          likes: comment.likes,
+          author: comment.author,
+          authorImage: user?.image || 'https://via.placeholder.com/150', // Default placeholder if no image
+        };
+      })
+    );
+
+    // Total number of comments
+    const totalComments = await Comment.countDocuments({ deleted: false });
+    const totalPages = Math.ceil(totalComments / limit);
+
+    res.status(200).json({
+      comments: commentsWithUserData,
+      totalPages,
+      currentPage: page,
+    });
+  } catch (e) {
+    console.error('Error getting comments:', e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  }
+}
 
 async function addComment(req: Request, res: Response): Promise<void> {
   try {
@@ -63,4 +119,4 @@ async function deleteComment(req: Request, res: Response): Promise<void> {
   }
 }
 
-export { addComment, deleteComment };
+export { allComments, addComment, deleteComment };
