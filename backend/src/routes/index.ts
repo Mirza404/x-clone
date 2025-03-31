@@ -7,6 +7,6 @@ const appRouter = Router();
 
 appRouter.use('/user', userRoutes);
 appRouter.use('/post', postRoutes);
-// appRouter.use('/post/:postId/comment', commentRoutes);
+appRouter.use('/post/:postId/comment', commentRoutes);
 
 export default appRouter;

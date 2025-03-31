@@ -1,14 +1,19 @@
 import { Router } from 'express';
 import {
   allComments,
+  findCommentById,
+  findCommentsByPost,
   addComment,
   deleteComment,
+  addLike,
+  getLikes,
 } from '../controllers/comment-controller';
+const commentRoutes = Router({ mergeParams: true });
 
-const commentRoutes = Router({ mergeParams: true }); // Enable access to parent route params
-
-commentRoutes.get('/', allComments);
+commentRoutes.get('/', findCommentsByPost); 
 commentRoutes.post('/new', addComment);
 commentRoutes.patch('/delete/:commentId', deleteComment);
+commentRoutes.get('/')
+commentRoutes.post('/like', addLike);
 
 export default commentRoutes;
