@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { NextFunction, Request, Response } from 'express';
+import { findCommentById } from './comment-controller';
 import { getUserIdByEmail, getUserNameByID } from './user-controller';
 
 async function allPosts(req: Request, res: Response): Promise<void> {
@@ -39,6 +40,7 @@ async function allPosts(req: Request, res: Response): Promise<void> {
           likes: post.likes,
           author: post.author,
           authorImage: user?.image || 'https://via.placeholder.com/150',
+          comments: post.comments,
         };
       })
     );
@@ -71,6 +73,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Fetch the post (with only comment IDs)
     const post = await Post.findById(id).lean();
 
     if (!post) {
@@ -78,26 +81,44 @@ async function getPost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    //@ts-ignore
-    const user = await mongoose.connection.db.collection('users').findOne(
-      { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
-      { projection: { image: 1 } }
+    // Resolve each comment ID using findCommentById
+    const commentsWithUserData = await Promise.all(
+      post.comments.map(async (commentId) => {
+        // Simulate calling findCommentById
+        const comment = await Comment.findById(commentId).lean();
+
+        if (!comment) return null; // Skip if comment not found
+
+        // Fetch author image from the users collection
+        //@ts-ignore
+        const user = await mongoose.connection.db
+          .collection('users')
+          .findOne(
+            { _id: new mongoose.Types.ObjectId(comment.author) },
+            { projection: { image: 1 } }
+          );
+
+        return {
+          id: comment._id,
+          content: comment.content,
+          name: comment.name,
+          createdAt: comment.createdAt,
+          likes: comment.likes,
+          author: comment.author,
+          authorImage: user?.image || 'https://via.placeholder.com/150',
+        };
+      })
     );
 
-    const postWithUserData = {
-      id: post._id,
-      content: post.content,
-      images: post.images,
-      name: post.name,
-      createdAt: post.createdAt,
-      likes: post.likes,
-      author: post.author,
-      authorImage: user?.image || 'https://via.placeholder.com/150',
-    };
+    // Remove null values (if any comments were deleted)
+    const filteredComments = commentsWithUserData.filter((c) => c !== null);
 
-    res.status(200).json({ post: postWithUserData });
+    res.status(200).json({
+      ...post,
+      comments: filteredComments, // Replacing comment IDs with actual objects
+    });
   } catch (e) {
-    console.error('Error getting post:', e);
+    console.error('Error fetching post:', e);
     if (!res.headersSent) {
       res.status(500).json({ message: 'Internal Server Error' });
     }
@@ -152,7 +173,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
       images, // Store array of image URLs
       createdAt: date,
       authorImage: user?.image || 'https://via.placeholder.com/150',
-      likes: [], // Initialize empty likes array
+      likes: [], //empty arr 
     });
 
     await newPost.save();
@@ -216,7 +237,7 @@ async function editPost(req: Request, res: Response): Promise<void> {
     const updatedPost = await Post.findByIdAndUpdate(
       id,
       { content, images },
-      { new: true } // Returns the updated document
+      { new: true } 
     );
 
     if (!updatedPost) {
@@ -255,7 +276,7 @@ async function getLikes(req: Request, res: Response): Promise<void> {
     const users = await mongoose.connection.db
       .collection('users')
       .find({ _id: { $in: post.likes } })
-      .project({ name: 1 }) // Only fetch 'name'
+      .project({ name: 1 }) 
       .toArray();
 
     res.status(200).json({ likes: users });
@@ -286,8 +307,8 @@ async function addLike(req: Request, res: Response): Promise<void> {
     }
 
     const updateAction = post.likes.includes(authorId)
-      ? { $pull: { likes: authorId } } // Remove like
-      : { $addToSet: { likes: authorId } }; // Add like
+      ? { $pull: { likes: authorId } } //remove
+      : { $addToSet: { likes: authorId } }; //Add
 
     await Post.findByIdAndUpdate(id, updateAction, { new: true });
 
