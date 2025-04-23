@@ -10,9 +10,9 @@ const CustomToaster = () => (
         borderRadius: '5px',
         background: '#3b82f6',
         color: '#fff',
-        fontSize: '12px', // Reduce font size
-        paddingLeft: '0px', // Reduce padding
-        textAlign: 'center', // Center text
+        fontSize: '12px', 
+        paddingLeft: '0px', 
+        textAlign: 'center', 
       },
     }}
   />
