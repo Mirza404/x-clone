@@ -11,6 +11,7 @@ import {
 const commentRoutes = Router({ mergeParams: true });
 
 commentRoutes.get('/', findCommentsByPost); 
+commentRoutes.get('/:commentId', findCommentById);
 commentRoutes.post('/new', addComment);
 commentRoutes.patch('/delete/:commentId', deleteComment);
 commentRoutes.get('/')

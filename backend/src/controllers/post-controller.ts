@@ -81,22 +81,28 @@ async function getPost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Resolve each comment ID using findCommentById
+    // Fetch all users related to the post's comments
+    const userMap = new Map();
     const commentsWithUserData = await Promise.all(
       post.comments.map(async (commentId) => {
-        // Simulate calling findCommentById
         const comment = await Comment.findById(commentId).lean();
+        if (!comment) return null;
 
-        if (!comment) return null; // Skip if comment not found
-
-        // Fetch author image from the users collection
-        //@ts-ignore
-        const user = await mongoose.connection.db
-          .collection('users')
-          .findOne(
-            { _id: new mongoose.Types.ObjectId(comment.author) },
-            { projection: { image: 1 } }
+        // Check if the user is already fetched
+        if (!userMap.has(comment.author)) {
+          const user = await (mongoose.connection.db
+            ? mongoose.connection.db
+                .collection('users')
+                .findOne(
+                  { _id: new mongoose.Types.ObjectId(comment.author) },
+                  { projection: { image: 1 } }
+                )
+            : null);
+          userMap.set(
+            comment.author,
+            user?.image || 'https://via.placeholder.com/150'
           );
+        }
 
         return {
           id: comment._id,
@@ -105,7 +111,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
           createdAt: comment.createdAt,
           likes: comment.likes,
           author: comment.author,
-          authorImage: user?.image || 'https://via.placeholder.com/150',
+          authorImage: userMap.get(comment.author),
         };
       })
     );
@@ -113,9 +119,20 @@ async function getPost(req: Request, res: Response): Promise<void> {
     // Remove null values (if any comments were deleted)
     const filteredComments = commentsWithUserData.filter((c) => c !== null);
 
+    // Fetch the author's image for the post
+    const postAuthorImage =
+      userMap.get(post.author) || 'https://via.placeholder.com/150';
+
     res.status(200).json({
-      ...post,
-      comments: filteredComments, // Replacing comment IDs with actual objects
+      id: post._id, // Map _id to id
+      content: post.content,
+      images: post.images,
+      name: post.name,
+      createdAt: post.createdAt,
+      likes: post.likes,
+      author: post.author,
+      authorImage: postAuthorImage,
+      comments: filteredComments,
     });
   } catch (e) {
     console.error('Error fetching post:', e);
@@ -173,7 +190,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
       images, // Store array of image URLs
       createdAt: date,
       authorImage: user?.image || 'https://via.placeholder.com/150',
-      likes: [], //empty arr 
+      likes: [], //empty arr
     });
 
     await newPost.save();
@@ -237,7 +254,7 @@ async function editPost(req: Request, res: Response): Promise<void> {
     const updatedPost = await Post.findByIdAndUpdate(
       id,
       { content, images },
-      { new: true } 
+      { new: true }
     );
 
     if (!updatedPost) {
@@ -276,7 +293,7 @@ async function getLikes(req: Request, res: Response): Promise<void> {
     const users = await mongoose.connection.db
       .collection('users')
       .find({ _id: { $in: post.likes } })
-      .project({ name: 1 }) 
+      .project({ name: 1 })
       .toArray();
 
     res.status(200).json({ likes: users });
