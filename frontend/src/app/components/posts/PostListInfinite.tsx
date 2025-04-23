@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useEffect } from 'react';
-import type { Post } from '../../utils/fetchInfo';
+import type { Post } from '../../types/Post';
 import { useInView } from 'react-intersection-observer';
 import PostItem from './PostItem';
 import {
@@ -30,7 +30,7 @@ function PostListInfinite() {
 
   if (postsQuery.isError || status === 'error') {
     return <div>Error: "Error happened"</div>;
-  }
+  }  
 
   return (
     <>
