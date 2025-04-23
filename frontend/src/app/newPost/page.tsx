@@ -10,7 +10,7 @@ import CustomToaster from '../components/ui/CustomToaster';
 import LoadingBar from '../components/ui/CustomLoadBar';
 import FileUpload from '../utils/FileUpload';
 import classNames from 'classnames';
-import { resizeImage, uploadImages } from '../utils/imageUtils';
+import { uploadImages } from '../utils/imageUtils';
 
 const NewPostPage = () => {
   const [content, setContent] = useState('');
@@ -84,7 +84,7 @@ const NewPostPage = () => {
       queryClient.invalidateQueries({ queryKey: ['infinitePosts'] });
       toast.success('Your post was sent.');
       setLoading(false);
-      router.push('/posts');
+      router.replace('/posts');
       setContent('');
       setSelectedFiles([]);
       resetTextareaHeight();
