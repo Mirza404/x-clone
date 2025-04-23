@@ -67,7 +67,7 @@ function EditPostPage({ params }: { params: { id: string } }) {
     onSuccess: () => {
       toast.success('Post updated successfully');
       setTimeout(() => {
-        router.push('/posts');
+        router.replace('/posts');
       }, 1000);
     },
     onError: (error: any) => {
