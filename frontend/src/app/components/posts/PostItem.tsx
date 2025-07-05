@@ -151,7 +151,8 @@ export default function PostItem({
           onClick={(e) => e.stopPropagation()}
         >
           <LikeButton
-            postId={post.id}
+            type='post'
+            targetId={post.id}
             authorId={authorId}
             initialLikes={post.likes}
           />

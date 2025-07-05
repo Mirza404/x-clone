@@ -6,7 +6,6 @@ import NavMenu from './components/ui/NavMenu';
 import SideBar from './components/ui/SideBar';
 import SessionProvider from './utils/SessionProvider';
 import QueryProvider from '@/query-client-provider';
-import { Toaster } from 'react-hot-toast';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -55,7 +54,6 @@ export default async function RootLayout({
             </div>
           </SessionProvider>
         </QueryProvider>
-        <Toaster />
       </body>
     </html>
   );

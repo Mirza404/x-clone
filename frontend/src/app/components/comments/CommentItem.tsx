@@ -83,7 +83,7 @@ const CommentItem = ({
           </div>
         </div>
         <div className="flex items-center gap-4 mt-2 like-button">
-          <LikeButton postId={comment.id} authorId={authorId} initialLikes={comment.likes} />
+          <LikeButton type ='comment' targetId={comment.id} authorId={authorId} initialLikes={comment.likes} />
         </div>
       </div>
       <div className="absolute top-2 right-2 mr-2 interactive-element">

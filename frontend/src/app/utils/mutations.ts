@@ -8,7 +8,6 @@ import axios from 'axios';
 import { fetchPosts, getPostsPaginated } from './fetchInfo';
 import toast from 'react-hot-toast';
 import { getCommentsPaginated } from './fetchInfo';
-import { useRouter } from 'next/navigation';
 
 const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
