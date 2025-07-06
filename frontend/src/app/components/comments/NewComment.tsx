@@ -104,7 +104,7 @@ const NewComment = () => {
           <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
             <img
               className="w-10 h-10 rounded-full"
-              src={session?.user?.image ?? 'https://via.placeholder.com/150'}
+              src={session?.user?.image ?? '/Logo.png'}
               referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
               onError={() => setLoading(false)}
