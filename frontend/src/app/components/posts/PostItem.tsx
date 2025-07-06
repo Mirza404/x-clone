@@ -69,6 +69,9 @@ export default function PostItem({
     );
   };
 
+  console.log('authorImage:', post?.authorImage);
+
+
   return (
     <div
       className="relative flex flex-row p-4 border-b  border-x border-gray-800 bg-black m-0 tweet-content w-full min-h-[98px] post-hover overflow-visible cursor-pointer"
@@ -76,9 +79,8 @@ export default function PostItem({
     >
       <img
         className="flex items-stretch min-w-10 h-10 rounded-full mr-3"
-        src={post?.authorImage ?? '/Logo.png'}
+        src={post?.authorImage || '/Logo.png'}
         referrerPolicy="no-referrer"
-        alt={post.name || 'User'}
       />
       <div className="flex flex-col flex-1">
         <div className="flex items-center mb-0.5 text-sm text-gray-400">
@@ -151,7 +153,7 @@ export default function PostItem({
           onClick={(e) => e.stopPropagation()}
         >
           <LikeButton
-            type='post'
+            type="post"
             targetId={post.id}
             authorId={authorId}
             initialLikes={post.likes}
