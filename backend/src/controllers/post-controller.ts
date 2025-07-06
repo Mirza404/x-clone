@@ -39,7 +39,7 @@ async function allPosts(req: Request, res: Response): Promise<void> {
           createdAt: post.createdAt,
           likes: post.likes,
           author: post.author,
-          authorImage: user?.image || 'https://via.placeholder.com/150',
+          authorImage: user?.image || null,
           comments: post.comments,
         };
       })
@@ -100,7 +100,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
             : null);
           userMap.set(
             comment.author,
-            user?.image || 'https://via.placeholder.com/150'
+            user?.image || null
           );
         }
 
@@ -121,7 +121,7 @@ async function getPost(req: Request, res: Response): Promise<void> {
 
     // Fetch the author's image for the post
     const postAuthorImage =
-      userMap.get(post.author) || 'https://via.placeholder.com/150';
+      userMap.get(post.author) || null;
 
     res.status(200).json({
       id: post._id, // Map _id to id
@@ -189,7 +189,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
       content,
       images, // Store array of image URLs
       createdAt: date,
-      authorImage: user?.image || 'https://via.placeholder.com/150',
+      authorImage: user?.image || null,
       likes: [], //empty arr
     });
 

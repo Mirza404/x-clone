@@ -84,7 +84,7 @@ const NewPostPage = () => {
       queryClient.invalidateQueries({ queryKey: ['infinitePosts'] });
       toast.success('Your post was sent.');
       setLoading(false);
-      router.push('/posts');
+      router.replace('/posts');
       setContent('');
       setSelectedFiles([]);
       resetTextareaHeight();

@@ -9,7 +9,7 @@ export default function Page() {
 
   useEffect(() => {
     if (session) {
-      router.push('/posts');
+      router.replace('/posts');
     }
   }, [session, router]);
 

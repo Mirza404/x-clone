@@ -3,16 +3,18 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePathname } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 interface LikeButtonProps {
-  postId: string;
+  type: 'post' | 'comment';
+  targetId: string;
   authorId: string;
   initialLikes: string[];
 }
 
 export default function LikeButton({
-  postId,
+  type,
+  targetId,
   authorId,
   initialLikes,
 }: LikeButtonProps) {
@@ -20,7 +22,7 @@ export default function LikeButton({
   const [likeCount, setLikeCount] = useState(initialLikes.length);
   const queryClient = useQueryClient();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const pathName = usePathname();
+  const params = useParams();
 
   useEffect(() => {
     setIsLiked(initialLikes.includes(authorId));
@@ -29,10 +31,24 @@ export default function LikeButton({
 
   const likeMutation = useMutation({
     mutationFn: async () => {
-      const response = await axios.post(`${serverUrl}/api/post/like`, {
-        id: postId,
-        authorId,
-      });
+      let endpoint = '';
+      let payload: any = {};
+
+      if (type !== 'post') {
+        console.log('procano likebutton za komentare');
+        console.log('procano likebutton za komentare');
+        console.log('procano likebutton za komentare');
+        console.log('procano likebutton za komentare');
+        console.log('params: ', params.id);
+        const postId = params.id as string;
+        endpoint = `${serverUrl}/api/post/${postId}/comment/like`;
+        payload = { id: targetId, authorId };
+      } else {
+        endpoint = `${serverUrl}/api/post/like`;
+        payload = { id: targetId, authorId };
+      }
+
+      const response = await axios.post(endpoint, payload);
       return response.data;
     },
     onMutate: async () => {
@@ -40,12 +56,7 @@ export default function LikeButton({
       setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey:
-          pathName === '/posts/[id]'
-            ? [['infinitePosts'], ['posts', postId]]
-            : [['posts', postId], ['infinitePosts']],
-      });
+      queryClient.invalidateQueries();
     },
     onError: () => {
       setIsLiked(!isLiked);

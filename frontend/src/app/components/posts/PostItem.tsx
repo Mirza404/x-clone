@@ -3,13 +3,14 @@
 import type React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import DropDownMenu from './DropDownMenu';
-import type { Post } from '../../utils/fetchInfo';
+import type { Post } from '../../types/Post';
 import LikeButton from '../ui/LikeButton';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getPost } from '../../utils/fetchInfo';
+import CommentListInfinite from '../comments/CommentListInfinite';
 
 export default function PostItem({
   post,
@@ -25,31 +26,34 @@ export default function PostItem({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const authorId: string = session?.user?.id ?? '';
   const pathname = usePathname();
-  const isCurrentPage = pathname === `/posts/${post.id}`;
-
+  const isCurrentPage = useMemo(
+    () => pathname === `/posts/${post.id}`,
+    [pathname, post.id]
+  );
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Prefetch the individual post data when the component mounts
+    if (!post.id) return;
     queryClient.prefetchQuery({
       queryKey: ['posts', post.id],
       queryFn: () => getPost(post.id),
     });
   }, [post.id, queryClient]);
 
-  const handlePostClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on interactive elements
-    const target = e.target as HTMLElement;
-    if (
-      target.closest('.interactive-element') ||
-      target.closest('.dropdown-menu') ||
-      target.closest('.like-button')
-    ) {
-      return;
-    }
-
-    router.push(`/posts/${post.id}`);
-  };
+  const handlePostClick = useCallback(
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.closest('.interactive-element') ||
+        target.closest('.dropdown-menu') ||
+        target.closest('.like-button')
+      ) {
+        return;
+      }
+      router.push(`/posts/${post.id}`);
+    },
+    [router, post.id]
+  );
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -147,7 +151,8 @@ export default function PostItem({
           onClick={(e) => e.stopPropagation()}
         >
           <LikeButton
-            postId={post.id}
+            type='post'
+            targetId={post.id}
             authorId={authorId}
             initialLikes={post.likes}
           />
