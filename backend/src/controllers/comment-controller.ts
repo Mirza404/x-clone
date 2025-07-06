@@ -38,7 +38,7 @@ async function allComments(req: Request, res: Response): Promise<void> {
           createdAt: comment.createdAt,
           likes: comment.likes,
           author: comment.author,
-          authorImage: user?.image || 'https://via.placeholder.com/150', // Default placeholder if no image
+          authorImage: user?.image || null, // Default placeholder if no image
         };
       })
     );
@@ -62,8 +62,8 @@ async function allComments(req: Request, res: Response): Promise<void> {
 
 async function findCommentsByPost(req: Request, res: Response): Promise<void> {
   try {
-    const { postId } = req.params; 
-    const { page = '1', limit = '10' } = req.query; 
+    const { postId } = req.params;
+    const { page = '1', limit = '10' } = req.query;
 
     if (!postId) {
       res.status(400).json({ message: 'Post ID is required' });
@@ -116,9 +116,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
       createdAt: comment.createdAt,
       likes: comment.likes,
       author: comment.author,
-      authorImage:
-        userImageMap.get(comment.author.toString()) ||
-        'https://via.placeholder.com/150',
+      authorImage: userImageMap.get(comment.author.toString()) || null,
     }));
 
     // Total comments for pagination
@@ -180,7 +178,7 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       createdAt: comment.createdAt,
       likes: comment.likes,
       author: comment.author,
-      authorImage: user?.image || 'https://via.placeholder.com/150',
+      authorImage: user?.image || null,
     };
 
     res.status(200).json(commentWithUserData);
