@@ -10,6 +10,8 @@ import LikeButton from "../ui/LikeButton"
 import axios from "axios"
 import { useMutation } from "@tanstack/react-query"
 import toast from "react-hot-toast"
+import { useParams } from "next/navigation"
+
 
 const CommentItem = ({
   comment,
@@ -24,14 +26,16 @@ const CommentItem = ({
   const authorId: string = session?.user?.id ?? ""
   const queryClient = useQueryClient()
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL
+  const params = useParams();
+  const postId = params.id as string;
 
   useEffect(() => {
     // Prefetch the individual comment data when the component mounts
     queryClient.prefetchQuery({
       queryKey: ["comment", comment.id],
-      queryFn: () => getComment(comment.id),
+      queryFn: () => getComment(postId, comment.id),
     })
-  }, [comment.id, queryClient])
+  }, [postId,comment.id, queryClient])
 
   const deleteCommentMutation = useMutation({
     mutationFn: async () => {
@@ -57,7 +61,7 @@ const CommentItem = ({
     <div className="relative flex flex-row p-4 border-t border-gray-700 bg-black m-0 w-full min-h-[80px] overflow-visible">
       <img
         className="flex items-stretch min-w-8 h-8 rounded-full mr-2"
-        src={comment?.authorImage ?? "https://via.placeholder.com/150"}
+        src={comment?.authorImage ?? "/Logo.png"}
         referrerPolicy="no-referrer"
         alt={`${comment.name}'s profile`}
       />
