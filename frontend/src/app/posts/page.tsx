@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import type React from 'react';
 import { fetchPosts } from '../utils/fetchInfo';
 import type { Post } from '../utils/fetchInfo';
 import { useQuery } from '@tanstack/react-query';
@@ -22,7 +22,8 @@ export const Page: React.FC<PostListProps> = () => {
   if (postsQuery.isError) return <pre>Error</pre>;
 
   return (
-    <div className="flex justify-center flex-col m-0">
+    <div className="flex justify-center flex-col m-0 w-full">
+      {/* Only show on desktop */}
       <NewPostPage />
       <PostListInfinite />
       <CustomToaster />

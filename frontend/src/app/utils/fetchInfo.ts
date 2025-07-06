@@ -20,7 +20,6 @@ export const fetchPosts = async () => {
 export async function getPost(id: string) {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const response = await axios.get(`${serverUrl}/api/post/${id}`);
-  console.log(response.data.post);
   return response.data.post;
 }
 
@@ -31,9 +30,7 @@ export async function getPostsPaginated(page: number) {
     const res = await axios.get(`${serverUrl}/api/post/`, {
       params: { page: page, sort: 'createdAt', limit: 5 },
     });
-    console.log('Response:', res); // Log the entire response
     const totalPages = res.data.totalPages;
-    console.log('Total Pages:', totalPages); // Log the total pages
     const hasNext = page < totalPages;
     return {
       nextPage: hasNext ? page + 1 : undefined,
