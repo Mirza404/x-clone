@@ -69,9 +69,6 @@ export default function PostItem({
     );
   };
 
-  console.log('authorImage:', post?.authorImage);
-
-
   return (
     <div
       className="relative flex flex-row p-4 border-b  border-x border-gray-800 bg-black m-0 tweet-content w-full min-h-[98px] post-hover overflow-visible cursor-pointer"
