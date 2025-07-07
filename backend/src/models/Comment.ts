@@ -28,10 +28,6 @@ const CommentSchema = new mongoose.Schema({
     ref: 'User',
     default: [],
   },
-  deleted: {
-    type: Boolean,
-    default: false,
-  },
 });
 
 export default mongoose.model('Comment', CommentSchema);
