@@ -17,12 +17,6 @@ export async function getPost(id: string) {
   }
 }
 
-export async function getComment(postId: string, commentId: string) {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const response = await axios.get(`${serverUrl}/api/post/${postId}/comment/${commentId}`);
-  return response.data.comment;
-}
-
 export async function getPostsPaginated(page: number) {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
@@ -48,6 +42,14 @@ export async function getPostsPaginated(page: number) {
       posts: [],
     };
   }
+}
+
+export async function getComment(postId: string, commentId: string) {
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const response = await axios.get(
+    `${serverUrl}/api/post/${postId}/comment/${commentId}`
+  );
+  return response.data.comment;
 }
 
 export async function getCommentsPaginated(postId: string, page: number) {
