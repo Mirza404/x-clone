@@ -13,11 +13,10 @@ import toast from 'react-hot-toast';
 
 export const CommentListInfinite = () => {
   const params = useParams();
-  const postId  = params.id as string
+  const postId = params.id as string;
   const { ref, inView } = useInView();
   const queryClient = useQueryClient();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  
 
   const {
     data,
@@ -31,8 +30,8 @@ export const CommentListInfinite = () => {
 
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      const response = await axios.delete(
-        `${serverUrl}/api/post/comment/${commentId}`
+      const response = await axios.patch(
+        `${serverUrl}/api/post/${postId}/comment/delete/${commentId}`
       );
       return response.data;
     },
