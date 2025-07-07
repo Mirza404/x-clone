@@ -183,6 +183,7 @@ export default function PostItem({
         {dropdownOpen && session?.user?.id === post.author && (
           <div className="dropdown-menu">
             <DropDownMenu
+              type="post"
               onDelete={onDelete}
               onEdit={() => router.push(`/posts/${post.id}/editPost`)}
               onClose={() => setDropdownOpen(false)}
