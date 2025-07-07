@@ -7,6 +7,7 @@ import LoadCircle from '@/app/components/ui/LoadCircle';
 import { useDeletePost } from '@/app/utils/mutations';
 import { useQueryClient } from '@tanstack/react-query';
 import CommentListInfinite from '@/app/components/comments/CommentListInfinite';
+import NewComment from '@/app/components/comments/NewComment';
 
 export default function Page({ params }: { params: { id: string } }) {
   const id = params.id;
@@ -40,6 +41,7 @@ export default function Page({ params }: { params: { id: string } }) {
           }
         />
       )}
+      <NewComment />
       <CommentListInfinite />
     </div>
   );
