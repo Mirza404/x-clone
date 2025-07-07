@@ -16,7 +16,7 @@ async function allComments(req: Request, res: Response): Promise<void> {
     const skip = (page - 1) * limit;
 
     // Fetch comments (excluding deleted ones)
-    const comments = await Comment.find({ deleted: false })
+    const comments = await Comment.find()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -44,7 +44,7 @@ async function allComments(req: Request, res: Response): Promise<void> {
     );
 
     // Total number of comments
-    const totalComments = await Comment.countDocuments({ deleted: false });
+    const totalComments = await Comment.countDocuments();
     const totalPages = Math.ceil(totalComments / limit);
 
     res.status(200).json({
@@ -89,7 +89,6 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     // Fetch paginated comments
     const comments = await Comment.find({
       _id: { $in: post.comments },
-      deleted: false, //e<xclude deleted comments
     })
       .sort({ createdAt: -1 }) //Newest first
       .skip(skip)
@@ -122,7 +121,6 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     // Total comments for pagination
     const totalComments = await Comment.countDocuments({
       _id: { $in: post.comments },
-      deleted: false,
     });
     const totalPages = Math.ceil(totalComments / limitNum);
 
@@ -240,7 +238,7 @@ async function deleteComment(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    await Comment.findByIdAndUpdate(commentId, { deleted: true, content: '' });
+    await Comment.findByIdAndDelete(commentId);
 
     res.status(200).json({ message: 'Comment deleted successfully' });
   } catch (error) {
