@@ -1,67 +1,44 @@
-"use client"
+'use client';
 
-import type { Comment } from "../../types/Comment"
-import { useSession } from "next-auth/react"
-import { useState, useEffect } from "react"
-import { useQueryClient } from "@tanstack/react-query"
-import { getComment } from "@/app/utils/fetchInfo"
-import Dropdown from "../posts/DropDownMenu"
-import LikeButton from "../ui/LikeButton"
-import axios from "axios"
-import { useMutation } from "@tanstack/react-query"
-import toast from "react-hot-toast"
-import { useParams } from "next/navigation"
-
+import type { Comment } from '../../types/Comment';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { getComment } from '@/app/utils/fetchInfo';
+import Dropdown from '../posts/DropDownMenu';
+import LikeButton from '../ui/LikeButton';
+import toast from 'react-hot-toast';
+import { useParams } from 'next/navigation';
 
 const CommentItem = ({
   comment,
   onDelete,
 }: {
-  comment: Comment
-  onDelete: () => void
+  comment: Comment;
+  onDelete: () => void;
 }) => {
-  const { data: session } = useSession()
-  const [showMore, setShowMore] = useState(false)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const authorId: string = session?.user?.id ?? ""
-  const queryClient = useQueryClient()
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL
+  const { data: session } = useSession();
+  const [showMore, setShowMore] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const authorId: string = session?.user?.id ?? '';
+  const queryClient = useQueryClient();
   const params = useParams();
   const postId = params.id as string;
 
   useEffect(() => {
     // Prefetch the individual comment data when the component mounts
     queryClient.prefetchQuery({
-      queryKey: ["comment", comment.id],
+      queryKey: ['comment', comment.id],
       queryFn: () => getComment(postId, comment.id),
-    })
-  }, [postId,comment.id, queryClient])
+    });
+  }, [postId, comment.id, queryClient]);
 
-  const deleteCommentMutation = useMutation({
-    mutationFn: async () => {
-      const response = await axios.delete(`${serverUrl}/api/post/comment/${comment.id}`)
-      return response.data
-    },
-    onSuccess: () => {
-      toast.success("Comment deleted successfully")
-      onDelete();
-      queryClient.invalidateQueries({ queryKey: ["infiniteComments"] })
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete the comment")
-    },
-  })
-
-  const handleDeleteComment = () => {
-    deleteCommentMutation.mutate()
-    setDropdownOpen(false)
-  }
 
   return (
     <div className="relative flex flex-row p-4 border-t border-gray-700 bg-black m-0 w-full min-h-[80px] overflow-visible">
       <img
         className="flex items-stretch min-w-8 h-8 rounded-full mr-2"
-        src={comment?.authorImage ?? "/Logo.png"}
+        src={comment?.authorImage ?? '/Logo.png'}
         referrerPolicy="no-referrer"
         alt={`${comment.name}'s profile`}
       />
@@ -71,23 +48,33 @@ const CommentItem = ({
           <span className="mx-1">·</span>
           <span>
             {new Date(comment.createdAt).toLocaleDateString(undefined, {
-              month: "long",
-              day: "numeric",
+              month: 'long',
+              day: 'numeric',
             })}
           </span>
         </div>
         <div className="bg-transparent text-sm">
           <div className="text-white break-all whitespace-pre-wrap">
-            {showMore ? comment.content : `${comment.content.substring(0, 300)}`}
+            {showMore
+              ? comment.content
+              : `${comment.content.substring(0, 300)}`}
             {comment.content.length > 300 && (
-              <button onClick={() => setShowMore(!showMore)} className="text-blue-500 interactive-element">
-                {showMore ? "Show less" : "Read more"}
+              <button
+                onClick={() => setShowMore(!showMore)}
+                className="text-blue-500 interactive-element"
+              >
+                {showMore ? 'Show less' : 'Read more'}
               </button>
             )}
           </div>
         </div>
         <div className="flex items-center gap-4 mt-2 like-button">
-          <LikeButton type ='comment' targetId={comment.id} authorId={authorId} initialLikes={comment.likes} />
+          <LikeButton
+            type="comment"
+            targetId={comment.id}
+            authorId={authorId}
+            initialLikes={comment.likes}
+          />
         </div>
       </div>
       <div className="absolute top-2 right-2 mr-2 interactive-element">
@@ -110,11 +97,12 @@ const CommentItem = ({
         {dropdownOpen && session?.user?.id === comment.author && (
           <div className="dropdown-menu">
             <Dropdown
-              onDelete={handleDeleteComment}
+              type="comment"
+              onDelete={onDelete}
               onEdit={() => {
                 // For now, we'll just close the dropdown since edit functionality isn't implemented
-                setDropdownOpen(false)
-                toast.error("Edit comment functionality not implemented yet")
+                setDropdownOpen(false);
+                toast.error('Edit comment functionality not implemented yet');
               }}
               onClose={() => setDropdownOpen(false)}
             />
@@ -122,8 +110,7 @@ const CommentItem = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CommentItem
-
+export default CommentItem;
