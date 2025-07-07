@@ -10,7 +10,6 @@ import LikeButton from '../ui/LikeButton';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getPost } from '../../utils/fetchInfo';
-import CommentListInfinite from '../comments/CommentListInfinite';
 
 export default function PostItem({
   post,
