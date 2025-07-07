@@ -5,12 +5,13 @@ import { useEffect, useRef } from 'react';
 import { Trash2, Pencil } from 'lucide-react';
 
 interface DropdownProps {
+  type: 'post' | 'comment';
   onDelete: () => void;
   onEdit: () => void;
   onClose: () => void;
 }
 
-const Dropdown: React.FC<DropdownProps> = ({ onDelete, onEdit, onClose }) => {
+const Dropdown: React.FC<DropdownProps> = ({ type, onDelete, onEdit, onClose }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,9 +28,20 @@ const Dropdown: React.FC<DropdownProps> = ({ onDelete, onEdit, onClose }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
+  const labelSuffix = type === 'post' ? 'post' : 'comment';
+
   const menuItems = [
-    { icon: Pencil, label: 'Edit post', onClick: onEdit },
-    { icon: Trash2, label: 'Delete post', onClick: onDelete, danger: true },
+    {
+      icon: Pencil,
+      label: `Edit ${labelSuffix}`,
+      onClick: onEdit,
+    },
+    {
+      icon: Trash2,
+      label: `Delete ${labelSuffix}`,
+      onClick: onDelete,
+      danger: true,
+    },
   ];
 
   return (
