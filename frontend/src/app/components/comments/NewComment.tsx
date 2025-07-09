@@ -19,42 +19,6 @@ const NewComment = () => {
   const { id } = useParams<{ id: string }>();
   const email = session?.user?.email || '';
 
-  function newCommentMutation() {
-    return useMutation({
-      mutationFn: async ({
-        postId,
-        content,
-        email,
-      }: {
-        postId: string;
-        content: string;
-        email: string;
-      }) => {
-        const response = await axios.post(
-          `${serverUrl}/api/post/${postId}/comment/new`,
-          {
-            postId,
-            content,
-            email,
-          }
-        );
-        return response.data;
-      },
-      onSuccess: (_, variables) => {
-        toast.success('Comment created successfully');
-        // Invalidate the comments query for the specific post
-        queryClient.invalidateQueries({
-          queryKey: ['infiniteComments', variables.postId],
-        });
-      },
-      onError: (error: any) => {
-        toast.error(
-          error.response?.data?.message || 'Failed to create the comment'
-        );
-      },
-    });
-  }
-
   const mutation = useMutation({
     mutationFn: async ({
       postId,
@@ -87,39 +51,6 @@ const NewComment = () => {
     },
   });
 
-  function useDeleteComment() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-      mutationFn: async ({
-        commentId,
-        postId,
-      }: {
-        commentId: string;
-        postId: string;
-      }) => {
-        const response = await axios.delete(
-          `${serverUrl}/api/post/${postId}/comment/delete/${commentId}`,
-          {
-            data: { commentId },
-          }
-        );
-        return response.data;
-      },
-      onSuccess: (_, variables) => {
-        toast.success('Comment deleted successfully');
-        // Invalidate the comments query for the specific post
-        queryClient.invalidateQueries({
-          queryKey: ['infiniteComments', variables.postId],
-        });
-      },
-      onError: (error: any) => {
-        toast.error(
-          error.response?.data?.message || 'Failed to delete the comment'
-        );
-      },
-    });
-  }
 
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
@@ -129,9 +60,12 @@ const NewComment = () => {
 
   return (
     <>
+      <h2 className="text-xl font-bold p-4 border-l border-r border-gray-700">
+        Comments
+      </h2>
       <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm w-[598px] min-h-[116px]">
         <LoadingBar progress={progress} />
-        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 mx-auto px-4 pt-2 border border-gray-700 shadow-lg w-[598px]">
+        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 mx-auto px-4 pt-2 border-r border-l border-t border-gray-700 shadow-lg w-[598px]">
           <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
             <img
               className="w-10 h-10 rounded-full"
@@ -182,7 +116,7 @@ const NewComment = () => {
                   )}
                   onClick={() =>
                     mutation.mutate({ postId: id, content, email })
-                  } // ovdje treba mutaciju za new comment
+                  }
                   disabled={loading || content.trim() === ''}
                 >
                   Post
