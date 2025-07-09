@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { mongo } from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { NextFunction, Request, Response } from 'express';
@@ -97,11 +97,10 @@ async function getPost(req: Request, res: Response): Promise<void> {
                   { projection: { image: 1 } }
                 )
             : null);
-          userMap.set(
-            comment.author,
-            user?.image || null
-          );
+          userMap.set(comment.author, user?.image || null);
         }
+
+        console.log('to settle my curiousity: ', userMap.get(comment.author));
 
         return {
           id: comment._id,
@@ -119,8 +118,27 @@ async function getPost(req: Request, res: Response): Promise<void> {
     const filteredComments = commentsWithUserData.filter((c) => c !== null);
 
     // Fetch the author's image for the post
-    const postAuthorImage =
-      userMap.get(post.author) || null;
+
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: 'Database not connected' });
+      return;
+    }
+
+    const database = mongoose.connection.db;
+    if (!database) {
+      res.status(500).json({ message: 'Database not available' });
+      return;
+    }
+    const postAuthorUser = await database
+      .collection('users')
+      .findOne(
+        { _id: new mongoose.Types.ObjectId(post.author) },
+        { projection: { image: 1 } }
+      );
+
+    const postAuthorImage = postAuthorUser?.image ?? null;
+
+    console.log(`Post author image: ${postAuthorImage}`);
 
     res.status(200).json({
       id: post._id, // Map _id to id
