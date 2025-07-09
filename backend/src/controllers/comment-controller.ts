@@ -188,7 +188,7 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
   }
 }
 
-async function addComment(req: Request, res: Response): Promise<void> {
+async function editComment(req: Request, res: Response): Promise<void> {
   try {
     const { postId } = req.params;
     const { content, email } = req.body;
@@ -277,7 +277,7 @@ async function getLikes(req: Request, res: Response): Promise<void> {
   }
 }
 
-async function addLike(req: Request, res: Response): Promise<void> {
+async function toggleLike(req: Request, res: Response): Promise<void> {
   try {
     const { id, authorId } = req.body;
 
@@ -322,8 +322,8 @@ export {
   allComments,
   findCommentsByPost,
   findCommentById,
-  addComment,
+  editComment,
   deleteComment,
   getLikes,
-  addLike,
+  toggleLike,
 };

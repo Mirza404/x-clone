@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { NextFunction, Request, Response } from 'express';
-import { findCommentById } from './comment-controller';
 import { getUserIdByEmail, getUserNameByID } from './user-controller';
 
 async function allPosts(req: Request, res: Response): Promise<void> {
@@ -232,7 +231,7 @@ async function deletePost(req: Request, res: Response): Promise<void> {
   }
 }
 
-async function editPost(req: Request, res: Response): Promise<void> {
+async function updatePost(req: Request, res: Response): Promise<void> {
   try {
     const { id, content, images } = req.body;
 
@@ -303,7 +302,7 @@ async function getLikes(req: Request, res: Response): Promise<void> {
   }
 }
 
-async function addLike(req: Request, res: Response): Promise<void> {
+async function toggleLike(req: Request, res: Response): Promise<void> {
   try {
     const { id, authorId } = req.body;
 
@@ -345,7 +344,7 @@ export {
   getPost,
   createPost,
   deletePost,
-  editPost,
-  addLike,
+  updatePost,
+  toggleLike,
   getLikes,
 };
