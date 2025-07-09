@@ -68,7 +68,7 @@ const NewComment = () => {
         <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 mx-auto px-4 pt-2 border-r border-l border-t border-gray-700 shadow-lg w-[598px]">
           <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
             <img
-              className="w-10 h-10 rounded-full"
+              className="flex items-stretch min-w-8 h-8 rounded-full mr-2"
               src={session?.user?.image ?? '/Logo.png'}
               referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
@@ -78,8 +78,8 @@ const NewComment = () => {
           <div className="flex flex-col py-3 flex-1 min-w-0">
             <textarea
               ref={textareaRef}
-              className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
-              placeholder="What is happening?!"
+              className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
+              placeholder="What's up?"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onInput={(e) => {
@@ -106,7 +106,7 @@ const NewComment = () => {
               <div className="flex flex-row w-full h-full items-center justify-between">
                 <button
                   className={classNames(
-                    'flex justify-center items-center text-center rounded-full px-3 h-9 text-base font-bold transition duration-300',
+                    'flex justify-center items-center text-center text-sm rounded-full px-3 h-8 font-bold transition duration-300',
                     {
                       'bg-white text-black hover:bg-gray-300':
                         !loading && content.trim() !== '',
