@@ -63,7 +63,6 @@ export const CommentListInfinite = () => {
 
   return (
     <div className="border-l border-r border-b border-gray-700 mt-0">
-      <h2 className="text-xl font-bold p-4">Comments</h2>
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
           {group?.comments?.map((comment: Comment) => (
