@@ -4,8 +4,8 @@ import {
   createPost,
   deletePost,
   getPost,
-  editPost,
-  addLike,
+  updatePost,
+  toggleLike,
   getLikes,
 } from '../controllers/post-controller';
 import commentRoutes from './comment-routes';
@@ -16,8 +16,8 @@ postRoutes.get('/', allPosts);
 postRoutes.get('/:id', getPost);
 postRoutes.post('/new', createPost);
 postRoutes.delete('/delete', deletePost);
-postRoutes.patch('/edit', editPost);
-postRoutes.post('/like', addLike);
+postRoutes.patch('/edit', updatePost);
+postRoutes.post('/like', toggleLike);
 postRoutes.get('/getLikes/:id', getLikes);
 
 postRoutes.use('/:postId/comment', commentRoutes);

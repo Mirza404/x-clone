@@ -1,20 +1,18 @@
 import { Router } from 'express';
 import {
-  allComments,
   findCommentById,
   findCommentsByPost,
-  addComment,
+  editComment,
   deleteComment,
-  addLike,
+  toggleLike,
   getLikes,
 } from '../controllers/comment-controller';
 const commentRoutes = Router({ mergeParams: true });
 
 commentRoutes.get('/', findCommentsByPost); 
 commentRoutes.get('/:commentId', findCommentById);
-commentRoutes.post('/new', addComment);
+commentRoutes.post('/new', editComment);
 commentRoutes.patch('/delete/:commentId', deleteComment);
-commentRoutes.get('/')
-commentRoutes.post('/like', addLike);
+commentRoutes.post('/like', toggleLike);
 
 export default commentRoutes;
