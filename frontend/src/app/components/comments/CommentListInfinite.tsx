@@ -10,6 +10,7 @@ import CommentItem from './CommentItem';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 export const CommentListInfinite = () => {
   const params = useParams();
@@ -17,6 +18,7 @@ export const CommentListInfinite = () => {
   const { ref, inView } = useInView();
   const queryClient = useQueryClient();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const router = useRouter();
 
   const {
     data,
@@ -27,6 +29,12 @@ export const CommentListInfinite = () => {
     isLoading,
     isError,
   } = useFetchInfiniteComments(postId);
+
+  useEffect(() => {
+    if (inView) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, inView]);
 
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
@@ -47,12 +55,6 @@ export const CommentListInfinite = () => {
     },
   });
 
-  useEffect(() => {
-    if (inView) {
-      fetchNextPage();
-    }
-  }, [fetchNextPage, inView]);
-
   if (isLoading || status === 'pending') {
     return <LoadCircle />;
   }
@@ -70,6 +72,9 @@ export const CommentListInfinite = () => {
               <CommentItem
                 comment={comment}
                 onDelete={() => deleteCommentMutation.mutate(comment.id)}
+                onEdit={() =>
+                  router.push(`/posts/${postId}/comment/${comment.id}/edit`)
+                }
               />
             </div>
           ))}
