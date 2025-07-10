@@ -247,6 +247,40 @@ async function deleteComment(req: Request, res: Response): Promise<void> {
   }
 }
 
+async function updateComment(req: Request, res: Response): Promise<void> {
+  try {
+    const { commentId } = req.params;
+    const { content } = req.body;
+    if (!commentId || !content) {
+      res.status(400).json({ message: 'Comment ID and content are required' });
+      return;
+    }
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: 'Database not connected' });
+      return;
+    }
+    const updatedComment = await Comment.findByIdAndUpdate(
+      commentId,
+      { content, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!updatedComment) {
+      res.status(404).json({ message: 'Comment not found' });
+      return;
+    }
+    res.status(200).json({
+      message: 'Comment updated successfully',
+      comment: updatedComment,
+    });
+  } catch (error) {
+    console.error('Error updating comment:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+}
+
 async function getLikes(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
@@ -324,6 +358,7 @@ export {
   findCommentById,
   createComment,
   deleteComment,
+  updateComment,
   getLikes,
   toggleLike,
 };
