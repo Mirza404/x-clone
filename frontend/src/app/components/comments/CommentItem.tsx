@@ -9,13 +9,16 @@ import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
 import toast from 'react-hot-toast';
 import { useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 
 const CommentItem = ({
   comment,
   onDelete,
+  onEdit,
 }: {
   comment: Comment;
   onDelete: () => void;
+  onEdit: () => void;
 }) => {
   const { data: session } = useSession();
   const [showMore, setShowMore] = useState(false);
@@ -26,13 +29,11 @@ const CommentItem = ({
   const postId = params.id as string;
 
   useEffect(() => {
-    // Prefetch the individual comment data when the component mounts
     queryClient.prefetchQuery({
       queryKey: ['comment', comment.id],
       queryFn: () => getComment(postId, comment.id),
     });
   }, [postId, comment.id, queryClient]);
-
 
   return (
     <div className="relative flex flex-row p-4 border-t border-gray-700 bg-black m-0 w-full min-h-[80px] overflow-visible">
@@ -99,11 +100,7 @@ const CommentItem = ({
             <Dropdown
               type="comment"
               onDelete={onDelete}
-              onEdit={() => {
-                // For now, we'll just close the dropdown since edit functionality isn't implemented
-                setDropdownOpen(false);
-                toast.error('Edit comment functionality not implemented yet');
-              }}
+              onEdit={onEdit}
               onClose={() => setDropdownOpen(false)}
             />
           </div>
