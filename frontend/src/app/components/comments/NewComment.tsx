@@ -19,7 +19,7 @@ const NewComment = () => {
   const { id } = useParams<{ id: string }>();
   const email = session?.user?.email || '';
 
-  const mutation = useMutation({
+  const newPostMutation = useMutation({
     mutationFn: async ({
       postId,
       content,
@@ -115,7 +115,7 @@ const NewComment = () => {
                     }
                   )}
                   onClick={() =>
-                    mutation.mutate({ postId: id, content, email })
+                    newPostMutation.mutate({ postId: id, content, email })
                   }
                   disabled={loading || content.trim() === ''}
                 >
