@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const NewComment = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -18,6 +19,7 @@ const NewComment = () => {
   const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const email = session?.user?.email || '';
+  const router = useRouter();
 
   const newPostMutation = useMutation({
     mutationFn: async ({
@@ -43,6 +45,7 @@ const NewComment = () => {
       queryClient.invalidateQueries({
         queryKey: ['infiniteComments', variables.postId],
       });
+      router.replace('/posts/' + variables.postId);
     },
     onError: (error: any) => {
       toast.error(
@@ -50,7 +53,6 @@ const NewComment = () => {
       );
     },
   });
-
 
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
@@ -80,6 +82,7 @@ const NewComment = () => {
               ref={textareaRef}
               className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
               placeholder="What's up?"
+              maxLength={380} // ✅ Enforces the limit at the input level
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onInput={(e) => {
@@ -92,16 +95,21 @@ const NewComment = () => {
                   target.style.height = `${minHeight}px`;
                 } else {
                   target.style.height = `${minHeight}px`;
-                  target.style.height = `${Math.min(
-                    target.scrollHeight,
-                    maxHeight
-                  )}px`;
+                  target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`;
                 }
               }}
               onFocus={resetTextareaHeight}
               onBlur={resetTextareaHeight}
               disabled={loading}
             />
+            <p
+              className={`text-xs text-right mt-1 ${
+                content.length > 380 ? 'text-red-500' : 'text-gray-400'
+              }`}
+            >
+              {content.length}/380
+            </p>
+
             <div className="w-full h-[48px] py-0.5 mt-1.5">
               <div className="flex flex-row w-full h-full items-center justify-between">
                 <button
