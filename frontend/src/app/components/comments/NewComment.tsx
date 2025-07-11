@@ -46,6 +46,7 @@ const NewComment = () => {
         queryKey: ['infiniteComments', variables.postId],
       });
       router.replace('/posts/' + variables.postId);
+      setContent('');
     },
     onError: (error: any) => {
       toast.error(
@@ -102,13 +103,7 @@ const NewComment = () => {
               onBlur={resetTextareaHeight}
               disabled={loading}
             />
-            <p
-              className={`text-xs text-right mt-1 ${
-                content.length > 380 ? 'text-red-500' : 'text-gray-400'
-              }`}
-            >
-              {content.length}/380
-            </p>
+            
 
             <div className="w-full h-[48px] py-0.5 mt-1.5">
               <div className="flex flex-row w-full h-full items-center justify-between">
@@ -129,6 +124,13 @@ const NewComment = () => {
                 >
                   Post
                 </button>
+                <p
+              className={`text-xs text-right mt-1 ${
+                content.length > 380 ? 'text-red-500' : 'text-gray-400'
+              }`}
+            >
+              {content.length}/380
+            </p>
               </div>
             </div>
           </div>

@@ -64,7 +64,7 @@ const CommentItem = ({
                 onClick={() => setShowMore(!showMore)}
                 className="text-blue-500 interactive-element"
               >
-                {showMore ? 'Show less' : 'Read more'}
+                {showMore ? '  Show less' : '  Read more'}
               </button>
             )}
           </div>
