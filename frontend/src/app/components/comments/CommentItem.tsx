@@ -7,9 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getComment } from '@/app/utils/fetchInfo';
 import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
-import toast from 'react-hot-toast';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+
 
 const CommentItem = ({
   comment,
@@ -76,6 +75,9 @@ const CommentItem = ({
             authorId={authorId}
             initialLikes={comment.likes}
           />
+          <p className="text-xs text-gray-400 ">
+            Reply
+          </p>
         </div>
       </div>
       <div className="absolute top-2 right-2 mr-2 interactive-element">
