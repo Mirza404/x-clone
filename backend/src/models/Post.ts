@@ -1,4 +1,6 @@
 import mongoose, { Document } from 'mongoose';
+
+const { Types } = mongoose;
 const PostSchema = new mongoose.Schema({
   content: {
     type: String,
@@ -13,7 +15,7 @@ const PostSchema = new mongoose.Schema({
     required: false,
   },
   author: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Types.ObjectId,
     ref: 'User',
     required: true,
   },
@@ -29,11 +31,11 @@ const PostSchema = new mongoose.Schema({
     required: true,
   },
   likes: {
-    type: [mongoose.Schema.Types.ObjectId],
+    type: [Types.ObjectId],
     default: [],
   },
   comments: {
-    type: [mongoose.Schema.Types.ObjectId],
+    type: [Types.ObjectId],
     ref: 'Comment',
     default: [],
   },
