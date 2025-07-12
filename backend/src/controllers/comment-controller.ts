@@ -191,7 +191,7 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
 async function createComment(req: Request, res: Response): Promise<void> {
   try {
     const { postId } = req.params;
-    const { content, email } = req.body;
+    const { content, email, parentCommentId } = req.body;
 
     if (!postId || !content || !email) {
       res
@@ -211,19 +211,32 @@ async function createComment(req: Request, res: Response): Promise<void> {
       content,
       author,
       name,
+      postId,
+      parentComment: parentCommentId || null,
+      replies: [],
       createdAt: new Date(),
       likes: [],
     });
 
     await newComment.save();
 
-    await Post.findByIdAndUpdate(postId, {
-      $push: { comments: newComment._id },
-    });
+    if (parentCommentId) {
+      await Comment.findByIdAndUpdate(parentCommentId, {
+        $push: { replies: newComment._id },
+      });
+    } else {
+      // It's a top-level comment → push to the post's comments
+      await Post.findByIdAndUpdate(postId, {
+        $push: { comments: newComment._id },
+      });
+    }
 
-    res
-      .status(201)
-      .json({ message: 'Comment added successfully', comment: newComment });
+    res.status(201).json({
+      message: parentCommentId
+        ? 'Reply added successfully'
+        : 'Comment added successfully',
+      comment: newComment,
+    });
   } catch (e) {
     console.error('Error adding comment:', e);
     res.status(500).json({ message: 'Internal server error' });
