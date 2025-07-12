@@ -8,6 +8,7 @@ import { getComment } from '@/app/utils/fetchInfo';
 import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
 import { useParams } from 'next/navigation';
+import Reply from './Reply';
 
 const CommentItem = ({
   comment,
@@ -25,6 +26,7 @@ const CommentItem = ({
   const queryClient = useQueryClient();
   const params = useParams();
   const postId = params.id as string;
+  const [showReply, setShowReply] = useState(false);
 
   useEffect(() => {
     queryClient.prefetchQuery({
@@ -74,9 +76,22 @@ const CommentItem = ({
             authorId={authorId}
             initialLikes={comment.likes}
           />
-          <button className="flex justify-center items-center text-center rounded-full px-3 h-9 text-xs font-bold transition duration-300 hover:bg-[#1D9BF0] hover:bg-opacity-10 text-gray-400 hover:text-white">
+          <button
+            className="flex justify-center items-center text-center rounded-full px-3 h-9 text-xs font-bold transition duration-300 hover:bg-[#1D9BF0] hover:bg-opacity-10 text-gray-400 hover:text-white"
+            onClick={() => setShowReply(!showReply)}
+          >
             Reply
           </button>
+
+          {showReply && (
+            <Reply
+              postId={postId}
+              parentCommentId={comment.id}
+              content={comment.content}
+              email={session?.user?.email || ''}
+              onCancel={() => setShowReply(false)}
+            />
+          )}
         </div>
       </div>
       <div className="absolute top-2 right-2 mr-2 interactive-element">
