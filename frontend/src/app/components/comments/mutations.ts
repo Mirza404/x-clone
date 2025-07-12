@@ -1,0 +1,66 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+
+export function useCommentMutations() {
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  const postId = useParams().id as string;
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      const response = await axios.patch(
+        `${serverUrl}/api/post/${postId}/comment/delete/${commentId}`
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Comment deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || 'Failed to delete the comment'
+      );
+    },
+  });
+
+  const newPostMutation = useMutation({
+    mutationFn: async ({
+      postId,
+      parentCommentId,
+      content,
+      email,
+    }: {
+      postId: string;
+      parentCommentId?: string | null;
+      content: string;
+      email: string;
+    }) => {
+      const response = await axios.post(
+        `${serverUrl}/api/post/${postId}/comment/new`,
+        {
+          parentCommentId,
+          content,
+          email,
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Comment created successfully');
+      queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
+      router.replace('/posts/' + postId);
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || 'Failed to create the comment'
+      );
+    },
+  });
+
+  return { deleteCommentMutation, newPostMutation };
+}
