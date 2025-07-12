@@ -3,11 +3,8 @@ import LoadingBar from '../ui/CustomLoadBar';
 import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
 import CustomToaster from '../ui/CustomToaster';
-import toast from 'react-hot-toast';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { useParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import { useCommentMutations } from './mutations';
 
 const NewComment = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -15,49 +12,9 @@ const NewComment = () => {
   const [loading, setLoading] = useState(true);
   const { data: session } = useSession();
   const [content, setContent] = useState('');
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const email = session?.user?.email || '';
-  const router = useRouter();
-
-  const newPostMutation = useMutation({
-    mutationFn: async ({
-      postId,
-      parentCommentId,
-      content,
-      email,
-    }: {
-      postId: string;
-      parentCommentId?: string | null;
-      content: string;
-      email: string;
-    }) => {
-      const response = await axios.post(
-        `${serverUrl}/api/post/${postId}/comment/new`,
-        {
-          parentCommentId,
-          content,
-          email,
-        }
-      );
-      return response.data;
-    },
-    onSuccess: (_, variables) => {
-      toast.success('Comment created successfully');
-      queryClient.invalidateQueries({
-        queryKey: ['infiniteComments', variables.postId],
-      });
-      router.replace('/posts/' + variables.postId);
-      setContent('');
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Failed to create the comment'
-      );
-    },
-  });
-
+  const { newPostMutation } = useCommentMutations();
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = '28px';
@@ -106,7 +63,6 @@ const NewComment = () => {
               onBlur={resetTextareaHeight}
               disabled={loading}
             />
-            
 
             <div className="w-full h-[48px] py-0.5 mt-1.5">
               <div className="flex flex-row w-full h-full items-center justify-between">
@@ -120,20 +76,21 @@ const NewComment = () => {
                         loading || content.trim() === '',
                     }
                   )}
-                  onClick={() =>
-                    newPostMutation.mutate({ postId: id, content, email })
-                  }
+                  onClick={() => {
+                    newPostMutation.mutate({ postId: id, content, email });
+                    setContent('');
+                  }}
                   disabled={loading || content.trim() === ''}
                 >
                   Post
                 </button>
                 <p
-              className={`text-xs text-right mt-1 ${
-                content.length > 380 ? 'text-red-500' : 'text-gray-400'
-              }`}
-            >
-              {content.length}/380
-            </p>
+                  className={`text-xs text-right mt-1 ${
+                    content.length > 380 ? 'text-red-500' : 'text-gray-400'
+                  }`}
+                >
+                  {content.length}/380
+                </p>
               </div>
             </div>
           </div>
