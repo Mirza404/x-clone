@@ -24,16 +24,19 @@ const NewComment = () => {
   const newPostMutation = useMutation({
     mutationFn: async ({
       postId,
+      parentCommentId,
       content,
       email,
     }: {
       postId: string;
+      parentCommentId?: string | null;
       content: string;
       email: string;
     }) => {
       const response = await axios.post(
         `${serverUrl}/api/post/${postId}/comment/new`,
         {
+          parentCommentId,
           content,
           email,
         }
