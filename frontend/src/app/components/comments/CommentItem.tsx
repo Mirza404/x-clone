@@ -9,7 +9,6 @@ import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
 import { useParams } from 'next/navigation';
 
-
 const CommentItem = ({
   comment,
   onDelete,
@@ -75,9 +74,9 @@ const CommentItem = ({
             authorId={authorId}
             initialLikes={comment.likes}
           />
-          <p className="text-xs text-gray-400 ">
+          <button className="flex justify-center items-center text-center rounded-full px-3 h-9 text-xs font-bold transition duration-300 hover:bg-[#1D9BF0] hover:bg-opacity-10 text-gray-400 hover:text-white">
             Reply
-          </p>
+          </button>
         </div>
       </div>
       <div className="absolute top-2 right-2 mr-2 interactive-element">
