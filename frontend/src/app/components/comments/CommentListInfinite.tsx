@@ -7,19 +7,15 @@ import { useEffect, Fragment } from 'react';
 import LoadCircle from '../ui/LoadCircle';
 import type { Comment } from '../../types/Comment';
 import CommentItem from './CommentItem';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { useCommentMutations } from './mutations';
 
 export const CommentListInfinite = () => {
   const params = useParams();
   const postId = params.id as string;
   const { ref, inView } = useInView();
-  const queryClient = useQueryClient();
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const router = useRouter();
-
+  const { deleteCommentMutation } = useCommentMutations();
   const {
     data,
     fetchNextPage,
@@ -35,25 +31,6 @@ export const CommentListInfinite = () => {
       fetchNextPage();
     }
   }, [fetchNextPage, inView]);
-
-  const deleteCommentMutation = useMutation({
-    mutationFn: async (commentId: string) => {
-      const response = await axios.patch(
-        `${serverUrl}/api/post/${postId}/comment/delete/${commentId}`
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Comment deleted successfully');
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Failed to delete the comment'
-      );
-    },
-  });
 
   if (isLoading || status === 'pending') {
     return <LoadCircle />;
@@ -90,7 +67,9 @@ export const CommentListInfinite = () => {
             Nothing more to load.
           </div>
         ) : (
-          <div className="text-center p-4 text-gray-500 border-t border-gray-700">No comments yet.</div>
+          <div className="text-center p-4 text-gray-500 border-t border-gray-700">
+            No comments yet.
+          </div>
         )}
       </div>
     </div>
