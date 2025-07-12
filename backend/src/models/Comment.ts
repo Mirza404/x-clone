@@ -12,6 +12,12 @@ const CommentSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  name: {
+    type: String,
+    minLength: 1,
+    maxLength: 20,
+    required: true,
+  },
   postId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Post',
@@ -22,12 +28,11 @@ const CommentSchema = new mongoose.Schema({
     ref: 'Comment',
     default: null,
   },
-  replies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
-  name: {
-    type: String,
-    minLength: 1,
-    maxLength: 20,
-    required: true,
+  replies: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Comment',
+    default: [],
+    required: false,
   },
   createdAt: {
     type: Date,
