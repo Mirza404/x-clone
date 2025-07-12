@@ -35,11 +35,6 @@ export default function LikeButton({
       let payload: any = {};
 
       if (type !== 'post') {
-        console.log('procano likebutton za komentare');
-        console.log('procano likebutton za komentare');
-        console.log('procano likebutton za komentare');
-        console.log('procano likebutton za komentare');
-        console.log('params: ', params.id);
         const postId = params.id as string;
         endpoint = `${serverUrl}/api/post/${postId}/comment/like`;
         payload = { id: targetId, authorId };
