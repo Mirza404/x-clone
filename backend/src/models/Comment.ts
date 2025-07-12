@@ -1,6 +1,5 @@
-import mongoose from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 
-const { Types } = mongoose;
 const CommentSchema = new mongoose.Schema({
   content: {
     type: String,
@@ -8,24 +7,22 @@ const CommentSchema = new mongoose.Schema({
     minLength: 1,
     maxLength: 380,
   },
-  postId: {
-    type: Types.ObjectId,
-    ref: 'Post',
-    required: true,
-  },
-
-  parentComment: {
-    type: Types.ObjectId,
-    ref: 'Comment',
-    default: null,
-    required: false,
-  },
-  replies: [{ type: Types.ObjectId, ref: 'Comment' }], // this is your hybrid addition
   author: {
-    type: Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
+  postId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post',
+    required: true,
+  },
+  parentComment: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment',
+    default: null,
+  },
+  replies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
   name: {
     type: String,
     minLength: 1,
@@ -38,7 +35,7 @@ const CommentSchema = new mongoose.Schema({
     required: true,
   },
   likes: {
-    type: [Types.ObjectId],
+    type: [mongoose.Schema.Types.ObjectId],
     ref: 'User',
     default: [],
   },

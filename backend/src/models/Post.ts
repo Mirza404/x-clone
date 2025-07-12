@@ -1,6 +1,5 @@
 import mongoose, { Document } from 'mongoose';
 
-const { Types } = mongoose;
 const PostSchema = new mongoose.Schema({
   content: {
     type: String,
@@ -15,7 +14,7 @@ const PostSchema = new mongoose.Schema({
     required: false,
   },
   author: {
-    type: Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
@@ -31,11 +30,11 @@ const PostSchema = new mongoose.Schema({
     required: true,
   },
   likes: {
-    type: [Types.ObjectId],
+    type: [mongoose.Schema.Types.ObjectId],
     default: [],
   },
   comments: {
-    type: [Types.ObjectId],
+    type: [mongoose.Schema.Types.ObjectId],
     ref: 'Comment',
     default: [],
   },
