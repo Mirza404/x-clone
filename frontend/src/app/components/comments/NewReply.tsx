@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
 import { useCommentMutations } from './mutations';
 import { useParams } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ReplyProps {
   postId: string;
@@ -23,6 +25,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
   const { newPostMutation } = useCommentMutations();
   const params = useParams();
   const postId = params.id as string;
+  const queryClient = useQueryClient();
 
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
@@ -42,11 +45,16 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
         },
         {
           onSuccess: () => {
+            toast.success('Reply posted successfully!');
             setContent('');
+            queryClient.invalidateQueries({
+              queryKey: ['infiniteComments', postId],
+            });
             onCancel();
             setLoading(false);
           },
           onError: () => {
+            toast.error('Failed to post reply. Please try again.');
             setLoading(false);
           },
         }
