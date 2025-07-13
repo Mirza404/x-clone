@@ -4,6 +4,9 @@ export interface Comment {
   content: string;
   likes: string[];
   name: string;
+  postId: string;
+  parentComment: string | null;
+  replies: Comment[];
   createdAt: Date;
   authorImage: string;
 }
