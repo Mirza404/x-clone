@@ -4,6 +4,31 @@ import Comment from '../models/Comment';
 import { Request, Response } from 'express';
 import { getUserIdByEmail, getUserNameByID } from './user-controller';
 
+interface LeanComment {
+  _id: mongoose.Types.ObjectId;
+  content: string;
+  name: string;
+  email?: string; // Optional, not always present
+  author: mongoose.Types.ObjectId;
+  postId: mongoose.Types.ObjectId;
+  parentComment: mongoose.Types.ObjectId | null;
+  replies?: LeanComment[];
+  createdAt: Date;
+  likes: mongoose.Types.ObjectId[];
+};
+
+// interface LeanComment {
+//   _id: string; // .lean() converts ObjectId to string
+//   content: string;
+//   author: mongoose.Types.ObjectId; // Still an ObjectId (not populated)
+//   name: string;
+//   postId: mongoose.Types.ObjectId;
+//   parentComment?: mongoose.Types.ObjectId | null;
+//   replies?: LeanComment[]; // Populated replies are LeanComment[]
+//   createdAt: Date;
+//   likes: mongoose.Types.ObjectId[];
+// }
+
 async function allComments(req: Request, res: Response): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
@@ -20,6 +45,8 @@ async function allComments(req: Request, res: Response): Promise<void> {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
+      .populate('replies') // only populate replies, not author
+
       .lean();
 
     // Fetch author images separately from the users collection
@@ -35,6 +62,9 @@ async function allComments(req: Request, res: Response): Promise<void> {
           id: comment._id,
           content: comment.content,
           name: comment.name,
+          postId: comment.postId,
+          parentComment: comment.parentComment,
+          replies: comment.replies,
           createdAt: comment.createdAt,
           likes: comment.likes,
           author: comment.author,
@@ -79,49 +109,73 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     const limitNum = parseInt(limit as string, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    // Fetch post to get comment IDs
+    // Get the post and its comments
     const post = await Post.findById(postId).select('comments').lean();
     if (!post) {
       res.status(404).json({ message: 'Post not found' });
       return;
     }
 
-    // Fetch paginated comments
+    // Get top-level comments for pagination
     const comments = await Comment.find({
       _id: { $in: post.comments },
+      parentComment: null,
     })
-      .sort({ createdAt: -1 }) //Newest first
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum)
-      .lean();
+      .populate('replies') // only populate replies, not author
+      .lean() as LeanComment[];
 
-    // Fetch author images
-    const authorIds = comments.map((comment) => comment.author);
+    // Collect all author IDs from comments and replies
+    const authorIds = new Set<string>();
+    for (const comment of comments) {
+      authorIds.add(comment.author.toString());
+      for (const reply of comment.replies ?? []) {
+        authorIds.add(reply.author.toString());
+      }
+    }
+
+    // Fetch user images manually
     //@ts-ignore
     const users = await mongoose.connection.db
       .collection('users')
-      .find({ _id: { $in: authorIds } })
+      .find({ _id: { $in: Array.from(authorIds).map((id) => new mongoose.Types.ObjectId(id)) } })
       .project({ _id: 1, image: 1 })
       .toArray();
 
-    const userImageMap = new Map(
-      users.map((user) => [user._id.toString(), user.image])
-    );
+    const userImageMap = new Map(users.map((user) => [user._id.toString(), user.image]));
 
+    // Attach authorImage to comments and replies
     const commentsWithUserData = comments.map((comment) => ({
       id: comment._id,
       content: comment.content,
       name: comment.name,
+      postId: comment.postId,
+      parentComment: comment.parentComment,
       createdAt: comment.createdAt,
       likes: comment.likes,
       author: comment.author,
       authorImage: userImageMap.get(comment.author.toString()) || null,
+      replies: (comment.replies ?? []).map((reply: any) => ({
+        id: reply._id,
+        content: reply.content,
+        name: reply.name,
+        postId: reply.postId,
+        parentComment: reply.parentComment,
+        createdAt: reply.createdAt,
+        likes: reply.likes,
+        author: reply.author,
+        authorImage: userImageMap.get(reply.author.toString()) || null,
+        replies: reply.replies, // (should usually be empty since this is a 2-level system)
+      })),
     }));
 
-    // Total comments for pagination
     const totalComments = await Comment.countDocuments({
       _id: { $in: post.comments },
+      parentComment: null,
     });
+
     const totalPages = Math.ceil(totalComments / limitNum);
 
     res.status(200).json({
@@ -138,6 +192,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     }
   }
 }
+
 
 async function findCommentById(req: Request, res: Response): Promise<void> {
   try {
@@ -173,6 +228,9 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       id: comment._id,
       content: comment.content,
       name: comment.name,
+      postId: comment.postId,
+      parentComment: comment.parentComment,
+      replies: comment.replies,
       createdAt: comment.createdAt,
       likes: comment.likes,
       author: comment.author,
