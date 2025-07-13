@@ -3,31 +3,7 @@ import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { Request, Response } from 'express';
 import { getUserIdByEmail, getUserNameByID } from './user-controller';
-
-interface LeanComment {
-  _id: mongoose.Types.ObjectId;
-  content: string;
-  name: string;
-  email?: string; // Optional, not always present
-  author: mongoose.Types.ObjectId;
-  postId: mongoose.Types.ObjectId;
-  parentComment: mongoose.Types.ObjectId | null;
-  replies?: LeanComment[];
-  createdAt: Date;
-  likes: mongoose.Types.ObjectId[];
-};
-
-// interface LeanComment {
-//   _id: string; // .lean() converts ObjectId to string
-//   content: string;
-//   author: mongoose.Types.ObjectId; // Still an ObjectId (not populated)
-//   name: string;
-//   postId: mongoose.Types.ObjectId;
-//   parentComment?: mongoose.Types.ObjectId | null;
-//   replies?: LeanComment[]; // Populated replies are LeanComment[]
-//   createdAt: Date;
-//   likes: mongoose.Types.ObjectId[];
-// }
+import { LeanComment } from 'src/types/LeanComment';
 
 async function allComments(req: Request, res: Response): Promise<void> {
   try {
@@ -117,7 +93,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     }
 
     // Get top-level comments for pagination
-    const comments = await Comment.find({
+    const comments = (await Comment.find({
       _id: { $in: post.comments },
       parentComment: null,
     })
@@ -125,7 +101,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
       .skip(skip)
       .limit(limitNum)
       .populate('replies') // only populate replies, not author
-      .lean() as LeanComment[];
+      .lean()) as LeanComment[];
 
     // Collect all author IDs from comments and replies
     const authorIds = new Set<string>();
@@ -140,11 +116,19 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     //@ts-ignore
     const users = await mongoose.connection.db
       .collection('users')
-      .find({ _id: { $in: Array.from(authorIds).map((id) => new mongoose.Types.ObjectId(id)) } })
+      .find({
+        _id: {
+          $in: Array.from(authorIds).map(
+            (id) => new mongoose.Types.ObjectId(id)
+          ),
+        },
+      })
       .project({ _id: 1, image: 1 })
       .toArray();
 
-    const userImageMap = new Map(users.map((user) => [user._id.toString(), user.image]));
+    const userImageMap = new Map(
+      users.map((user) => [user._id.toString(), user.image])
+    );
 
     // Attach authorImage to comments and replies
     const commentsWithUserData = comments.map((comment) => ({
@@ -192,7 +176,6 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     }
   }
 }
-
 
 async function findCommentById(req: Request, res: Response): Promise<void> {
   try {
