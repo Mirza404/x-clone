@@ -8,7 +8,7 @@ import { getComment } from '@/app/utils/fetchInfo';
 import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
 import { useParams } from 'next/navigation';
-import Reply from './Reply';
+import NewReply from './NewReply';
 
 const CommentItem = ({
   comment,
@@ -84,7 +84,7 @@ const CommentItem = ({
           </button>
 
           {showReply && (
-            <Reply
+            <NewReply
               postId={postId}
               parentCommentId={comment.id}
               content={comment.content}

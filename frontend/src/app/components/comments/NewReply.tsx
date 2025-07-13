@@ -14,7 +14,7 @@ interface ReplyProps {
   onCancel: () => void;
 }
 
-const Reply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
+const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
@@ -129,4 +129,4 @@ const Reply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
   );
 };
 
-export default Reply;
+export default NewReply;
