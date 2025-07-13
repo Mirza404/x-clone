@@ -9,6 +9,9 @@ import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
 import { useParams } from 'next/navigation';
 import NewReply from './NewReply';
+import ReplyItem from './ReplyItem';
+import { useCommentMutations } from './mutations';
+import { useRouter } from 'next/navigation';
 
 const CommentItem = ({
   comment,
@@ -27,6 +30,8 @@ const CommentItem = ({
   const params = useParams();
   const postId = params.id as string;
   const [showReply, setShowReply] = useState(false);
+  const { deleteCommentMutation } = useCommentMutations();
+  const router = useRouter();
 
   useEffect(() => {
     queryClient.prefetchQuery({
@@ -54,7 +59,7 @@ const CommentItem = ({
             })}
           </span>
         </div>
-        <div className="bg-transparent text-sm">
+        <div className="bg-transparent text-sm"> 
           <div className="text-white break-all whitespace-pre-wrap">
             {showMore
               ? comment.content
@@ -91,6 +96,22 @@ const CommentItem = ({
               email={session?.user?.email || ''}
               onCancel={() => setShowReply(false)}
             />
+          )}
+
+          {/* Display replies */}
+          {comment.replies && comment.replies.length > 0 && (
+            <div className="mt-3">
+              {comment.replies.map((reply: any) => (
+                <ReplyItem
+                  key={reply.id}
+                  reply={reply}
+                  onDelete={() => deleteCommentMutation.mutate(reply.id)}
+                  onEdit={() =>
+                    router.push(`/posts/${postId}/comment/${reply.id}/edit`)
+                  }
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>
