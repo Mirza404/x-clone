@@ -16,38 +16,62 @@ async function allComments(req: Request, res: Response): Promise<void> {
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
 
-    // Fetch comments (excluding deleted ones)
-    const comments = await Comment.find()
+    const comments = (await Comment.find()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('replies') // only populate replies, not author
+      .lean()) as LeanComment[];
 
-      .lean();
+    const authorIds = new Set<string>();
+    for (const comment of comments) {
+      authorIds.add(comment.author.toString());
+      for (const reply of comment.replies ?? []) {
+        authorIds.add(reply.author.toString());
+      }
+    }
+
+    //@ts-ignore
+    const users = await mongoose.connection.db
+      .collection('users')
+      .find({
+        _id: {
+          $in: Array.from(authorIds).map(
+            (id) => new mongoose.Types.ObjectId(id)
+          ),
+        },
+      })
+      .project({ _id: 1, image: 1 })
+      .toArray();
+
+    const userImageMap = new Map(
+      users.map((user) => [user._id.toString(), user.image])
+    );
 
     // Fetch author images separately from the users collection
-    const commentsWithUserData = await Promise.all(
-      comments.map(async (comment) => {
-        //@ts-ignore
-        const user = await mongoose.connection.db.collection('users').findOne(
-          { _id: new mongoose.Types.ObjectId(comment.author) }, // Convert author ID to ObjectId
-          { projection: { image: 1 } } // Only fetch profile image
-        );
-
-        return {
-          id: comment._id,
-          content: comment.content,
-          name: comment.name,
-          postId: comment.postId,
-          parentComment: comment.parentComment,
-          replies: comment.replies,
-          createdAt: comment.createdAt,
-          likes: comment.likes,
-          author: comment.author,
-          authorImage: user?.image || null, // Default placeholder if no image
-        };
-      })
-    );
+    const commentsWithUserData = comments.map((comment) => ({
+      id: comment._id,
+      content: comment.content,
+      name: comment.name,
+      postId: comment.postId,
+      parentComment: comment.parentComment,
+      createdAt: comment.createdAt,
+      likes: comment.likes,
+      author: comment.author,
+      authorImage: userImageMap.get(comment.author.toString()) || null,
+      replies: (comment.replies ?? []).map((reply: any) => ({
+        id: reply._id,
+        content: reply.content,
+        name: reply.name,
+        postId: reply.postId,
+        parentComment: reply.parentComment,
+        createdAt: reply.createdAt,
+        likes: reply.likes,
+        author: reply.author,
+        authorImage: userImageMap.get(reply.author.toString()) || null,
+        replies: reply.replies, // (should usually be empty since this is a 2-level system)
+      })),
+    }));
 
     // Total number of comments
     const totalComments = await Comment.countDocuments();
@@ -179,6 +203,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
 
 async function findCommentById(req: Request, res: Response): Promise<void> {
   try {
+    const { postId } = req.params;
     const { commentId } = req.params;
 
     if (!commentId) {
@@ -191,36 +216,75 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const comment = await Comment.findById(commentId).lean();
-
-    if (!comment) {
-      res.status(404).json({ message: 'Comment not found' });
+    const post = await Post.findById(postId).select('comments').lean();
+    if (!post) {
+      res.status(404).json({ message: 'Post not found' });
       return;
     }
 
-    // Fetch author image from the users collection
-    //@ts-ignore
-    const user = await mongoose.connection.db
-      .collection('users')
-      .findOne(
-        { _id: new mongoose.Types.ObjectId(comment.author) },
-        { projection: { image: 1 } }
-      );
+    const comments = (await Comment.find({
+      $and: [
+        { _id: new mongoose.Types.ObjectId(commentId) },
+        { _id: { $in: post.comments } },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .populate('replies') // only populate replies, not author
+      .lean()) as LeanComment[];
 
-    const commentWithUserData = {
+    // Collect all author IDs from comments and replies
+    const authorIds = new Set<string>();
+    for (const comment of comments) {
+      authorIds.add(comment.author.toString());
+      for (const reply of comment.replies ?? []) {
+        authorIds.add(reply.author.toString());
+      }
+    }
+
+    // Fetch user images manually
+    //@ts-ignore
+    const users = await mongoose.connection.db
+      .collection('users')
+      .find({
+        _id: {
+          $in: Array.from(authorIds).map(
+            (id) => new mongoose.Types.ObjectId(id)
+          ),
+        },
+      })
+      .project({ _id: 1, image: 1 })
+      .toArray();
+
+    const userImageMap = new Map(
+      users.map((user) => [user._id.toString(), user.image])
+    );
+
+    // Attach authorImage to comments and replies
+    const commentsWithUserData = comments.map((comment) => ({
       id: comment._id,
       content: comment.content,
       name: comment.name,
       postId: comment.postId,
       parentComment: comment.parentComment,
-      replies: comment.replies,
       createdAt: comment.createdAt,
       likes: comment.likes,
       author: comment.author,
-      authorImage: user?.image || null,
-    };
+      authorImage: userImageMap.get(comment.author.toString()) || null,
+      replies: (comment.replies ?? []).map((reply: any) => ({
+        id: reply._id,
+        content: reply.content,
+        name: reply.name,
+        postId: reply.postId,
+        parentComment: reply.parentComment,
+        createdAt: reply.createdAt,
+        likes: reply.likes,
+        author: reply.author,
+        authorImage: userImageMap.get(reply.author.toString()) || null,
+        replies: reply.replies, // (should usually be empty since this is a 2-level system)
+      })),
+    }));
 
-    res.status(200).json(commentWithUserData);
+    res.status(200).json(commentsWithUserData);
   } catch (error) {
     console.error('Error finding comment:', error);
     if (!res.headersSent) {
