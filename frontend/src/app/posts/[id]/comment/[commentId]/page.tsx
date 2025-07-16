@@ -6,7 +6,6 @@ import { useQuery } from '@tanstack/react-query';
 import CommentItem from '@/app/components/comments/CommentItem';
 import ReplyItem from '@/app/components/comments/ReplyItem';
 import { useCommentMutations } from '@/app/components/comments/mutations';
-import { useRouter } from 'next/navigation';
 import { getCommentById } from '@/app/utils/fetchInfo';
 import CustomToaster from '@/app/components/ui/CustomToaster';
 import LoadCircle from '@/app/components/ui/LoadCircle';
@@ -14,8 +13,7 @@ import LoadCircle from '@/app/components/ui/LoadCircle';
 const CommentThreadPage = () => {
   const commentId = useParams().commentId as string;
   const postId = useParams().id as string;
-  const router = useRouter();
-  const { deleteCommentMutation, newCommentMutation } = useCommentMutations();
+  const { deleteCommentMutation } = useCommentMutations();
 
   const {
     data: commentData,
