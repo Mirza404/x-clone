@@ -12,6 +12,9 @@ import NewReply from './NewReply';
 import ReplyItem from './ReplyItem';
 import { useCommentMutations } from './mutations';
 import { useRouter } from 'next/navigation';
+import { useCallback } from 'react';
+import { useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 
 const CommentItem = ({
   comment,
@@ -32,6 +35,26 @@ const CommentItem = ({
   const [showReply, setShowReply] = useState(false);
   const { deleteCommentMutation } = useCommentMutations();
   const router = useRouter();
+  const pathname = usePathname();
+  const isCurrentPage = useMemo(
+    () => pathname === `/posts/${postId}/comment/${comment.id}`,
+    [pathname, postId, comment.id]
+  );
+
+  const handleCommentClick = useCallback(
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.closest('.interactive-element') ||
+        target.closest('.dropdown-menu') ||
+        target.closest('.like-button')
+      ) {
+        return;
+      }
+      router.push(`/posts/${postId}/comment/${comment.id}`);
+    },
+    [router, postId, comment.id]
+  );
 
   useEffect(() => {
     queryClient.prefetchQuery({
@@ -41,7 +64,10 @@ const CommentItem = ({
   }, [postId, comment.id, queryClient]);
 
   return (
-    <div className="relative flex flex-row p-4 border-t border-gray-700 bg-black m-0 w-full min-h-[80px] overflow-visible">
+    <div
+      className="relative flex flex-row p-4 border-t border-gray-700 bg-black m-0 w-full min-h-[80px] overflow-visible"
+      onClick={!isCurrentPage ? handleCommentClick : undefined}
+    >
       <img
         className="flex items-stretch min-w-8 h-8 rounded-full mr-2"
         src={comment?.authorImage ?? '/Logo.png'}
@@ -59,11 +85,11 @@ const CommentItem = ({
             })}
           </span>
         </div>
-        <div className="bg-transparent text-sm"> 
+        <div className="bg-transparent text-sm">
           <div className="text-white break-all whitespace-pre-wrap">
             {showMore
               ? comment.content
-              : `${comment.content.substring(0, 300)}`}
+              : `${comment.content.substring(0, 300) ?? ''}`}
             {comment.content.length > 300 && (
               <button
                 onClick={() => setShowMore(!showMore)}
@@ -98,21 +124,6 @@ const CommentItem = ({
             />
           )}
 
-          {/* Display replies */}
-          {comment.replies && comment.replies.length > 0 && (
-            <div className="mt-3">
-              {comment.replies.map((reply: any) => (
-                <ReplyItem
-                  key={reply.id}
-                  reply={reply}
-                  onDelete={() => deleteCommentMutation.mutate(reply.id)}
-                  onEdit={() =>
-                    router.push(`/posts/${postId}/comment/${reply.id}/edit`)
-                  }
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
       <div className="absolute top-2 right-2 mr-2 interactive-element">
