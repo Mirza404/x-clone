@@ -24,7 +24,7 @@ const ReplyItem = ({
   const postId = params.id as string;
 
   return (
-    <div className="relative flex flex-row p-3 ml-10 border-l-2 border-gray-600 pl-4 bg-gray-900 bg-opacity-30 m-0 w-full min-h-[70px] overflow-visible">
+    <div className="relative flex flex-row p-3 pl-4 m-0 w-full min-h-[70px] overflow-visible">
       <img
         className="flex items-stretch min-w-6 h-6 rounded-full mr-2"
         src={reply?.authorImage ?? '/Logo.png'}
