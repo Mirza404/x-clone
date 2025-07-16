@@ -6,33 +6,16 @@ import { useQuery } from '@tanstack/react-query';
 import CommentItem from '@/app/components/comments/CommentItem';
 import ReplyItem from '@/app/components/comments/ReplyItem';
 import { useCommentMutations } from '@/app/components/comments/mutations';
-import axios from 'axios';
-import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
-import { usePathname } from 'next/navigation';
 import { getCommentById } from '@/app/utils/fetchInfo';
+import CustomToaster from '@/app/components/ui/CustomToaster';
+import LoadCircle from '@/app/components/ui/LoadCircle';
 
 const CommentThreadPage = () => {
   const commentId = useParams().commentId as string;
   const postId = useParams().id as string;
   const router = useRouter();
-  const { deleteCommentMutation, newPostMutation } = useCommentMutations();
-
-  const handleCommentClick = useCallback(
-    (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.closest('.interactive-element') ||
-        target.closest('.dropdown-menu') ||
-        target.closest('.like-button')
-      ) {
-        return;
-      }
-      router.push(`/posts/${postId}/comment/${commentId}`);
-    },
-    [router, postId, commentId]
-  );
+  const { deleteCommentMutation, newCommentMutation } = useCommentMutations();
 
   const {
     data: commentData,
@@ -47,32 +30,18 @@ const CommentThreadPage = () => {
     enabled: !!postId && !!commentId,
   });
 
-  console.log('comment data: ', commentData);
-  const comment = commentData?.[0]; // grab the first item
+  const comment = commentData?.[0];
 
   const handleDeleteComment = (commentId: string) => {
     deleteCommentMutation.mutate(commentId);
   };
 
-  const handleNewComment = (
-    parentCommentId: string | null,
-    content: string,
-    email: string
-  ) => {
-    newPostMutation.mutate({ postId, parentCommentId, content, email });
-  };
-
-  if (isLoading) return <div>Loading...</div>;
-
-  if (isError) {
-    console.log('Error procan');
-  }
-  if (commentData) {
-    console.log('ima commentData');
-  }
-  if (typeof commentData.content !== 'string') {
-    console.log('nije string', comment.content);
-  }
+  if (isLoading)
+    return (
+      <div>
+        <LoadCircle />
+      </div>
+    );
 
   if (isError || !comment || typeof comment.content !== 'string') {
     return <div>Something went wrong loading the comment.</div>;
@@ -93,7 +62,9 @@ const CommentThreadPage = () => {
         {/* Replies */}
         {Array.isArray(comment.replies) && comment.replies.length > 0 && (
           <>
-            <h2 className="text-xl font-bold px-4 pt-4 border-t border-gray-600">Replies</h2>
+            <h2 className="text-xl font-bold px-4 pt-4 border-t border-gray-600">
+              Replies
+            </h2>
             <div className=" space-y-2">
               {comment.replies.map((reply: any) => (
                 <div className="border-t border-gray-600">
@@ -108,10 +79,10 @@ const CommentThreadPage = () => {
                 </div>
               ))}
             </div>
-            
           </>
         )}
       </div>
+      <CustomToaster />
     </div>
   );
 };
