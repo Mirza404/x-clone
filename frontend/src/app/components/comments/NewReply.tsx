@@ -22,7 +22,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
   const { data: session } = useSession();
   const [content, setContent] = useState('');
   const email = session?.user?.email || '';
-  const { newPostMutation } = useCommentMutations();
+  const { newCommentMutation } = useCommentMutations();
   const params = useParams();
   const postId = params.id as string;
   const queryClient = useQueryClient();
@@ -36,7 +36,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
   const handleSubmit = () => {
     if (content.trim()) {
       setLoading(true);
-      newPostMutation.mutate(
+      newCommentMutation.mutate(
         {
           postId: postId, // This will be handled by the mutation hook
           parentCommentId,
