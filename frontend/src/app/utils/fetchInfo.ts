@@ -61,7 +61,6 @@ export async function getCommentsPaginated(postId: string, page: number) {
     });
     const totalPages = res.data.totalPages;
     const hasNext = page < totalPages;
-    console.log('res data paginated comm', res.data.comments);
 
     return {
       nextPage: hasNext ? page + 1 : undefined,
@@ -78,5 +77,20 @@ export async function getCommentsPaginated(postId: string, page: number) {
       previousPage: undefined,
       comments: [],
     };
+  }
+}
+export async function getCommentById(
+  postId: string,
+  commentId: string
+): Promise<any> {
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+  try {
+    const response = await axios.get(
+      `${serverUrl}/api/post/${postId}/comment/${commentId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch comment:', error);
+    throw error;
   }
 }
