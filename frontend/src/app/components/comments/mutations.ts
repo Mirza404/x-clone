@@ -2,13 +2,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
 
 export function useCommentMutations() {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const postId = useParams().id as string;
+  const parentCommentId = useParams().commentId as string;
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
@@ -19,7 +18,9 @@ export function useCommentMutations() {
     },
     onSuccess: () => {
       toast.success('Comment deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
+      queryClient.invalidateQueries({
+        queryKey: ['comment-thread', postId, parentCommentId],
+      });
     },
     onError: (error: any) => {
       toast.error(
@@ -28,7 +29,7 @@ export function useCommentMutations() {
     },
   });
 
-  const newPostMutation = useMutation({
+  const newCommentMutation = useMutation({
     mutationFn: async ({
       postId,
       parentCommentId,
@@ -51,9 +52,9 @@ export function useCommentMutations() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Comment created successfully');
-      queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
-      router.replace('/posts/' + postId);
+      queryClient.invalidateQueries({
+        queryKey: ['comment-thread', postId, parentCommentId],
+      });
     },
     onError: (error: any) => {
       toast.error(
@@ -62,5 +63,5 @@ export function useCommentMutations() {
     },
   });
 
-  return { deleteCommentMutation, newPostMutation };
+  return { deleteCommentMutation, newCommentMutation };
 }
