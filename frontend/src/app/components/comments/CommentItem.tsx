@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
+import { universalHandleClick } from '@/app/utils/handleClick';
 
 const CommentItem = ({
   comment,
@@ -41,21 +42,6 @@ const CommentItem = ({
     [pathname, postId, comment.id]
   );
 
-  const handleCommentClick = useCallback(
-    (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.closest('.interactive-element') ||
-        target.closest('.dropdown-menu') ||
-        target.closest('.like-button')
-      ) {
-        return;
-      }
-      router.push(`/posts/${postId}/comment/${comment.id}`);
-    },
-    [router, postId, comment.id]
-  );
-
   useEffect(() => {
     queryClient.prefetchQuery({
       queryKey: ['comment', comment.id],
@@ -66,7 +52,12 @@ const CommentItem = ({
   return (
     <div
       className="relative flex flex-row p-4 border-t border-gray-700 bg-black m-0 w-full min-h-[80px] overflow-visible"
-      onClick={!isCurrentPage ? handleCommentClick : undefined}
+      onClick={
+        !isCurrentPage
+          ? (e) =>
+              universalHandleClick(e, router, 'comment', postId, comment.id)
+          : undefined
+      }
     >
       <img
         className="flex items-stretch min-w-8 h-8 rounded-full mr-2"
@@ -123,7 +114,6 @@ const CommentItem = ({
               onCancel={() => setShowReply(false)}
             />
           )}
-
         </div>
       </div>
       <div className="absolute top-2 right-2 mr-2 interactive-element">
