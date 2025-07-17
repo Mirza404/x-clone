@@ -7,7 +7,6 @@ import { useCommentMutations } from './mutations';
 import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
-
 interface ReplyProps {
   postId: string;
   parentCommentId: string;
@@ -22,11 +21,9 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
   const { data: session } = useSession();
   const [content, setContent] = useState('');
   const email = session?.user?.email || '';
-  const { newCommentMutation } = useCommentMutations();
+  const { newReplyMutation } = useCommentMutations();
   const params = useParams();
   const postId = params.id as string;
-  const queryClient = useQueryClient();
-
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = '28px';
@@ -36,7 +33,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
   const handleSubmit = () => {
     if (content.trim()) {
       setLoading(true);
-      newCommentMutation.mutate(
+      newReplyMutation.mutate(
         {
           postId: postId, // This will be handled by the mutation hook
           parentCommentId,
@@ -45,11 +42,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
         },
         {
           onSuccess: () => {
-            toast.success('Reply posted successfully!');
             setContent('');
-            queryClient.invalidateQueries({
-              queryKey: ['infiniteComments', postId],
-            });
             onCancel();
             setLoading(false);
           },
