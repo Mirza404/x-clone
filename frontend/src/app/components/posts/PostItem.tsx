@@ -10,6 +10,7 @@ import LikeButton from '../ui/LikeButton';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getPost } from '../../utils/fetchInfo';
+import { universalHandleClick } from '@/app/utils/handleClick';
 
 export default function PostItem({
   post,
@@ -71,7 +72,11 @@ export default function PostItem({
   return (
     <div
       className="relative flex flex-row p-4 border-b  border-x border-gray-800 bg-black m-0 tweet-content w-full min-h-[98px] post-hover overflow-visible cursor-pointer"
-      onClick={!isCurrentPage ? handlePostClick : undefined}
+      onClick={
+        !isCurrentPage
+          ? (e) => universalHandleClick(e, router, 'post', post.id)
+          : undefined
+      }
     >
       <img
         className="flex items-stretch min-w-10 h-10 rounded-full mr-3"
