@@ -3,7 +3,7 @@
 import type React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import DropDownMenu from './DropDownMenu';
 import type { Post } from '../../types/Post';
 import LikeButton from '../ui/LikeButton';
@@ -40,20 +40,6 @@ export default function PostItem({
     });
   }, [post.id, queryClient]);
 
-  const handlePostClick = useCallback(
-    (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.closest('.interactive-element') ||
-        target.closest('.dropdown-menu') ||
-        target.closest('.like-button')
-      ) {
-        return;
-      }
-      router.push(`/posts/${post.id}`);
-    },
-    [router, post.id]
-  );
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
