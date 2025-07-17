@@ -2,10 +2,12 @@
 
 import type { Comment } from '../../types/Comment';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
 import { useParams } from 'next/navigation';
+import { universalHandleClick } from '@/app/utils/handleClick';
+import { usePathname, useRouter } from 'next/navigation';
 
 const ReplyItem = ({
   reply,
@@ -22,9 +24,23 @@ const ReplyItem = ({
   const authorId: string = session?.user?.id ?? '';
   const params = useParams();
   const postId = params.id as string;
+  const commentId = params.commentId as string;
+  const pathname = usePathname();
+  const router = useRouter();
+  const isCurrentPage = useMemo(
+    () => pathname === `/posts/${postId}/comment/${commentId}`,
+    [pathname, postId, commentId]
+  );
 
   return (
-    <div className="relative flex flex-row p-3 pl-4 m-0 w-full min-h-[70px] overflow-visible">
+    <div
+      className="relative flex flex-row p-3 pl-4 m-0 w-full min-h-[70px] overflow-visible"
+      onClick={
+        !isCurrentPage
+          ? (e) => universalHandleClick(e, router, 'comment', postId, commentId)
+          : undefined
+      }
+    >
       <img
         className="flex items-stretch min-w-6 h-6 rounded-full mr-2"
         src={reply?.authorImage ?? '/Logo.png'}
