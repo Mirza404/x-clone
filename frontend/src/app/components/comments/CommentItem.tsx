@@ -9,10 +9,7 @@ import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
 import { useParams } from 'next/navigation';
 import NewReply from './NewReply';
-import ReplyItem from './ReplyItem';
-import { useCommentMutations } from './mutations';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { universalHandleClick } from '@/app/utils/handleClick';
@@ -34,7 +31,6 @@ const CommentItem = ({
   const params = useParams();
   const postId = params.id as string;
   const [showReply, setShowReply] = useState(false);
-  const { deleteCommentMutation } = useCommentMutations();
   const router = useRouter();
   const pathname = usePathname();
   const isCurrentPage = useMemo(
