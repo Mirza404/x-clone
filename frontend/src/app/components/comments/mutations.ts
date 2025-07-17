@@ -6,7 +6,6 @@ import { useParams } from 'next/navigation';
 export function useCommentMutations() {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const postId = useParams().id as string;
-  const parentCommentId = useParams().commentId as string;
   const queryClient = useQueryClient();
 
   const deleteCommentMutation = useMutation({
@@ -19,7 +18,7 @@ export function useCommentMutations() {
     onSuccess: () => {
       toast.success('Comment deleted successfully');
       queryClient.invalidateQueries({
-        queryKey: ['comment-thread', postId, parentCommentId],
+        queryKey: ['infiniteComments', postId],
       });
     },
     onError: (error: any) => {
@@ -52,8 +51,9 @@ export function useCommentMutations() {
       return response.data;
     },
     onSuccess: () => {
+      toast.success('Comment created successfully');
       queryClient.invalidateQueries({
-        queryKey: ['comment-thread', postId, parentCommentId],
+        queryKey: ['infiniteComments', postId],
       });
     },
     onError: (error: any) => {
