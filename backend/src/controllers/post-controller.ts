@@ -100,8 +100,6 @@ async function getPost(req: Request, res: Response): Promise<void> {
           userMap.set(comment.author, user?.image || null);
         }
 
-        console.log('to settle my curiousity: ', userMap.get(comment.author));
-
         return {
           id: comment._id,
           content: comment.content,
@@ -138,8 +136,6 @@ async function getPost(req: Request, res: Response): Promise<void> {
 
     const postAuthorImage = postAuthorUser?.image ?? null;
 
-    console.log(`Post author image: ${postAuthorImage}`);
-
     res.status(200).json({
       id: post._id, // Map _id to id
       content: post.content,
@@ -168,7 +164,6 @@ async function createPost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    console.log(`Finding user by email: ${email}`);
     const author = await getUserIdByEmail(email);
 
     if (!author) {
