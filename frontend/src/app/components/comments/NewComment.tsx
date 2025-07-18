@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import CustomToaster from '../ui/CustomToaster';
 import { useParams } from 'next/navigation';
 import { useCommentMutations } from './mutations';
+import { useEnterSubmit } from '@/app/utils/formSubmit';
 
 const NewComment = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -18,6 +19,24 @@ const NewComment = () => {
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = '28px';
+    }
+  };
+
+  const handleSubmit = () => {
+    if (content.trim()) {
+      setLoading(true);
+      newCommentMutation.mutate(
+        { postId: id, content, email },
+        {
+          onSuccess: () => {
+            setContent('');
+            setLoading(false);
+          },
+          onError: () => {
+            setLoading(false);
+          },
+        }
+      );
     }
   };
 
@@ -51,15 +70,11 @@ const NewComment = () => {
               <textarea
                 ref={textareaRef}
                 className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); // Prevent newline if you want Enter to submit
-                    if (loading || content.trim() === '') return;
-
-                    newCommentMutation.mutate({ postId: id, content, email });
-                    setContent('');
-                  }
-                }}
+                onKeyDown={useEnterSubmit({
+                  loading,
+                  content,
+                  onSubmit: handleSubmit,
+                })}
                 placeholder="What's up?"
                 maxLength={380} // ✅ Enforces the limit at the input level
                 value={content}
