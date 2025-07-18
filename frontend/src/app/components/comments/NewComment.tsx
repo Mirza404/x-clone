@@ -14,7 +14,7 @@ const NewComment = () => {
   const [content, setContent] = useState('');
   const { id } = useParams<{ id: string }>();
   const email = session?.user?.email || '';
-  const { newPostMutation } = useCommentMutations();
+  const { newCommentMutation } = useCommentMutations();
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = '28px';
@@ -39,60 +39,79 @@ const NewComment = () => {
             />
           </div>
           <div className="flex flex-col py-3 flex-1 min-w-0">
-            <textarea
-              ref={textareaRef}
-              className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
-              placeholder="What's up?"
-              maxLength={380} // ✅ Enforces the limit at the input level
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                const value = target.value;
-                const minHeight = 28;
-                const maxHeight = 300;
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (loading || content.trim() === '') return;
 
-                if (value === '') {
-                  target.style.height = `${minHeight}px`;
-                } else {
-                  target.style.height = `${minHeight}px`;
-                  target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`;
-                }
+                newCommentMutation.mutate({ postId: id, content, email });
+                setContent('');
               }}
-              onFocus={resetTextareaHeight}
-              onBlur={resetTextareaHeight}
-              disabled={loading}
-            />
+            >
+              <textarea
+                ref={textareaRef}
+                className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); // Prevent newline if you want Enter to submit
+                    if (loading || content.trim() === '') return;
 
-            <div className="w-full h-[48px] py-0.5 mt-1.5">
-              <div className="flex flex-row w-full h-full items-center justify-between">
-                <button
-                  className={classNames(
-                    'flex justify-center items-center text-center text-sm rounded-full px-3 h-8 font-bold transition duration-300',
-                    {
-                      'bg-white text-black hover:bg-gray-300':
-                        !loading && content.trim() !== '',
-                      'bg-white text-black opacity-70 cursor-not-allowed':
-                        loading || content.trim() === '',
-                    }
-                  )}
-                  onClick={() => {
-                    newPostMutation.mutate({ postId: id, content, email });
+                    newCommentMutation.mutate({ postId: id, content, email });
                     setContent('');
-                  }}
-                  disabled={loading || content.trim() === ''}
-                >
-                  Post
-                </button>
-                <p
-                  className={`text-xs text-right mt-1 ${
-                    content.length > 380 ? 'text-red-500' : 'text-gray-400'
-                  }`}
-                >
-                  {content.length}/380
-                </p>
+                  }
+                }}
+                placeholder="What's up?"
+                maxLength={380} // ✅ Enforces the limit at the input level
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  const value = target.value;
+                  const minHeight = 28;
+                  const maxHeight = 300;
+
+                  if (value === '') {
+                    target.style.height = `${minHeight}px`;
+                  } else {
+                    target.style.height = `${minHeight}px`;
+                    target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`;
+                  }
+                }}
+                onFocus={resetTextareaHeight}
+                onBlur={resetTextareaHeight}
+                disabled={loading}
+              />
+
+              <div className="w-full h-[48px] py-0.5 mt-1.5">
+                <div className="flex flex-row w-full h-full items-center justify-between">
+                  <button
+                    className={classNames(
+                      'flex justify-center items-center text-center text-sm rounded-full px-3 h-8 font-bold transition duration-300',
+                      {
+                        'bg-white text-black hover:bg-gray-300':
+                          !loading && content.trim() !== '',
+                        'bg-white text-black opacity-70 cursor-not-allowed':
+                          loading || content.trim() === '',
+                      }
+                    )}
+                    onClick={() => {
+                      newCommentMutation.mutate({ postId: id, content, email });
+                      setContent('');
+                    }}
+                    disabled={loading || content.trim() === ''}
+                  >
+                    Post
+                  </button>
+                  <p
+                    className={`text-xs text-right mt-1 ${
+                      content.length > 380 ? 'text-red-500' : 'text-gray-400'
+                    }`}
+                  >
+                    {content.length}/380
+                  </p>
+                </div>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
