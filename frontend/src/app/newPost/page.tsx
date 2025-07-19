@@ -11,6 +11,7 @@ import LoadingBar from '../components/ui/CustomLoadBar';
 import FileUpload from '../utils/FileUpload';
 import classNames from 'classnames';
 import { uploadImages } from '../utils/imageUtils';
+import { useEnterSubmit } from '../utils/formSubmit';
 
 const NewPostPage = () => {
   const [content, setContent] = useState('');
@@ -114,81 +115,95 @@ const NewPostPage = () => {
           </div>
           {/* Make the content area more responsive */}
           <div className="flex flex-col py-3 flex-1 min-w-0">
-            <textarea
-              ref={textareaRef}
-              className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
-              placeholder="What is happening?!"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                const value = target.value;
-                const minHeight = 28;
-                const maxHeight = 300;
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (loading || content.trim() === '') return;
 
-                if (value === '') {
-                  target.style.height = `${minHeight}px`;
-                } else {
-                  target.style.height = `${minHeight}px`;
-                  target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`;
-                }
+                newPostMutation.mutate();
               }}
-            />
-            {/* Make images container responsive and constrained */}
-            {selectedFiles.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 mt-2 max-w-full">
-                {selectedFiles.map((file, index) => (
-                  <div key={index} className="relative group aspect-video">
-                    <img
-                      src={URL.createObjectURL(file) || '/placeholder.svg'}
-                      alt="Preview"
-                      loading="lazy"
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                    <button
-                      onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 p-1 rounded-full bg-black bg-opacity-75 text-gray-400 hover:text-white transition-colors"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
+            >
+              <textarea
+                ref={textareaRef}
+                className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
+                onKeyDown={useEnterSubmit({
+                  loading,
+                  content,
+                  onSubmit: () => newPostMutation.mutate(),
+                })}
+                placeholder="What is happening?!"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  const value = target.value;
+                  const minHeight = 28;
+                  const maxHeight = 300;
+
+                  if (value === '') {
+                    target.style.height = `${minHeight}px`;
+                  } else {
+                    target.style.height = `${minHeight}px`;
+                    target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`;
+                  }
+                }}
+              />
+              {/* Make images container responsive and constrained */}
+              {selectedFiles.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mt-2 max-w-full">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className="relative group aspect-video">
+                      <img
+                        src={URL.createObjectURL(file) || '/placeholder.svg'}
+                        alt="Preview"
+                        loading="lazy"
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <button
+                        onClick={() => removeImage(index)}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-black bg-opacity-75 text-gray-400 hover:text-white transition-colors"
                       >
-                        <path
-                          fillRule="evenodd"
-                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* Make the bottom toolbar responsive */}
-            <div className="w-full h-[48px] py-0.5 mt-1.5">
-              <div className="flex flex-row w-full h-full items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <FileUpload onImagesUploaded={handleImagesUploaded} />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                <button
-                  className={classNames(
-                    'flex justify-center items-center text-center rounded-full px-3 h-9 text-base font-bold transition duration-300',
-                    {
-                      'bg-white text-black hover:bg-gray-300':
-                        !loading && content.trim() !== '',
-                      'bg-white text-black opacity-70 cursor-not-allowed':
-                        loading || content.trim() === '',
-                    }
-                  )}
-                  onClick={() => newPostMutation.mutate()}
-                  disabled={loading || content.trim() === ''}
-                >
-                  Post
-                </button>
+              )}
+              {/* Make the bottom toolbar responsive */}
+              <div className="w-full h-[48px] py-0.5 mt-1.5">
+                <div className="flex flex-row w-full h-full items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <FileUpload onImagesUploaded={handleImagesUploaded} />
+                  </div>
+                  <button
+                    className={classNames(
+                      'flex justify-center items-center text-center rounded-full px-3 h-9 text-base font-bold transition duration-300',
+                      {
+                        'bg-white text-black hover:bg-gray-300':
+                          !loading && content.trim() !== '',
+                        'bg-white text-black opacity-70 cursor-not-allowed':
+                          loading || content.trim() === '',
+                      }
+                    )}
+                    onClick={() => newPostMutation.mutate()}
+                    disabled={loading || content.trim() === ''}
+                  >
+                    Post
+                  </button>
+                </div>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
