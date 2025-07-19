@@ -203,8 +203,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
 
 async function findCommentById(req: Request, res: Response): Promise<void> {
   try {
-    const { postId } = req.params;
-    const { commentId } = req.params;
+    const { postId, commentId } = req.params;
 
     if (!commentId) {
       res.status(400).json({ message: 'Comment ID is required' });
@@ -222,26 +221,37 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const comments = (await Comment.find({
-      $and: [
-        { _id: new mongoose.Types.ObjectId(commentId) },
-        { _id: { $in: post.comments } },
-      ],
+    // Try to find as a top-level comment
+    let comment = await Comment.findOne({
+      $and: [{ _id: commentId }, { _id: { $in: post.comments } }],
     })
-      .sort({ createdAt: -1 })
-      .populate('replies') // only populate replies, not author
-      .lean()) as LeanComment[];
+      .populate('replies')
+      .lean();
 
-    // Collect all author IDs from comments and replies
+    // If not found, try to find as a reply (not top-level)
+    if (!comment) {
+      comment = await Comment.findOne({
+        _id: commentId,
+        parentComment: { $ne: null },
+      })
+        .populate('replies')
+        .lean();
+    }
+
+    if (!comment) {
+      res.status(404).json({ message: 'Comment not found' });
+      return;
+    }
+
     const authorIds = new Set<string>();
-    for (const comment of comments) {
-      authorIds.add(comment.author.toString());
-      for (const reply of comment.replies ?? []) {
-        authorIds.add(reply.author.toString());
+    authorIds.add(comment.author.toString());
+    for (const reply of comment.replies ?? []) {
+      //only add if reply is an object and has author
+      if (reply && typeof reply === 'object' && 'author' in reply) {
+        authorIds.add((reply as any).author.toString());
       }
     }
 
-    // Fetch user images manually
     //@ts-ignore
     const users = await mongoose.connection.db
       .collection('users')
@@ -259,8 +269,8 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       users.map((user) => [user._id.toString(), user.image])
     );
 
-    // Attach authorImage to comments and replies
-    const commentsWithUserData = comments.map((comment) => ({
+    // Attach authorImage to comment and replies
+    const commentWithUserData = {
       id: comment._id,
       content: comment.content,
       name: comment.name,
@@ -280,11 +290,11 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
         likes: reply.likes,
         author: reply.author,
         authorImage: userImageMap.get(reply.author.toString()) || null,
-        replies: reply.replies, // (should usually be empty since this is a 2-level system)
+        replies: reply.replies,
       })),
-    }));
+    };
 
-    res.status(200).json(commentsWithUserData);
+    res.status(200).json([commentWithUserData]);
   } catch (error) {
     console.error('Error finding comment:', error);
     if (!res.headersSent) {
