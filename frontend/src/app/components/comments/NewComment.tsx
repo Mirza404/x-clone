@@ -47,7 +47,7 @@ const NewComment = () => {
       </h2>
       <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm w-[598px] min-h-[116px]">
         <LoadingBar progress={progress} />
-        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 mx-auto px-4 pt-2 border-r border-l border-t border-gray-700 shadow-lg w-[598px]">
+        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 mx-auto px-4 pt-2 border border-gray-700 shadow-lg w-[598px]">
           <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
             <img
               className="flex items-stretch min-w-8 h-8 rounded-full mr-2"

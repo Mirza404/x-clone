@@ -63,7 +63,7 @@ export const CommentListInfinite = () => {
         ) : hasNextPage ? (
           <div className="text-center p-4 text-gray-500">Load More</div>
         ) : data?.pages[0]?.comments?.length ? (
-          <div className="border-t border-gray-700 text-center p-4 text-gray-500">
+          <div className=" text-center p-4 text-gray-500">
             Nothing more to load.
           </div>
         ) : (

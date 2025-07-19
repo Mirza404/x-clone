@@ -47,7 +47,7 @@ const CommentItem = ({
 
   return (
     <div
-      className="relative flex flex-row p-4 border-t border-gray-700 bg-black m-0 w-full min-h-[80px] overflow-visible"
+      className="relative flex flex-row p-4 border-b border-gray-700 bg-black m-0 w-full min-h-[80px] overflow-visible"
       onClick={
         !isCurrentPage
           ? (e) =>
