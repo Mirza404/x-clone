@@ -13,7 +13,7 @@ import LoadCircle from '@/app/components/ui/LoadCircle';
 const CommentThreadPage = () => {
   const commentId = useParams().commentId as string;
   const postId = useParams().id as string;
-  const { deleteCommentMutation } = useCommentMutations();
+  const { deleteReplyMutation } = useCommentMutations();
 
   const {
     data: commentData,
@@ -31,7 +31,7 @@ const CommentThreadPage = () => {
   const comment = commentData?.[0];
 
   const handleDeleteComment = (commentId: string) => {
-    deleteCommentMutation.mutate(commentId);
+    deleteReplyMutation.mutate(commentId);
   };
 
   if (isLoading)
