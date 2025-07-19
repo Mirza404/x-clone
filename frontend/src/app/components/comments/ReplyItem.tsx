@@ -24,12 +24,11 @@ const ReplyItem = ({
   const authorId: string = session?.user?.id ?? '';
   const params = useParams();
   const postId = params.id as string;
-  const commentId = params.commentId as string;
   const pathname = usePathname();
   const router = useRouter();
   const isCurrentPage = useMemo(
-    () => pathname === `/posts/${postId}/comment/${commentId}`,
-    [pathname, postId, commentId]
+    () => pathname === `/posts/${postId}/comment/${reply.id}`,
+    [pathname, postId, reply.id]
   );
 
   return (
@@ -37,7 +36,7 @@ const ReplyItem = ({
       className="relative flex flex-row p-3 pl-4 m-0 w-full min-h-[70px] overflow-visible"
       onClick={
         !isCurrentPage
-          ? (e) => universalHandleClick(e, router, 'comment', postId, commentId)
+          ? (e) => universalHandleClick(e, router, 'comment', postId, reply.id)
           : undefined
       }
     >
