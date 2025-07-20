@@ -6,16 +6,14 @@ import classNames from 'classnames';
 import { useCommentMutations } from './mutations';
 import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { useQueryClient } from '@tanstack/react-query';
 interface ReplyProps {
   postId: string;
   parentCommentId: string;
   content: string;
   email: string;
-  onCancel: () => void;
 }
 
-const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
+const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
@@ -43,7 +41,6 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
         {
           onSuccess: () => {
             setContent('');
-            onCancel();
             setLoading(false);
           },
           onError: () => {
@@ -56,8 +53,8 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
   };
 
   return (
-    <div className="mt-3 ml-10 border-l-2 border-gray-600 pl-4">
-      <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm px-4 pt-2 border border-gray-700 rounded-lg shadow-lg">
+    <div>
+      <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm px-4 pt-2 border-t  border-gray-700 shadow-lg">
         <div className="pt-2 mr-2 min-w-[32px] w-[32px] flex-shrink-0">
           <img
             className="flex items-stretch min-w-6 h-6 rounded-full mr-2"
@@ -108,13 +105,6 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId, onCancel }) => {
                   disabled={loading || content.trim() === ''}
                 >
                   Reply
-                </button>
-                <button
-                  className="flex justify-center items-center text-center text-xs rounded-full px-3 h-7 font-bold transition duration-300 text-gray-400 hover:text-white hover:bg-gray-800"
-                  onClick={onCancel}
-                  disabled={loading}
-                >
-                  Cancel
                 </button>
               </div>
               <p
