@@ -67,7 +67,7 @@ export const CommentListInfinite = () => {
             Nothing more to load.
           </div>
         ) : (
-          <div className="text-center p-4 text-gray-500 border-t border-gray-700">
+          <div className="text-center p-4 text-gray-500 border-none">
             No comments yet.
           </div>
         )}
