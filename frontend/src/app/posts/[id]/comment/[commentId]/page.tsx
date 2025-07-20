@@ -9,11 +9,15 @@ import { useCommentMutations } from '@/app/components/comments/mutations';
 import { getCommentById } from '@/app/utils/fetchInfo';
 import CustomToaster from '@/app/components/ui/CustomToaster';
 import LoadCircle from '@/app/components/ui/LoadCircle';
+import NewReply from '@/app/components/comments/NewReply';
+import { useSession } from 'next-auth/react';
 
 const CommentThreadPage = () => {
   const commentId = useParams().commentId as string;
   const postId = useParams().id as string;
   const { deleteReplyMutation } = useCommentMutations();
+  const { data: session } = useSession();
+  const email = session?.user?.email || '';
 
   const {
     data: commentData,
@@ -58,6 +62,21 @@ const CommentThreadPage = () => {
         />
 
         <h2 className="text-xl font-bold p-4 pt-0">Replies</h2>
+        <NewReply
+          postId={postId}
+          parentCommentId={commentId}
+          content={comment.content}
+          email={email}
+          onCancel={() => {}}
+        />
+        {/* <NewReply
+              postId={postId}
+              parentCommentId={comment.id}
+              content={comment.content}
+              email={session?.user?.email || ''}
+              onCancel={() => setShowReply(false)}
+            /> */}
+        {/* Loading state for replies */}
         {/* Replies */}
         {Array.isArray(comment.replies) && comment.replies.length > 0 && (
           <>
