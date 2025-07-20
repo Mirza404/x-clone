@@ -47,7 +47,7 @@ const CommentThreadPage = () => {
 
   return (
     <div className="border border-gray-600">
-      <div className="max-w-2xl mx-auto mt-6 space-y-4">
+      <div className="max-w-2xl mx-auto mt-0 space-y-4">
         {/* Main Comment */}
         <CommentItem
           comment={comment}
@@ -57,12 +57,10 @@ const CommentThreadPage = () => {
           }}
         />
 
+        <h2 className="text-xl font-bold p-4 pt-0">Replies</h2>
         {/* Replies */}
         {Array.isArray(comment.replies) && comment.replies.length > 0 && (
           <>
-            <h2 className="text-xl font-bold px-4 pt-4 border-t border-gray-600">
-              Replies
-            </h2>
             <div className=" space-y-2">
               {comment.replies.map((reply: any) => (
                 <div className="border-t border-gray-600">
