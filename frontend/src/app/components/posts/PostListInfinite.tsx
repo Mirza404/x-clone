@@ -4,15 +4,13 @@ import { Fragment, useEffect } from 'react';
 import type { Post } from '../../types/Post';
 import { useInView } from 'react-intersection-observer';
 import PostItem from './PostItem';
-import {
-  useFetchPosts,
-  useFetchInfinitePosts,
-  useDeletePost,
-} from '../../utils/mutations';
+import { postMutations } from '@/app/utils/postMutations';
 import LoadCircle from '../ui/LoadCircle';
 
 function PostListInfinite() {
   const { ref, inView } = useInView();
+  const { useFetchPosts, useFetchInfinitePosts, useDeletePost } =
+    postMutations();
   const postsQuery = useFetchPosts();
   const deletePostMutation = useDeletePost();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
@@ -30,7 +28,7 @@ function PostListInfinite() {
 
   if (postsQuery.isError || status === 'error') {
     return <div>Error: "Error happened"</div>;
-  }  
+  }
 
   return (
     <div className="w-full ">
@@ -46,7 +44,10 @@ function PostListInfinite() {
           ))}
         </Fragment>
       ))}
-      <div ref={ref} className="py-4 flex justify-center border-l border-r border-b border-gray-700">
+      <div
+        ref={ref}
+        className="py-4 flex justify-center border-l border-r border-b border-gray-700"
+      >
         {isFetchingNextPage ? (
           <LoadCircle />
         ) : hasNextPage ? (
