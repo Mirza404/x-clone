@@ -55,8 +55,9 @@ const CommentItem = ({
           : undefined
       }
     >
+      {/* w-full rounded-lg object-cover max-h-[512px] */}
       <img
-        className="flex items-stretch min-w-8 h-8 rounded-full mr-2"
+        className="flex items-stretch w-9 h-9 rounded-full mr-2"
         src={comment?.authorImage ?? '/Logo.png'}
         referrerPolicy="no-referrer"
         alt={`${comment.name}'s profile`}
@@ -94,22 +95,6 @@ const CommentItem = ({
             authorId={authorId}
             initialLikes={comment.likes}
           />
-          <button
-            className="flex justify-center items-center text-center rounded-full px-3 h-9 text-xs font-bold transition duration-300 hover:bg-[#1D9BF0] hover:bg-opacity-10 text-gray-400 hover:text-white"
-            onClick={() => setShowReply(!showReply)}
-          >
-            Reply
-          </button>
-
-          {showReply && (
-            <NewReply
-              postId={postId}
-              parentCommentId={comment.id}
-              content={comment.content}
-              email={session?.user?.email || ''}
-              onCancel={() => setShowReply(false)}
-            />
-          )}
         </div>
       </div>
       <div className="absolute top-2 right-2 mr-2 interactive-element">

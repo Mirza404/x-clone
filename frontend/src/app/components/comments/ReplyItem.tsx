@@ -41,7 +41,7 @@ const ReplyItem = ({
       }
     >
       <img
-        className="flex items-stretch min-w-6 h-6 rounded-full mr-2"
+        className="flex items-stretch w-9 h-9 rounded-full mr-2"
         src={reply?.authorImage ?? '/Logo.png'}
         referrerPolicy="no-referrer"
         alt={`${reply.name}'s profile`}

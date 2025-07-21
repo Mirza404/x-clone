@@ -57,7 +57,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
       <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm px-4 pt-2 border-t  border-gray-700 shadow-lg">
         <div className="pt-2 mr-2 min-w-[32px] w-[32px] flex-shrink-0">
           <img
-            className="flex items-stretch min-w-6 h-6 rounded-full mr-2"
+            className="flex items-stretch min-w-9 h-9 rounded-full mr-2"
             src={session?.user?.image ?? '/Logo.png'}
             referrerPolicy="no-referrer"
           />
@@ -65,7 +65,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
         <div className="flex flex-col py-3 flex-1 min-w-0">
           <textarea
             ref={textareaRef}
-            className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
+            className="w-full h-7 py-0.5 ml-1 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
             placeholder="Write a reply..."
             maxLength={380}
             value={content}
