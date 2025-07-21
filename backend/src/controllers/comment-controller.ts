@@ -225,7 +225,7 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
     let comment = await Comment.findOne({
       $and: [{ _id: commentId }, { _id: { $in: post.comments } }],
     })
-      .populate('replies')
+      .populate({ path: 'replies', options: { sort: { createdAt: -1 } } }) // sort replies by newest
       .lean();
 
     // If not found, try to find as a reply (not top-level)
@@ -234,7 +234,7 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
         _id: commentId,
         parentComment: { $ne: null },
       })
-        .populate('replies')
+        .populate({ path: 'replies', options: { sort: { createdAt: -1 } } }) // sort replies by newest
         .lean();
     }
 
