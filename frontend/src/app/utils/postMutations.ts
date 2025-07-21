@@ -62,7 +62,6 @@ export const postMutations = () => {
         if (isCurrentPage) {
           queryClient.removeQueries({ queryKey: ['posts', id] });
         }
-        // Redirect to posts page after deletion
         if (isCurrentPage) {
           window.location.href = '/posts';
         }
