@@ -41,14 +41,14 @@ const ReplyItem = ({
       }
     >
       <img
-        className="flex items-stretch w-9 h-9 rounded-full mr-2"
+        className="flex items-stretch w-10 h-10 rounded-full mr-2"
         src={reply?.authorImage ?? '/Logo.png'}
         referrerPolicy="no-referrer"
         alt={`${reply.name}'s profile`}
       />
       <div className="flex flex-col flex-1">
         <div className="flex items-center mb-0 text-xs text-gray-400">
-          <span className="font-bold">{reply.name}</span>
+          <span className="font-bold text-white">{reply.name}</span>
           <span className="mx-1">·</span>
           <span>
             {new Date(reply.createdAt).toLocaleDateString(undefined, {
