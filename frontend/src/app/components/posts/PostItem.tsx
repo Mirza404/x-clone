@@ -40,7 +40,6 @@ export default function PostItem({
     });
   }, [post.id, queryClient]);
 
-
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) =>
@@ -89,7 +88,7 @@ export default function PostItem({
                   e.stopPropagation();
                   setShowMore(!showMore);
                 }}
-                className="text-blue-500 interactive-element ml-1"
+                className="ml-1 font-bold text-gray-400 interactive-element hover:text-gray-300 hover:underline"
               >
                 {showMore ? 'Show less' : 'Read more'}
               </button>

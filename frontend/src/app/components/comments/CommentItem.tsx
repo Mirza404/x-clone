@@ -81,9 +81,9 @@ const CommentItem = ({
             {comment.content.length > 300 && (
               <button
                 onClick={() => setShowMore(!showMore)}
-                className="text-blue-500 interactive-element"
+                className="ml-1 font-bold text-gray-400 interactive-element hover:text-gray-300 hover:underline"
               >
-                {showMore ? '  Show less' : '  Read more'}
+                {showMore ? 'Show less' : 'Read more'}
               </button>
             )}
           </div>
