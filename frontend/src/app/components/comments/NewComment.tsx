@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
 import CustomToaster from '../ui/CustomToaster';
 import { useParams } from 'next/navigation';
-import { useCommentMutations } from './mutations';
+import { useCommentMutations } from '../../utils/commentMutations';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 
 const NewComment = () => {
