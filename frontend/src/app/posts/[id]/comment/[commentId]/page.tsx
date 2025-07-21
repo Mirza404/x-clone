@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import CommentItem from '@/app/components/comments/CommentItem';
 import ReplyItem from '@/app/components/comments/ReplyItem';
-import { useCommentMutations } from '@/app/components/comments/mutations';
+import { useCommentMutations } from '@/app/utils/commentMutations';
 import { getCommentById } from '@/app/utils/fetchInfo';
 import CustomToaster from '@/app/components/ui/CustomToaster';
 import LoadCircle from '@/app/components/ui/LoadCircle';
@@ -61,22 +61,13 @@ const CommentThreadPage = () => {
           }}
         />
 
-        <h2 className="text-xl font-bold p-4 pt-0">Replies</h2>
+        <h2 className="text-xl font-bold p-4 pt-0 pb-0">Replies</h2>
         <NewReply
           postId={postId}
           parentCommentId={commentId}
           content={comment.content}
           email={email}
-          onCancel={() => {}}
         />
-        {/* <NewReply
-              postId={postId}
-              parentCommentId={comment.id}
-              content={comment.content}
-              email={session?.user?.email || ''}
-              onCancel={() => setShowReply(false)}
-            /> */}
-        {/* Loading state for replies */}
         {/* Replies */}
         {Array.isArray(comment.replies) && comment.replies.length > 0 && (
           <>
