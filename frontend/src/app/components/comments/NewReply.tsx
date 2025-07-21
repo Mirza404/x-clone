@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
-import { useCommentMutations } from './mutations';
+import { useCommentMutations } from '../../utils/commentMutations';
 import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { useEnterSubmit } from '@/app/utils/formSubmit';
+
 interface ReplyProps {
   postId: string;
   parentCommentId: string;
@@ -63,57 +65,72 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
           />
         </div>
         <div className="flex flex-col py-3 flex-1 min-w-0">
-          <textarea
-            ref={textareaRef}
-            className="w-full h-7 py-0.5 ml-1 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
-            placeholder="Write a reply..."
-            maxLength={380}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              const value = target.value;
-              const minHeight = 28;
-              const maxHeight = 200;
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (loading || content.trim() === '') return;
 
-              if (value === '') {
-                target.style.height = `${minHeight}px`;
-              } else {
-                target.style.height = `${minHeight}px`;
-                target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`;
-              }
+              handleSubmit();
+              setContent('');
             }}
-            onFocus={resetTextareaHeight}
-            onBlur={resetTextareaHeight}
-            disabled={loading}
-          />
+          >
+            <textarea
+              ref={textareaRef}
+              className="w-full h-7 py-0.5 ml-1 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
+              onKeyDown={useEnterSubmit({
+                loading,
+                content,
+                onSubmit: handleSubmit,
+              })}
+              placeholder="Write a reply..."
+              maxLength={380}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                const value = target.value;
+                const minHeight = 28;
+                const maxHeight = 200;
 
-          <div className="w-full h-[40px] py-0.5 mt-1.5">
-            <div className="flex flex-row w-full h-full items-center justify-between">
-              <div className="flex gap-2">
-                <button
-                  className={classNames(
-                    'flex justify-center items-center text-center text-xs rounded-full px-3 h-7 font-bold transition duration-300',
-                    {
-                      'bg-white text-black hover:bg-gray-300':
-                        !loading && content.trim() !== '',
-                      'bg-white text-black opacity-70 cursor-not-allowed':
-                        loading || content.trim() === '',
-                    }
-                  )}
-                  onClick={handleSubmit}
-                  disabled={loading || content.trim() === ''}
+                if (value === '') {
+                  target.style.height = `${minHeight}px`;
+                } else {
+                  target.style.height = `${minHeight}px`;
+                  target.style.height = `${Math.min(target.scrollHeight, maxHeight)}px`;
+                }
+              }}
+              onFocus={resetTextareaHeight}
+              onBlur={resetTextareaHeight}
+              disabled={loading}
+            />
+
+            <div className="w-full h-[40px] py-0.5 mt-1.5">
+              <div className="flex flex-row w-full h-full items-center justify-between">
+                <div className="flex gap-2">
+                  <button
+                    className={classNames(
+                      'flex justify-center items-center text-center text-sm rounded-full px-3 h-8 font-bold transition duration-300',
+                      {
+                        'bg-white text-black hover:bg-gray-300':
+                          !loading && content.trim() !== '',
+                        'bg-white text-black opacity-70 cursor-not-allowed':
+                          loading || content.trim() === '',
+                      }
+                    )}
+                    onClick={handleSubmit}
+                    disabled={loading || content.trim() === ''}
+                  >
+                    Reply
+                  </button>
+                </div>
+                <p
+                  className={`text-xs text-right mt-1 ${content.length > 380 ? 'text-red-500' : 'text-gray-400'}`}
                 >
-                  Reply
-                </button>
+                  {content.length}/380
+                </p>
               </div>
-              <p
-                className={`text-xs text-right mt-1 ${content.length > 380 ? 'text-red-500' : 'text-gray-400'}`}
-              >
-                {content.length}/380
-              </p>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>
