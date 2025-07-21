@@ -57,7 +57,7 @@ const CommentItem = ({
     >
       {/* w-full rounded-lg object-cover max-h-[512px] */}
       <img
-        className="flex items-stretch min-w-10 h-10 rounded-full mr-2"
+        className="flex items-stretch min-w-10 h-10 rounded-full mr-3"
         src={comment?.authorImage ?? '/Logo.png'}
         referrerPolicy="no-referrer"
         alt={`${comment.name}'s profile`}

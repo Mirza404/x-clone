@@ -55,9 +55,9 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
   return (
     <div>
       <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm px-4 pt-2 border-t  border-gray-700 shadow-lg">
-        <div className="pt-2 mr-2 min-w-[32px] w-[32px] flex-shrink-0">
+        <div className="pt-2 min-w-[32px] w-[32px] flex-shrink-0 mr-5">
           <img
-            className="flex items-stretch min-w-10 h-10 rounded-full mr-2"
+            className="flex items-stretch min-w-10 h-10 rounded-full "
             src={session?.user?.image ?? '/Logo.png'}
             referrerPolicy="no-referrer"
           />
