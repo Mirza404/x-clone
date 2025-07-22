@@ -47,8 +47,8 @@ const ReplyItem = ({
         alt={`${reply.name}'s profile`}
       />
       <div className="flex flex-col flex-1">
-        <div className="flex items-center mb-0 text-xs text-gray-400">
-          <span className="font-bold text-white">{reply.name}</span>
+        <div className="flex items-center mb-0 text-gray-400">
+          <span className="font-bold text-white text-sm">{reply.name}</span>
           <span className="mx-1">·</span>
           <span>
             {new Date(reply.createdAt).toLocaleDateString(undefined, {
