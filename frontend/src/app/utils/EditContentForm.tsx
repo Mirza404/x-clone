@@ -4,17 +4,14 @@ import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { getCommentById } from './fetchInfo';
 import LoadCircle from '../components/ui/LoadCircle';
+import { useEnterSubmit } from './formSubmit';
 
 const EditContentForm = ({
   initialContent,
-  postId,
-  commentId,
   handleSave,
   handleCancel,
 }: {
   initialContent: string;
-  postId: string;
-  commentId: string;
   handleSave: () => void;
   handleCancel: () => void;
 }) => {
@@ -51,10 +48,21 @@ const EditContentForm = ({
             <div className="mb-2">
               <span className="text-gray-400 text-sm">Editing comment</span>
             </div>
+            <form  onSubmit={(e) => {
+                e.preventDefault();
+                if (loading || content.trim() === '') return;
+
+                handleSave;
+              }}>
 
             <textarea
               ref={textareaRef}
               className="w-full min-h-[28px] py-0.5 text-white bg-transparent border-none focus:outline-none text-xl resize-none"
+              onKeyDown={useEnterSubmit({
+                loading,
+                content,
+                onSubmit: handleSave,
+              })}
               maxLength={380}
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -86,6 +94,8 @@ const EditContentForm = ({
                 </button>
               </div>
             </div>
+            </form>
+
           </div>
         </div>
       </div>
