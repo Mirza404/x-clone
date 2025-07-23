@@ -17,7 +17,6 @@ const EditCommentPage = () => {
   const postId = params.id as string;
   const commentId = params.commentId as string;
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-
   const {
     data: commentData,
     isLoading,
@@ -30,19 +29,13 @@ const EditCommentPage = () => {
     },
     enabled: !!postId && !!commentId,
   });
-
-  if (isLoading) return <LoadCircle />;
-  if (isError || !commentData || commentData.length === 0) {
-    return <div>Something went wrong loading the comment.</div>;
-  }
-
   const comment = commentData?.[0];
+  console.log('Comment Data content:', comment?.content);
 
   const [loading, setLoading] = useState(false);
-  const [content, setContent] = useState(comment ? comment.content : '');
+  const [content, setContent] = useState(comment ? comment?.content : '');
   const [progress, setProgress] = useState(0);
   const router = useRouter();
-  const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
   const editCommentMutation = useMutation({
@@ -69,11 +62,9 @@ const EditCommentPage = () => {
     },
     onSuccess: () => {
       toast.success('Comment updated successfully');
-      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
       setProgress(100);
       setLoading(false);
-      // Navigate back after a short delay
       setTimeout(() => {
         router.back();
       }, 1000);
@@ -87,14 +78,6 @@ const EditCommentPage = () => {
     },
   });
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 300)}px`;
-    }
-  }, [content]);
-
   const handleSave = () => {
     if (!content.trim()) {
       toast.error('Comment cannot be empty');
@@ -107,15 +90,39 @@ const EditCommentPage = () => {
     router.back();
   };
 
+  useEffect(() => {
+    if (comment?.content) {
+      setContent(comment?.content);
+    }
+  }, [comment]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 300)}px`;
+    }
+  }, [content]);
+
+  if (isLoading)
+    return (
+      <>
+        <LoadCircle />
+      </>
+    );
+  if (isError || !commentData || commentData.length === 0) {
+    return <div>Something went wrong loading the comment.</div>;
+  }
+  // Auto-resize textarea
+
   return (
     <>
-      <EditContentForm
-        postId={postId}
-        commentId={commentId}
-        initialContent={content}
-        handleSave={handleSave}
-        handleCancel={handleCancel}
-      />
+      {content  && (
+        <EditContentForm
+          initialContent={content}
+          handleSave={handleSave}
+          handleCancel={handleCancel}
+        />
+      )}
     </>
   );
 };
