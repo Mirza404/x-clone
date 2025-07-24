@@ -119,5 +119,10 @@ export function useCommentMutations() {
     },
   });
 
-  return { deleteCommentMutation, newCommentMutation, newReplyMutation, deleteReplyMutation };
+  return {
+    deleteCommentMutation,
+    newCommentMutation,
+    newReplyMutation,
+    deleteReplyMutation,
+  };
 }

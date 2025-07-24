@@ -21,7 +21,6 @@ export default function Page({ params }: { params: { id: string } }) {
   });
   const deletePostMutation = useDeletePost();
 
-  
   if (postsQuery.isLoading) return <LoadCircle />;
   if (postsQuery.isError) {
     router.replace('/posts');

@@ -11,7 +11,12 @@ interface DropdownProps {
   onClose: () => void;
 }
 
-const Dropdown: React.FC<DropdownProps> = ({ type, onDelete, onEdit, onClose }) => {
+const Dropdown: React.FC<DropdownProps> = ({
+  type,
+  onDelete,
+  onEdit,
+  onClose,
+}) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
