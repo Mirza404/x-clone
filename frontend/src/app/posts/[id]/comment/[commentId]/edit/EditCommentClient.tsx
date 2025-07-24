@@ -64,10 +64,15 @@ const EditCommentPage = () => {
     },
     onSuccess: () => {
       toast.success('Comment updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
       setProgress(100);
       setLoading(false);
       setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['infiniteComments', postId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['comment-thread', postId, commentId],
+        });
         router.back();
       }, 1000);
     },
