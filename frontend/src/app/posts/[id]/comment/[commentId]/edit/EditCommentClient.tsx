@@ -18,7 +18,13 @@ const EditCommentPage = () => {
   const commentId = params.commentId as string;
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const { data: session } = useSession();
-  const email = session?.user?.email;
+  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState('');
+  const [progress, setProgress] = useState(0);
+  const router = useRouter();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const queryClient = useQueryClient();
+
   const {
     data: commentData,
     isLoading,
@@ -32,15 +38,6 @@ const EditCommentPage = () => {
     enabled: !!postId && !!commentId,
   });
   const comment = commentData?.[0];
-  console.log('Comment Data content:', comment?.content);
-
-  const [loading, setLoading] = useState(false);
-  const initialContent = comment?.content;
-  const [content, setContent] = useState('');
-  const [progress, setProgress] = useState(0);
-  const router = useRouter();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const queryClient = useQueryClient();
 
   const editCommentMutation = useMutation({
     mutationFn: async ({
@@ -110,21 +107,21 @@ const EditCommentPage = () => {
     }
   }, [content]);
 
-  if (isLoading)
+  if (isLoading) {
     return (
       <>
         <LoadCircle />
       </>
     );
+  }
+
   if (isError || !commentData || commentData.length === 0) {
     return <div>Something went wrong loading the comment.</div>;
   }
-  // Auto-resize textarea
 
   return (
     <>
       <div className="flex justify-center bg-black bg-opacity-50 backdrop-blur-sm max-h-100">
-        {/* Insert your custom loading bar here */}
         <CustomLoadBar progress={progress} />
 
         <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
