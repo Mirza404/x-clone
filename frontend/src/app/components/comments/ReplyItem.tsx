@@ -33,7 +33,7 @@ const ReplyItem = ({
 
   return (
     <div
-      className="relative flex flex-row p-3 pl-4 m-0 w-full min-h-[70px] overflow-visible"
+      className="relative flex flex-row p-3 pl-4 m-0 w-full min-h-[70px] overflow-visible post-hover cursor-pointer"
       onClick={
         !isCurrentPage
           ? (e) => universalHandleClick(e, router, 'comment', postId, reply.id)
