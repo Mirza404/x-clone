@@ -1,7 +1,5 @@
 # X Clone
 
-Quick summary
-
 - Backend: Express + TypeScript — see [backend/src/app.ts](backend/src/app.ts) and [backend/src/index.ts](backend/src/index.ts).
 - Frontend: Next.js 14 (app dir) — see [frontend/src/app/layout.tsx](frontend/src/app/layout.tsx).
 - Database: MongoDB (Atlas recommended). Backend connects via [`connectToDatabase`](backend/src/db/connection.ts).
@@ -52,5 +50,3 @@ Useful backend/frontend files
 - React Query helpers: [`postMutations`](frontend/src/app/utils/postMutations.ts), [`useCommentMutations`](frontend/src/app/utils/commentMutations.ts)
 - Fetch helpers: [frontend/src/app/utils/fetchInfo.ts](frontend/src/app/utils/fetchInfo.ts)
 - UI that uses mutations/optimistic updates: [`LikeButton`](frontend/src/app/components/ui/LikeButton.tsx)
-
-That's it — straightforward local setup and why React Query is used. If you want, I can add short docker-compose/dev Dockerfiles for local dev next.
