@@ -29,7 +29,7 @@ export async function getPostsPaginated(page: number) {
     return {
       nextPage: hasNext ? page + 1 : undefined,
       previousPage: page > 1 ? page - 1 : undefined,
-      posts: res.data,
+      posts: res.data.posts,
     };
   } catch (error: Error | any) {
     console.error(

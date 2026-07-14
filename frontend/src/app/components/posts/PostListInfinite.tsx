@@ -34,7 +34,7 @@ function PostListInfinite() {
     <div className="w-full ">
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
-          {group?.posts?.posts?.map((post: Post) => (
+          {group?.posts?.map((post: Post) => (
             <div key={post.id} className="relative">
               <PostItem
                 post={post}
