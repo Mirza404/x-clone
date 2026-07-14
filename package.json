@@ -4,9 +4,14 @@
   "description": "A clone of the popular social media platform X, previously known as twitter.",
   "main": "index.js",
   "scripts": {
-    "format": "prettier --write .",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix"
+    "format": "prettier --write . --ignore-unknown",
+    "format:check": "prettier --check . --ignore-unknown",
+    "lint": "npm run lint --prefix frontend",
+    "typecheck": "npm run typecheck --prefix backend && npm run typecheck --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "test": "npm run test:ci --prefix backend && npm run test:ci --prefix frontend",
+    "deps:check": "npm audit --audit-level=high && npm audit --prefix backend --audit-level=high && npm audit --prefix frontend --audit-level=high",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm test"
   },
   "repository": {
     "type": "git",
