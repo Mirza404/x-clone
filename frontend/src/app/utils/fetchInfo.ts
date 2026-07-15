@@ -1,4 +1,6 @@
 import axios from 'axios';
+import type { Comment } from '../types/Comment';
+import { getApiErrorMessage } from './apiError';
 
 export const fetchPosts = async () => {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
@@ -31,11 +33,8 @@ export async function getPostsPaginated(page: number) {
       previousPage: page > 1 ? page - 1 : undefined,
       posts: res.data.posts,
     };
-  } catch (error: Error | any) {
-    console.error(
-      'Error fetching posts:',
-      error.response ? error.response.data : error.message
-    );
+  } catch (error: unknown) {
+    console.error('Error fetching posts:', getApiErrorMessage(error, 'Error'));
     return {
       nextPage: undefined,
       previousPage: undefined,
@@ -67,10 +66,10 @@ export async function getCommentsPaginated(postId: string, page: number) {
       previousPage: page > 1 ? page - 1 : undefined,
       comments: res.data.comments,
     };
-  } catch (error: Error | any) {
+  } catch (error: unknown) {
     console.error(
       'Error fetching comments:',
-      error.response ? error.response.data : error.message
+      getApiErrorMessage(error, 'Error')
     );
     return {
       nextPage: undefined,
@@ -82,7 +81,7 @@ export async function getCommentsPaginated(postId: string, page: number) {
 export async function getCommentById(
   postId: string,
   commentId: string
-): Promise<any> {
+): Promise<Comment[]> {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   try {
     const response = await axios.get(

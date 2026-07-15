@@ -11,6 +11,7 @@ import { useParams } from 'next/navigation';
 import { getCommentById } from '@/app/utils/fetchInfo';
 import { useQuery } from '@tanstack/react-query';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
+import { getApiErrorMessage } from '@/app/utils/apiError';
 
 const EditCommentPage = () => {
   const params = useParams();
@@ -76,12 +77,10 @@ const EditCommentPage = () => {
         router.back();
       }, 1000);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       setLoading(false);
       setProgress(0);
-      toast.error(
-        error.response?.data?.message || 'Failed to update the comment'
-      );
+      toast.error(getApiErrorMessage(error, 'Failed to update the comment'));
     },
   });
 

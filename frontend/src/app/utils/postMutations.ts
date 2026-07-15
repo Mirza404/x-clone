@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { getCommentsPaginated } from './fetchInfo';
 import { useMemo } from 'react';
 import { usePathname, useParams } from 'next/navigation';
+import { getApiErrorMessage } from './apiError';
 
 export const usePostMutations = () => {
   const pathname = usePathname();
@@ -66,10 +67,8 @@ export const usePostMutations = () => {
           window.location.href = '/posts';
         }
       },
-      onError: (error: any) => {
-        toast.error(
-          error.response?.data?.message || 'Failed to delete the post'
-        );
+      onError: (error: unknown) => {
+        toast.error(getApiErrorMessage(error, 'Failed to delete the post'));
         window.location.href = '/posts';
       },
     });
@@ -102,10 +101,8 @@ export const usePostMutations = () => {
         queryClient.invalidateQueries({ queryKey: ['posts', variables.id] });
         queryClient.invalidateQueries({ queryKey: ['infinitePosts'] });
       },
-      onError: (error: any) => {
-        toast.error(
-          error.response?.data?.message || 'Failed to update the post'
-        );
+      onError: (error: unknown) => {
+        toast.error(getApiErrorMessage(error, 'Failed to update the post'));
       },
     });
   }

@@ -9,6 +9,7 @@ import LoadingBar from '../../../components/ui/CustomLoadBar';
 import { uploadImages } from '../../../utils/imageUtils'; // Import the uploadImages function
 import FileUpload from '@/app/utils/FileUpload';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
+import { getApiErrorMessage } from '@/app/utils/apiError';
 
 const EditPostPage = ({ params }: { params: { id: string } }) => {
   const id = params.id;
@@ -71,10 +72,10 @@ const EditPostPage = ({ params }: { params: { id: string } }) => {
         router.replace('/posts');
       }, 1000);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       setLoading(false);
       setProgress(0);
-      toast.error(error.response?.data?.message || 'Failed to update the post');
+      toast.error(getApiErrorMessage(error, 'Failed to update the post'));
     },
   });
 

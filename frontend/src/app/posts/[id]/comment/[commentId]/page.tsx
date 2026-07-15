@@ -11,6 +11,7 @@ import CustomToaster from '@/app/components/ui/CustomToaster';
 import LoadCircle from '@/app/components/ui/LoadCircle';
 import NewReply from '@/app/components/comments/NewReply';
 import { useSession } from 'next-auth/react';
+import type { Comment } from '@/app/types/Comment';
 
 const CommentThreadPage = () => {
   const commentId = useParams().commentId as string;
@@ -71,10 +72,9 @@ const CommentThreadPage = () => {
         {Array.isArray(comment.replies) && comment.replies.length > 0 && (
           <>
             <div className=" space-y-2">
-              {comment.replies.map((reply: any) => (
-                <div className="border-t border-gray-600">
+              {comment.replies.map((reply: Comment) => (
+                <div key={reply.id} className="border-t border-gray-600">
                   <ReplyItem
-                    key={reply.id}
                     reply={reply}
                     onDelete={() => handleDeleteComment(reply.id)}
                     onEdit={() => {

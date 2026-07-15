@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useParams } from 'next/navigation';
+import { getApiErrorMessage } from './apiError';
 
 export function useCommentMutations() {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
@@ -22,10 +23,8 @@ export function useCommentMutations() {
         queryKey: ['infiniteComments', postId],
       });
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Failed to delete the comment'
-      );
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Failed to delete the comment'));
     },
   });
 
@@ -57,10 +56,8 @@ export function useCommentMutations() {
         queryKey: ['infiniteComments', postId],
       });
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Failed to create the comment'
-      );
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Failed to create the comment'));
     },
   });
 
@@ -92,10 +89,8 @@ export function useCommentMutations() {
         queryKey: ['comment-thread', postId, parentCommentId],
       });
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Failed to create the reply'
-      );
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Failed to create the reply'));
     },
   });
 
@@ -112,10 +107,8 @@ export function useCommentMutations() {
         queryKey: ['comment-thread', postId, parentCommentId],
       });
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Failed to delete the reply'
-      );
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Failed to delete the reply'));
     },
   });
 

@@ -32,15 +32,13 @@ export default function LikeButton({
   const likeMutation = useMutation({
     mutationFn: async () => {
       let endpoint = '';
-      let payload: any = {};
+      const payload = { id: targetId, authorId };
 
       if (type !== 'post') {
         const postId = params.id as string;
         endpoint = `${serverUrl}/api/post/${postId}/comment/like`;
-        payload = { id: targetId, authorId };
       } else {
         endpoint = `${serverUrl}/api/post/like`;
-        payload = { id: targetId, authorId };
       }
 
       const response = await axios.post(endpoint, payload);
