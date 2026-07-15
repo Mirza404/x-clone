@@ -9,7 +9,7 @@ import { useEnterSubmit } from '@/app/utils/formSubmit';
 
 const NewComment = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const [progress, setProgress] = useState(0);
+  const progress = 0;
   const [loading, setLoading] = useState(true);
   const { data: session } = useSession();
   const [content, setContent] = useState('');

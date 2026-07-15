@@ -38,7 +38,7 @@ export const CommentListInfinite = () => {
   }
 
   if (isError) {
-    return <div>Error: "Error happened"</div>;
+    return <div>Error happened</div>;
   }
 
   return (

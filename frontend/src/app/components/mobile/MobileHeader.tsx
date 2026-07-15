@@ -1,12 +1,9 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 export default function MobileHeader() {
   const { data: session } = useSession();
-  const pathname = usePathname();
 
   return (
     <div className="sticky top-0 z-40 bg-black bg-opacity-80 backdrop-blur-sm border-b border-gray-800 md:hidden">

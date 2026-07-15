@@ -8,7 +8,6 @@ import { getComment } from '@/app/utils/fetchInfo';
 import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
 import { useParams } from 'next/navigation';
-import NewReply from './NewReply';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
@@ -30,7 +29,6 @@ const CommentItem = ({
   const queryClient = useQueryClient();
   const params = useParams();
   const postId = params.id as string;
-  const [showReply, setShowReply] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const isCurrentPage = useMemo(

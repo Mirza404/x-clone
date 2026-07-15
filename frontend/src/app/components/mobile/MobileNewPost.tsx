@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -18,7 +17,6 @@ export default function MobileNewPost({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
-  const router = useRouter();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
   const handleImagesUploaded = (files: File[]) => {

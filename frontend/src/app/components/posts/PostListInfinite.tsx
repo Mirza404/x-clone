@@ -27,7 +27,7 @@ function PostListInfinite() {
   }
 
   if (postsQuery.isError || status === 'error') {
-    return <div>Error: "Error happened"</div>;
+    return <div>Error happened</div>;
   }
 
   return (
