@@ -67,6 +67,7 @@ export default function PostItem({
         className="flex items-stretch min-w-10 h-10 rounded-full mr-3"
         src={post?.authorImage || '/Logo.png'}
         referrerPolicy="no-referrer"
+        alt={`${post.name}'s profile`}
       />
       <div className="flex flex-col flex-1">
         <div className="flex items-center mb-0.5 text-sm text-gray-400">

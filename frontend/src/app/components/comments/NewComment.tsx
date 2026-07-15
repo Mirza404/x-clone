@@ -55,6 +55,7 @@ const NewComment = () => {
               referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
               onError={() => setLoading(false)}
+              alt={session?.user?.name ?? 'Profile'}
             />
           </div>
           <div className="flex flex-col py-3 flex-1 min-w-0">

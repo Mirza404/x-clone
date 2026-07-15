@@ -93,6 +93,7 @@ const EditPostPage = ({ params }: { params: { id: string } }) => {
               className="flex w-10 h-10 rounded-full"
               src={session?.user?.image ?? '/Logo.png'}
               referrerPolicy="no-referrer"
+              alt={session?.user?.name ?? 'Profile'}
             />
           </div>
           <div className="flex flex-col py-3 flex-1">

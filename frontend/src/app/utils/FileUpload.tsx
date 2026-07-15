@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useState, useRef } from 'react';
-import { Image } from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 
 interface FileUploadProps {
   onImagesUploaded: (files: File[]) => void;
@@ -40,7 +40,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onImagesUploaded }) => {
         className="p-2 rounded-full hover:bg-gray-800 transition-colors"
         title="Add photos"
       >
-        <Image className="w-5 h-5" />
+        <ImageIcon className="w-5 h-5" />
       </button>
     </div>
   );
