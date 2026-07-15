@@ -98,6 +98,11 @@ const EditCommentPage = () => {
   const handleCancel = () => {
     router.back();
   };
+  const handleEnterSubmit = useEnterSubmit({
+    loading,
+    content,
+    onSubmit: handleSave,
+  });
 
   useEffect(() => {
     if (comment?.content && content === '') {
@@ -148,18 +153,14 @@ const EditCommentPage = () => {
                 e.preventDefault();
                 if (loading || content.trim() === '') return;
 
-                handleSave;
+                handleSave();
                 setContent('');
               }}
             >
               <textarea
                 ref={textareaRef}
                 className="w-full min-h-[28px] py-0.5 text-white bg-transparent border-none focus:outline-none text-xl resize-none"
-                onKeyDown={useEnterSubmit({
-                  loading,
-                  content,
-                  onSubmit: handleSave,
-                })}
+                onKeyDown={handleEnterSubmit}
                 maxLength={380}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}

@@ -4,13 +4,13 @@ import { Fragment, useEffect } from 'react';
 import type { Post } from '../../types/Post';
 import { useInView } from 'react-intersection-observer';
 import PostItem from './PostItem';
-import { postMutations } from '@/app/utils/postMutations';
+import { usePostMutations } from '@/app/utils/postMutations';
 import LoadCircle from '../ui/LoadCircle';
 
 function PostListInfinite() {
   const { ref, inView } = useInView();
   const { useFetchPosts, useFetchInfinitePosts, useDeletePost } =
-    postMutations();
+    usePostMutations();
   const postsQuery = useFetchPosts();
   const deletePostMutation = useDeletePost();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =

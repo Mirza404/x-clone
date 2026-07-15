@@ -1,7 +1,7 @@
 'use client';
 
 import { useInView } from 'react-intersection-observer';
-import { postMutations } from '@/app/utils/postMutations';
+import { usePostMutations } from '@/app/utils/postMutations';
 import { useParams } from 'next/navigation';
 import { useEffect, Fragment } from 'react';
 import LoadCircle from '../ui/LoadCircle';
@@ -13,7 +13,7 @@ import { useCommentMutations } from '../../utils/commentMutations';
 export const CommentListInfinite = () => {
   const params = useParams();
   const postId = params.id as string;
-  const { useFetchInfiniteComments } = postMutations();
+  const { useFetchInfiniteComments } = usePostMutations();
   const { ref, inView } = useInView();
   const router = useRouter();
   const { deleteCommentMutation } = useCommentMutations();

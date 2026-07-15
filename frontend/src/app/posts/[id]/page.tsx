@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import PostItem from '@/app/components/posts/PostItem';
 import LoadCircle from '@/app/components/ui/LoadCircle';
-import { postMutations } from '@/app/utils/postMutations';
+import { usePostMutations } from '@/app/utils/postMutations';
 import { useQueryClient } from '@tanstack/react-query';
 import CommentListInfinite from '@/app/components/comments/CommentListInfinite';
 import NewComment from '@/app/components/comments/NewComment';
@@ -13,7 +13,7 @@ export default function Page({ params }: { params: { id: string } }) {
   const id = params.id;
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { useDeletePost } = postMutations();
+  const { useDeletePost } = usePostMutations();
 
   const postsQuery = useQuery({
     queryKey: ['posts', id],

@@ -9,9 +9,9 @@ import { fetchPosts, getPostsPaginated } from './fetchInfo';
 import toast from 'react-hot-toast';
 import { getCommentsPaginated } from './fetchInfo';
 import { useMemo } from 'react';
-import { useRouter, usePathname, useParams } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 
-export const postMutations = () => {
+export const usePostMutations = () => {
   const pathname = usePathname();
   const postId = useParams().id as string;
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
