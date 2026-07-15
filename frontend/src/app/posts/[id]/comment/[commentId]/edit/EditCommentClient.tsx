@@ -104,8 +104,8 @@ const EditCommentPage = () => {
   });
 
   useEffect(() => {
-    if (comment?.content && content === '') {
-      setContent(comment.content);
+    if (comment?.content) {
+      setContent((currentContent) => currentContent || comment.content);
     }
   }, [comment]);
 
