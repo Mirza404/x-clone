@@ -13,4 +13,5 @@ function hasObjectId(values: ObjectIdLike[], id: ObjectIdLike): boolean {
   return values.some((value) => value.toString() === target);
 }
 
+export type { ObjectIdLike };
 export { hasObjectId, toObjectId };
