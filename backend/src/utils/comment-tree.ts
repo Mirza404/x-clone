@@ -2,7 +2,7 @@ import { ObjectIdLike, toObjectId } from './object-id';
 
 type CommentTreeNode = {
   _id: ObjectIdLike;
-  replies?: ObjectIdLike[];
+  replies?: ObjectIdLike[] | null;
 };
 
 function collectCommentThreadIds(
