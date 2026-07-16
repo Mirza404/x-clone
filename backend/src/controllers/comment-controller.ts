@@ -4,6 +4,7 @@ import Comment from '../models/Comment';
 import { Request, Response } from 'express';
 import { getUserIdByEmail, getUserNameByID } from './user-controller';
 import { LeanComment } from 'src/types/LeanComment';
+import { hasObjectId, toObjectId } from '../utils/object-id';
 
 async function allComments(req: Request, res: Response): Promise<void> {
   try {
@@ -461,16 +462,16 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const updateAction = comment.likes.includes(authorId)
-      ? { $pull: { likes: authorId } } // Remove like
-      : { $addToSet: { likes: authorId } }; // Add like
+    const hasLiked = hasObjectId(comment.likes, authorId);
+    const authorObjectId = toObjectId(authorId);
+    const updateAction = hasLiked
+      ? { $pull: { likes: authorObjectId } }
+      : { $addToSet: { likes: authorObjectId } };
 
     await Comment.findByIdAndUpdate(id, updateAction, { new: true });
 
     res.status(200).json({
-      message: comment.likes.includes(authorId)
-        ? 'Comment unliked'
-        : 'Comment liked',
+      message: hasLiked ? 'Comment unliked' : 'Comment liked',
     });
   } catch (e) {
     console.error('Error liking/unliking comment:', e);

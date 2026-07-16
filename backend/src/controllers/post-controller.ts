@@ -3,6 +3,7 @@ import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { NextFunction, Request, Response } from 'express';
 import { getUserIdByEmail, getUserNameByID } from './user-controller';
+import { hasObjectId, toObjectId } from '../utils/object-id';
 
 async function allPosts(req: Request, res: Response): Promise<void> {
   try {
@@ -335,14 +336,16 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const updateAction = post.likes.includes(authorId)
-      ? { $pull: { likes: authorId } } //remove
-      : { $addToSet: { likes: authorId } }; //Add
+    const hasLiked = hasObjectId(post.likes, authorId);
+    const authorObjectId = toObjectId(authorId);
+    const updateAction = hasLiked
+      ? { $pull: { likes: authorObjectId } }
+      : { $addToSet: { likes: authorObjectId } };
 
     await Post.findByIdAndUpdate(id, updateAction, { new: true });
 
     res.status(200).json({
-      message: post.likes.includes(authorId) ? 'Post unliked' : 'Post liked',
+      message: hasLiked ? 'Post unliked' : 'Post liked',
     });
   } catch (e) {
     console.error('Error liking/unliking post:', e);
