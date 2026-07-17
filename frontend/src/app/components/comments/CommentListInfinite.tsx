@@ -42,7 +42,7 @@ export const CommentListInfinite = () => {
   }
 
   return (
-    <div className="border-l border-r border-b border-gray-700 mt-0">
+    <div>
       {data?.pages?.map((group, i) => (
         <Fragment key={i}>
           {group?.comments?.map((comment: Comment) => (
@@ -62,13 +62,13 @@ export const CommentListInfinite = () => {
         {isFetchingNextPage ? (
           <LoadCircle />
         ) : hasNextPage ? (
-          <div className="text-center p-4 text-gray-500">Load More</div>
+          <div className="p-4 text-center text-x-text-secondary">Load More</div>
         ) : data?.pages[0]?.comments?.length ? (
-          <div className=" text-center p-4 text-gray-500">
+          <div className="p-4 text-center text-x-text-secondary">
             Nothing more to load.
           </div>
         ) : (
-          <div className="text-center p-4 text-gray-500 border-none">
+          <div className="p-4 text-center text-x-text-secondary">
             No comments yet.
           </div>
         )}

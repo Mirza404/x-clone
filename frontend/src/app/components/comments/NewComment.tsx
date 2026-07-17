@@ -42,15 +42,15 @@ const NewComment = () => {
 
   return (
     <>
-      <h2 className="text-xl font-bold p-4 border-l border-r border-gray-700">
+      <h2 className="border-b border-x-border p-4 text-xl font-bold text-x-text">
         Comments
       </h2>
-      <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm w-[598px] min-h-[116px]">
+      <div className="flex w-full min-h-[116px] items-center justify-center">
         <LoadingBar progress={progress} />
-        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 mx-auto px-4 pt-2 border border-gray-700 shadow-lg w-[598px]">
-          <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
+        <div className="mx-auto flex w-full flex-row border-b border-x-border px-4 pt-2">
+          <div className="mr-2 w-10 min-w-[40px] flex-shrink-0 pt-2">
             <img
-              className="flex items-stretch min-w-10 h-10 rounded-full mr-3"
+              className="flex h-10 w-10 items-stretch rounded-full"
               src={session?.user?.image ?? '/Logo.png'}
               referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
@@ -58,7 +58,7 @@ const NewComment = () => {
               alt={session?.user?.name ?? 'Profile'}
             />
           </div>
-          <div className="flex flex-col py-3 flex-1 min-w-0">
+          <div className="flex min-w-0 flex-1 flex-col py-3">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -70,7 +70,7 @@ const NewComment = () => {
             >
               <textarea
                 ref={textareaRef}
-                className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
+                className="h-7 w-full resize-none overflow-hidden bg-transparent py-0.5 text-[15px] text-x-text placeholder-x-text-secondary focus:outline-none"
                 onKeyDown={useEnterSubmit({
                   loading,
                   content,
@@ -98,15 +98,15 @@ const NewComment = () => {
                 disabled={loading}
               />
 
-              <div className="w-full h-[48px] py-0.5 mt-1.5">
-                <div className="flex flex-row w-full h-full items-center justify-between">
+              <div className="mt-1.5 h-[48px] w-full py-0.5">
+                <div className="flex h-full w-full flex-row items-center justify-between">
                   <button
                     className={classNames(
-                      'flex justify-center items-center text-center text-sm rounded-full px-3 h-8 font-bold transition duration-300',
+                      'flex h-8 items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
                       {
-                        'bg-white text-black hover:bg-gray-300':
+                        'bg-white text-black hover:bg-white/90':
                           !loading && content.trim() !== '',
-                        'bg-white text-black opacity-70 cursor-not-allowed':
+                        'cursor-not-allowed bg-white text-black opacity-50':
                           loading || content.trim() === '',
                       }
                     )}
@@ -119,8 +119,10 @@ const NewComment = () => {
                     Post
                   </button>
                   <p
-                    className={`text-xs text-right mt-1 ${
-                      content.length > 380 ? 'text-red-500' : 'text-gray-400'
+                    className={`mt-1 text-right text-xs ${
+                      content.length > 380
+                        ? 'text-x-like'
+                        : 'text-x-text-secondary'
                     }`}
                   >
                     {content.length}/380
