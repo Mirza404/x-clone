@@ -13,6 +13,7 @@ const config: Config = {
         foreground: 'var(--foreground)',
         x: {
           black: '#000000',
+          surface: '#202327',
           border: '#2f3336',
           hover: 'rgba(255, 255, 255, 0.03)',
           text: '#e7e9ea',
