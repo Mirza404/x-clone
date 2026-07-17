@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -29,13 +29,15 @@ const EditPostPage = ({ params }: { params: { id: string } }) => {
       return data.post;
     },
   });
+  const [prevPostData, setPrevPostData] = useState(postsQuery.data);
 
-  useEffect(() => {
+  if (postsQuery.data !== prevPostData) {
+    setPrevPostData(postsQuery.data);
     if (postsQuery.data) {
       setContent(postsQuery.data.content);
       setExistingImages(postsQuery.data.images || []);
     }
-  }, [postsQuery.data]);
+  }
 
   const handleImagesUploaded = (files: File[]) => {
     setSelectedFiles(files);

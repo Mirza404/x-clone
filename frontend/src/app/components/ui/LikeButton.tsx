@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,14 +20,18 @@ export default function LikeButton({
 }: LikeButtonProps) {
   const [isLiked, setIsLiked] = useState(initialLikes.includes(authorId));
   const [likeCount, setLikeCount] = useState(initialLikes.length);
+  const [prevInitialLikes, setPrevInitialLikes] = useState(initialLikes);
+  const [prevAuthorId, setPrevAuthorId] = useState(authorId);
   const queryClient = useQueryClient();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const params = useParams();
 
-  useEffect(() => {
+  if (initialLikes !== prevInitialLikes || authorId !== prevAuthorId) {
+    setPrevInitialLikes(initialLikes);
+    setPrevAuthorId(authorId);
     setIsLiked(initialLikes.includes(authorId));
     setLikeCount(initialLikes.length);
-  }, [initialLikes, authorId]);
+  }
 
   const likeMutation = useMutation({
     mutationFn: async () => {

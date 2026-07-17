@@ -39,6 +39,14 @@ const EditCommentPage = () => {
     enabled: !!postId && !!commentId,
   });
   const comment = commentData?.[0];
+  const [prevComment, setPrevComment] = useState(comment);
+
+  if (comment !== prevComment) {
+    setPrevComment(comment);
+    if (comment?.content && !content) {
+      setContent(comment.content);
+    }
+  }
 
   const editCommentMutation = useMutation({
     mutationFn: async ({
@@ -102,12 +110,6 @@ const EditCommentPage = () => {
     content,
     onSubmit: handleSave,
   });
-
-  useEffect(() => {
-    if (comment?.content) {
-      setContent((currentContent) => currentContent || comment.content);
-    }
-  }, [comment]);
 
   useEffect(() => {
     if (textareaRef.current) {
