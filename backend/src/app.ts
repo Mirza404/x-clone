@@ -1,11 +1,11 @@
 import { config } from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
 import appRouter from './routes';
 import { connectToDatabase } from './db/connection';
 
-const morgan = require('morgan');
-const express = require('express');
 const app = express();
-const cors = require('cors');
 config();
 
 async function connectToMongo() {
