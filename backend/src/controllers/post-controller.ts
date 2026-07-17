@@ -1,9 +1,10 @@
-import mongoose, { mongo } from 'mongoose';
+import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { getUserIdByEmail, getUserNameByID } from './user-controller';
 import { hasObjectId, toObjectId } from '../utils/object-id';
+import { getUsersCollection } from '../db/connection';
 
 async function allPosts(req: Request, res: Response): Promise<void> {
   try {
@@ -25,8 +26,7 @@ async function allPosts(req: Request, res: Response): Promise<void> {
 
     const postsWithUserData = await Promise.all(
       posts.map(async (post) => {
-        //@ts-ignore
-        const user = await mongoose.connection.db.collection('users').findOne(
+        const user = await getUsersCollection().findOne(
           { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
           { projection: { image: 1 } }
         );
@@ -188,13 +188,10 @@ async function createPost(req: Request, res: Response): Promise<void> {
 
     const date = new Date().toISOString();
 
-    //@ts-ignore
-    const user = await mongoose.connection.db
-      .collection('users')
-      .findOne(
-        { _id: new mongoose.Types.ObjectId(author) },
-        { projection: { image: 1 } }
-      );
+    const user = await getUsersCollection().findOne(
+      { _id: new mongoose.Types.ObjectId(author) },
+      { projection: { image: 1 } }
+    );
 
     const newPost = new Post({
       author,
@@ -309,9 +306,7 @@ async function getLikes(req: Request, res: Response): Promise<void> {
     }
 
     // Manually fetch user names based on ObjectIDs in 'likes'
-    // @ts-ignore
-    const users = await mongoose.connection.db
-      .collection('users')
+    const users = await getUsersCollection()
       .find({ _id: { $in: post.likes } })
       .project({ name: 1 })
       .toArray();

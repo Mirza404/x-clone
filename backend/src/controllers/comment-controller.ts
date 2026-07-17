@@ -6,6 +6,7 @@ import { getUserIdByEmail, getUserNameByID } from './user-controller';
 import { LeanComment } from 'src/types/LeanComment';
 import { hasObjectId, toObjectId } from '../utils/object-id';
 import { collectCommentThreadIds } from '../utils/comment-tree';
+import { getUsersCollection } from '../db/connection';
 
 async function allComments(req: Request, res: Response): Promise<void> {
   try {
@@ -33,9 +34,7 @@ async function allComments(req: Request, res: Response): Promise<void> {
       }
     }
 
-    //@ts-ignore
-    const users = await mongoose.connection.db
-      .collection('users')
+    const users = await getUsersCollection()
       .find({
         _id: {
           $in: Array.from(authorIds).map(
@@ -61,7 +60,7 @@ async function allComments(req: Request, res: Response): Promise<void> {
       likes: comment.likes,
       author: comment.author,
       authorImage: userImageMap.get(comment.author.toString()) || null,
-      replies: (comment.replies ?? []).map((reply: any) => ({
+      replies: (comment.replies ?? []).map((reply) => ({
         id: reply._id,
         content: reply.content,
         name: reply.name,
@@ -139,9 +138,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     }
 
     // Fetch user images manually
-    //@ts-ignore
-    const users = await mongoose.connection.db
-      .collection('users')
+    const users = await getUsersCollection()
       .find({
         _id: {
           $in: Array.from(authorIds).map(
@@ -167,7 +164,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
       likes: comment.likes,
       author: comment.author,
       authorImage: userImageMap.get(comment.author.toString()) || null,
-      replies: (comment.replies ?? []).map((reply: any) => ({
+      replies: (comment.replies ?? []).map((reply) => ({
         id: reply._id,
         content: reply.content,
         name: reply.name,
@@ -245,18 +242,15 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const typedComment = comment as unknown as LeanComment;
+
     const authorIds = new Set<string>();
-    authorIds.add(comment.author.toString());
-    for (const reply of comment.replies ?? []) {
-      //only add if reply is an object and has author
-      if (reply && typeof reply === 'object' && 'author' in reply) {
-        authorIds.add((reply as any).author.toString());
-      }
+    authorIds.add(typedComment.author.toString());
+    for (const reply of typedComment.replies ?? []) {
+      authorIds.add(reply.author.toString());
     }
 
-    //@ts-ignore
-    const users = await mongoose.connection.db
-      .collection('users')
+    const users = await getUsersCollection()
       .find({
         _id: {
           $in: Array.from(authorIds).map(
@@ -273,16 +267,16 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
 
     // Attach authorImage to comment and replies
     const commentWithUserData = {
-      id: comment._id,
-      content: comment.content,
-      name: comment.name,
-      postId: comment.postId,
-      parentComment: comment.parentComment,
-      createdAt: comment.createdAt,
-      likes: comment.likes,
-      author: comment.author,
-      authorImage: userImageMap.get(comment.author.toString()) || null,
-      replies: (comment.replies ?? []).map((reply: any) => ({
+      id: typedComment._id,
+      content: typedComment.content,
+      name: typedComment.name,
+      postId: typedComment.postId,
+      parentComment: typedComment.parentComment,
+      createdAt: typedComment.createdAt,
+      likes: typedComment.likes,
+      author: typedComment.author,
+      authorImage: userImageMap.get(typedComment.author.toString()) || null,
+      replies: (typedComment.replies ?? []).map((reply) => ({
         id: reply._id,
         content: reply.content,
         name: reply.name,
@@ -450,9 +444,7 @@ async function getLikes(req: Request, res: Response): Promise<void> {
     }
 
     // Fetch user names based on ObjectIDs in 'likes'
-    //@ts-ignore
-    const users = await mongoose.connection.db
-      .collection('users')
+    const users = await getUsersCollection()
       .find({ _id: { $in: comment.likes } })
       .project({ name: 1 })
       .toArray();

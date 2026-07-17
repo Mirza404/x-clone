@@ -35,4 +35,12 @@ async function disconnectFromDatabase() {
   }
 }
 
-export { connectToDatabase, disconnectFromDatabase };
+function getUsersCollection() {
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('No database connection');
+  }
+  return db.collection('users');
+}
+
+export { connectToDatabase, disconnectFromDatabase, getUsersCollection };

@@ -1,5 +1,4 @@
-import { NextFunction } from 'express';
-import mongoose, { Mongoose } from 'mongoose';
+import mongoose from 'mongoose';
 export async function getUserIdByEmail(
   email: string
 ): Promise<mongoose.Types.ObjectId> {
@@ -24,7 +23,7 @@ export async function getUserIdByEmail(
   }
 }
 
-export async function getUserNameByID(author: string): Promise<String> {
+export async function getUserNameByID(author: string): Promise<string> {
   try {
     const db = mongoose.connection.db;
     if (!db) {
