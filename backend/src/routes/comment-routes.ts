@@ -16,5 +16,6 @@ commentRoutes.post('/new', createComment);
 commentRoutes.patch('/edit/:commentId', updateComment);
 commentRoutes.patch('/delete/:commentId', deleteComment);
 commentRoutes.post('/like', toggleLike);
+commentRoutes.get('/getLikes/:id', getLikes);
 
 export default commentRoutes;
