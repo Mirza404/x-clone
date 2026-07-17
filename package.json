@@ -6,7 +6,7 @@
   "scripts": {
     "format": "prettier --write . --ignore-unknown",
     "format:check": "prettier --check . --ignore-unknown",
-    "lint": "npm run lint --prefix frontend",
+    "lint": "npm run lint --prefix backend && npm run lint --prefix frontend",
     "typecheck": "npm run typecheck --prefix backend && npm run typecheck --prefix frontend",
     "build": "npm run build --prefix frontend",
     "test": "npm run test:ci --prefix backend && npm run test:ci --prefix frontend",
@@ -28,6 +28,7 @@
     "eslint": "^9.22.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.3",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "typescript-eslint": "8.64.0"
   }
 }
