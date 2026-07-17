@@ -6,19 +6,19 @@ export default function MobileHeader() {
   const { data: session } = useSession();
 
   return (
-    <div className="sticky top-0 z-40 bg-black bg-opacity-80 backdrop-blur-sm border-b border-gray-800 md:hidden">
-      <div className="flex justify-between items-center h-14 px-4">
+    <div className="sticky top-0 z-40 border-b border-x-border bg-x-black/80 backdrop-blur-sm md:hidden">
+      <div className="flex h-14 items-center justify-between px-4">
         {/* Left side - Profile image or back button */}
         <div className="flex items-center">
           {session?.user?.image && (
             <img
               src={session.user.image || '/placeholder.svg'}
               alt="Profile"
-              className="w-8 h-8 rounded-full"
+              className="h-8 w-8 rounded-full"
               referrerPolicy="no-referrer"
             />
           )}
-          <div className="flex items-center justify-center font-bold ml-2 ">
+          <div className="ml-2 flex items-center justify-center text-lg font-bold text-x-text">
             Home
           </div>
         </div>

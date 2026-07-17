@@ -6,27 +6,27 @@ export default function MobileTabs() {
   const [activeTab, setActiveTab] = useState('for-you');
 
   return (
-    <div className="flex w-full border-b border-gray-800 md:hidden">
+    <div className="flex w-full border-b border-x-border md:hidden">
       <button
-        className={`flex-1 py-4 text-center font-medium relative ${
-          activeTab === 'for-you' ? 'text-white' : 'text-gray-500'
+        className={`relative flex-1 py-4 text-center font-medium ${
+          activeTab === 'for-you' ? 'text-x-text' : 'text-x-text-secondary'
         }`}
         onClick={() => setActiveTab('for-you')}
       >
         For you
         {activeTab === 'for-you' && (
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-[#1d9bf0] rounded-full"></div>
+          <div className="absolute bottom-0 left-1/2 h-1 w-12 -translate-x-1/2 transform rounded-full bg-x-blue"></div>
         )}
       </button>
       <button
-        className={`flex-1 py-4 text-center font-medium relative ${
-          activeTab === 'following' ? 'text-white' : 'text-gray-500'
+        className={`relative flex-1 py-4 text-center font-medium ${
+          activeTab === 'following' ? 'text-x-text' : 'text-x-text-secondary'
         }`}
         onClick={() => setActiveTab('following')}
       >
         Following
         {activeTab === 'following' && (
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-[#1d9bf0] rounded-full"></div>
+          <div className="absolute bottom-0 left-1/2 h-1 w-12 -translate-x-1/2 transform rounded-full bg-x-blue"></div>
         )}
       </button>
     </div>
