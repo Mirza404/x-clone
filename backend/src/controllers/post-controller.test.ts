@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
-import { deletePost } from './post-controller';
+import { deletePost, toggleLike } from './post-controller';
 
 type MockResponse = Response & {
   statusCode?: number;
@@ -18,6 +18,7 @@ const originalReadyStateDescriptor = Object.getOwnPropertyDescriptor(
 const originalFindById = Post.findById;
 const originalDeleteOne = Post.deleteOne;
 const originalDeleteMany = Comment.deleteMany;
+const originalFindByIdAndUpdate = Post.findByIdAndUpdate;
 
 function setReadyState(readyState: number) {
   Object.defineProperty(mongoose.connection, 'readyState', {
@@ -64,6 +65,9 @@ afterEach(() => {
     originalDeleteOne;
   (Comment as unknown as { deleteMany: typeof originalDeleteMany }).deleteMany =
     originalDeleteMany;
+  (
+    Post as unknown as { findByIdAndUpdate: typeof originalFindByIdAndUpdate }
+  ).findByIdAndUpdate = originalFindByIdAndUpdate;
 });
 
 test('deletePost returns 400 when id is missing', async () => {
@@ -123,4 +127,59 @@ test('deletePost deletes comments for the post before deleting the post', async 
   ]);
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { message: 'Post deleted successfully' });
+});
+
+test('toggleLike unlikes when a string authorId matches an ObjectId already stored in likes', async () => {
+  setReadyState(1);
+  const postId = new mongoose.Types.ObjectId();
+  const authorObjectId = new mongoose.Types.ObjectId();
+  const calls: unknown[] = [];
+
+  (Post as unknown as { findById: unknown }).findById = async () => ({
+    likes: [authorObjectId],
+  });
+  (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
+    async (id: unknown, update: unknown) => {
+      calls.push(update);
+    };
+
+  const response = createResponse();
+
+  // authorId arrives from the client as a string, likes are stored as ObjectIds.
+  await toggleLike(
+    createRequest({
+      id: postId.toString(),
+      authorId: authorObjectId.toString(),
+    }),
+    response
+  );
+
+  assert.deepEqual(calls, [{ $pull: { likes: authorObjectId } }]);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body, { message: 'Post unliked' });
+});
+
+test('toggleLike likes the post when the author has not liked it yet', async () => {
+  setReadyState(1);
+  const postId = new mongoose.Types.ObjectId();
+  const authorId = new mongoose.Types.ObjectId().toString();
+  const calls: unknown[] = [];
+
+  (Post as unknown as { findById: unknown }).findById = async () => ({
+    likes: [],
+  });
+  (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
+    async (id: unknown, update: unknown) => {
+      calls.push(update);
+    };
+
+  const response = createResponse();
+
+  await toggleLike(
+    createRequest({ id: postId.toString(), authorId }),
+    response
+  );
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual(response.body, { message: 'Post liked' });
 });
