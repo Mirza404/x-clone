@@ -10,7 +10,7 @@
     "lint": "eslint src",
     "format": "prettier --write . --ignore-unknown",
     "format:check": "prettier --check . --ignore-unknown",
-    "test": "node --test -r ts-node/register \"src/**/*.test.ts\"",
+    "test": "node scripts/run-tests.js",
     "test:ci": "npm run typecheck && npm test"
   },
   "keywords": [],
