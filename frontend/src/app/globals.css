@@ -25,31 +25,9 @@ body {
   }
 }
 
-.tweet-content {
-  max-width: 600px;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
-}
-
-/* #080808 convert this to rgb
-copilot
- */
-
 .post-hover {
   transition: background-color 180ms ease-in-out;
 }
 .post-hover:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(8 8 8 / var(--tw-bg-opacity, 1));
-}
-
-.hover-svg svg {
-  transition:
-    fill 180ms ease-in-out,
-    stroke 180ms ease-in-out;
-}
-
-.hover-svg:hover svg {
-  fill: #1d9bf0;
-  stroke: #1d9bf0;
+  background-color: theme('colors.x.hover');
 }
