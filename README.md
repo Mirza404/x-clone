@@ -1,5 +1,7 @@
 # X Clone
 
+[![CI](https://github.com/Mirza404/x-clone/actions/workflows/ci.yml/badge.svg)](https://github.com/Mirza404/x-clone/actions/workflows/ci.yml)
+
 - Backend: Express + TypeScript — see [backend/src/app.ts](backend/src/app.ts) and [backend/src/index.ts](backend/src/index.ts).
 - Frontend: Next.js 14 (app dir) — see [frontend/src/app/layout.tsx](frontend/src/app/layout.tsx).
 - Database: MongoDB (Atlas recommended). Backend connects via [`connectToDatabase`](backend/src/db/connection.ts).
