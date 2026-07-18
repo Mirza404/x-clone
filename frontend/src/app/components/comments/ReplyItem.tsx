@@ -5,8 +5,11 @@ import { useSession } from 'next-auth/react';
 import { useState, useMemo } from 'react';
 import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
+import Avatar from '../ui/Avatar';
 import { useParams } from 'next/navigation';
 import { universalHandleClick } from '@/app/utils/handleClick';
+import { toHandle } from '@/app/utils/handle';
+import { relativeTime } from '@/app/utils/relativeTime';
 import { usePathname, useRouter } from 'next/navigation';
 import { MoreHorizontal } from 'lucide-react';
 
@@ -32,6 +35,8 @@ const ReplyItem = ({
     [pathname, postId, reply.id]
   );
 
+  const handle = toHandle(reply.name);
+
   return (
     <div
       className="post-hover relative flex w-full min-h-[70px] cursor-pointer flex-row gap-3 p-3 pl-4"
@@ -41,41 +46,30 @@ const ReplyItem = ({
           : undefined
       }
     >
-      <img
-        className="h-10 w-10 flex-shrink-0 rounded-full"
-        src={reply?.authorImage ?? '/Logo.png'}
-        referrerPolicy="no-referrer"
-        alt={`${reply.name}'s profile`}
-      />
+      <Avatar src={reply?.authorImage} alt={`${reply.name}'s profile`} size="sm" />
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-1 text-[15px] text-x-text-secondary">
-          <span className="font-bold text-x-text hover:underline">
+        <div className="flex min-w-0 items-center gap-1 text-[15px] text-muted">
+          <span className="font-bold text-content hover:underline">
             {reply.name}
           </span>
+          {handle && <span className="truncate">{handle}</span>}
           <span aria-hidden="true">·</span>
-          <span>
-            {new Date(reply.createdAt).toLocaleDateString(undefined, {
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
+          <span className="flex-shrink-0">{relativeTime(reply.createdAt)}</span>
         </div>
         {reply.content ? (
-          <div className="text-[15px] leading-5 text-x-text break-all whitespace-pre-wrap">
+          <div className="text-[15px] leading-5 text-content break-words whitespace-pre-wrap">
             {showMore ? reply.content : `${reply.content.substring(0, 200)}`}
             {reply.content.length > 200 && (
               <button
                 onClick={() => setShowMore(!showMore)}
-                className="interactive-element ml-1 font-bold text-x-blue hover:underline"
+                className="interactive-element ml-1 font-bold text-primary hover:underline"
               >
                 {showMore ? 'Show less' : 'Show more'}
               </button>
             )}
           </div>
         ) : (
-          <div className="text-[15px] italic text-x-text-secondary">
-            No content
-          </div>
+          <div className="text-[15px] italic text-muted">No content</div>
         )}
         <div className="like-button mt-2 flex items-center gap-3">
           <LikeButton
@@ -88,7 +82,7 @@ const ReplyItem = ({
       </div>
       <div className="interactive-element absolute right-2 top-2">
         <button
-          className="rounded-full p-1.5 text-x-text-secondary transition-colors hover:bg-x-blue-bg hover:text-x-blue"
+          className="rounded-full p-1.5 text-muted transition-colors hover:bg-primary-bg hover:text-primary"
           onClick={() => setDropdownOpen(!dropdownOpen)}
           aria-label="More options"
         >
