@@ -1,10 +1,13 @@
+import type { ImgHTMLAttributes } from 'react';
+
 const SIZES = {
   sm: 'h-8 w-8',
   md: 'h-10 w-10',
   lg: 'h-12 w-12',
 } as const;
 
-interface AvatarProps {
+interface AvatarProps
+  extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt' | 'size'> {
   src?: string | null;
   alt: string;
   size?: keyof typeof SIZES;
@@ -16,6 +19,7 @@ export default function Avatar({
   alt,
   size = 'md',
   className = '',
+  ...props
 }: AvatarProps) {
   return (
     <img
@@ -23,6 +27,7 @@ export default function Avatar({
       src={src || '/Logo.png'}
       referrerPolicy="no-referrer"
       alt={alt}
+      {...props}
     />
   );
 }
