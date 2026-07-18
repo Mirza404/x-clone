@@ -11,6 +11,8 @@ import MobilePostButton from './components/mobile/MobilePostButton';
 import MobileHeader from './components/mobile/MobileHeader';
 import MobileNavBar from './components/mobile/MobileNavBar';
 import MobileTabs from './components/mobile/MobileTabs';
+import ThemeProvider from './utils/ThemeProvider';
+import FloatingActions from './components/ui/FloatingActions';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -34,13 +36,19 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.classList.toggle('dark',t==='dark');}catch(e){}})();`,
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ThemeProvider>
         <QueryProvider>
           <SessionProvider>
             {/* Mobile Header - Only visible on mobile */}
@@ -55,7 +63,7 @@ export default async function RootLayout({
                 </div>
 
                 {/* Center content */}
-                <main className="w-full md:w-[598px] min-h-screen">
+                <main className="w-full md:w-[600px] min-h-screen border-x border-border">
                   {/* Mobile Tabs - Only visible on mobile */}
                   <MobileTabs />
 
@@ -75,8 +83,12 @@ export default async function RootLayout({
 
             {/* Mobile Navigation Bar - Only visible on mobile */}
             <MobileNavBar />
+
+            {/* Floating action buttons - desktop only */}
+            <FloatingActions />
           </SessionProvider>
         </QueryProvider>
+        </ThemeProvider>
         <CustomToaster />
       </body>
     </html>
