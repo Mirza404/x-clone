@@ -6,9 +6,12 @@ import { getSession, useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
+import { Image as ImageIcon, Smile, Calendar, MapPin, ListOrdered } from 'lucide-react';
 import CustomToaster from '../components/ui/CustomToaster';
 import LoadingBar from '../components/ui/CustomLoadBar';
 import FileUpload from '../utils/FileUpload';
+import IconButton from '../components/ui/IconButton';
+import Avatar from '../components/ui/Avatar';
 import classNames from 'classnames';
 import { uploadImages } from '../utils/imageUtils';
 import { useEnterSubmit } from '../utils/formSubmit';
@@ -99,22 +102,17 @@ const NewPostPage = () => {
 
   return (
     <>
-      <div className="hidden md:flex items-center justify-center bg-black w-full min-h-[116px] border-x border-t border-gray-800">
+      <div className="hidden md:flex items-center justify-center bg-bg w-full min-h-[116px] border-b border-border">
         <LoadingBar progress={progress} />
-        <div className="flex flex-row bg-black mt-0 mx-auto px-4 pt-2 border-b border-gray-800 shadow-lg w-full">
-          {/* Key fix: Make the profile picture container non-shrinkable with fixed width */}
-          <div className="pt-2 mr-2 min-w-[40px] w-[40px] flex-shrink-0">
-            <img
-              className="w-10 h-10 rounded-full"
-              src={session?.user?.image ?? '/Logo.png'}
-              referrerPolicy="no-referrer"
-              onLoad={() => setLoading(false)}
-              onError={() => setLoading(false)}
+        <div className="flex flex-row mt-0 mx-auto px-4 pt-3 pb-2 w-full">
+          <div className="mr-3 min-w-[40px] w-[40px] flex-shrink-0">
+            <Avatar
+              src={session?.user?.image}
               alt="Profile"
+              size="md"
             />
           </div>
-          {/* Make the content area more responsive */}
-          <div className="flex flex-col py-3 flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -125,13 +123,13 @@ const NewPostPage = () => {
             >
               <textarea
                 ref={textareaRef}
-                className="w-full h-7 py-0.5 text-white bg-black rounded-lg focus:outline-none text-xl overflow-hidden resize-none"
+                className="w-full h-7 py-0.5 text-content bg-transparent rounded-lg focus:outline-none text-xl placeholder-muted overflow-hidden resize-none"
                 onKeyDown={useEnterSubmit({
                   loading,
                   content,
                   onSubmit: () => newPostMutation.mutate(),
                 })}
-                placeholder="What is happening?!"
+                placeholder="What's happening?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 onInput={(e) => {
@@ -161,7 +159,7 @@ const NewPostPage = () => {
                       />
                       <button
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-black bg-opacity-75 text-gray-400 hover:text-white transition-colors"
+                        className="absolute top-2 right-2 p-1 rounded-full bg-black/75 text-white/70 hover:text-white transition-colors"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -183,16 +181,21 @@ const NewPostPage = () => {
               {/* Make the bottom toolbar responsive */}
               <div className="w-full h-[48px] py-0.5 mt-1.5">
                 <div className="flex flex-row w-full h-full items-center justify-between">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-1">
                     <FileUpload onImagesUploaded={handleImagesUploaded} />
+                    <IconButton icon={ImageIcon} accent="blue" aria-label="Add GIF" disabled />
+                    <IconButton icon={ListOrdered} accent="blue" aria-label="Add poll" disabled />
+                    <IconButton icon={Smile} accent="blue" aria-label="Add emoji" disabled />
+                    <IconButton icon={Calendar} accent="blue" aria-label="Schedule post" disabled />
+                    <IconButton icon={MapPin} accent="blue" aria-label="Add location" disabled />
                   </div>
                   <button
                     className={classNames(
-                      'flex justify-center items-center text-center rounded-full px-3 h-9 text-base font-bold transition duration-300',
+                      'flex justify-center items-center text-center rounded-full px-4 h-9 text-[15px] font-bold transition duration-300',
                       {
-                        'bg-white text-black hover:bg-gray-300':
+                        'bg-primary text-white hover:bg-primary-hover':
                           !loading && content.trim() !== '',
-                        'bg-white text-black opacity-70 cursor-not-allowed':
+                        'bg-primary text-white opacity-50 cursor-not-allowed':
                           loading || content.trim() === '',
                       }
                     )}
