@@ -54,6 +54,8 @@ const NewComment = () => {
               src={session?.user?.image}
               alt={session?.user?.name ?? 'Profile'}
               size="md"
+              onLoad={() => setLoading(false)}
+              onError={() => setLoading(false)}
             />
           </div>
           <div className="flex min-w-0 flex-1 flex-col py-3">

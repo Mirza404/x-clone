@@ -110,6 +110,8 @@ const NewPostPage = () => {
               src={session?.user?.image}
               alt="Profile"
               size="md"
+              onLoad={() => setLoading(false)}
+              onError={() => setLoading(false)}
             />
           </div>
           <div className="flex flex-col flex-1 min-w-0">
