@@ -1,16 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../utils/ThemeProvider';
 
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
-
-  const isDark = mounted && theme === 'dark';
+  const isDark = theme === 'dark';
   const targetLabel = isDark ? 'Light mode' : 'Dark mode';
   const Icon = isDark ? Sun : Moon;
 

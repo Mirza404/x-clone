@@ -39,8 +39,6 @@ export default function ThemeProvider({
   }, []);
 
   useEffect(() => {
-    setThemeState(resolveInitialTheme());
-
     if (localStorage.getItem('theme')) return;
 
     const media = window.matchMedia('(prefers-color-scheme: dark)');
