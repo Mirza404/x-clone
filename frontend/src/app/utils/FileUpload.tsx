@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useState, useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
+import IconButton from '../components/ui/IconButton';
 
 interface FileUploadProps {
   onImagesUploaded: (files: File[]) => void;
@@ -19,10 +20,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onImagesUploaded }) => {
     }
   };
 
-  const handleSvgClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+  const handleClick = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -35,13 +34,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ onImagesUploaded }) => {
         className="hidden"
         accept="image/*"
       />
-      <button
-        onClick={handleSvgClick}
-        className="p-2 rounded-full hover:bg-gray-800 transition-colors"
-        title="Add photos"
-      >
-        <ImageIcon className="w-5 h-5" />
-      </button>
+      <IconButton
+        icon={ImageIcon}
+        accent="blue"
+        onClick={handleClick}
+        aria-label="Add photos"
+      />
     </div>
   );
 };
