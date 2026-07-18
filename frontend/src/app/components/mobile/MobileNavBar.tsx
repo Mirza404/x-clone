@@ -16,7 +16,7 @@ export default function MobileNavBar() {
   const pathname = usePathname();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-x-border bg-x-black md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-bg md:hidden">
       <div className="flex h-14 items-center justify-around">
         {TABS.map(({ href, icon: Icon, label }) => {
           const isActive = pathname === href;
@@ -28,7 +28,7 @@ export default function MobileNavBar() {
               aria-label={label}
             >
               <Icon
-                className={`h-6 w-6 ${isActive ? 'text-x-text' : 'text-x-text-secondary'}`}
+                className={`h-6 w-6 ${isActive ? 'text-content' : 'text-muted'}`}
                 strokeWidth={isActive ? 2.5 : 2}
               />
             </Link>

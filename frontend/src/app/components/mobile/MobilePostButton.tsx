@@ -24,7 +24,7 @@ export default function MobilePostButton() {
       {/* Only show on mobile devices */}
       <button
         onClick={handleClick}
-        className="fixed bottom-20 right-4 z-40 rounded-full bg-x-blue p-4 text-white shadow-lg transition-colors hover:bg-x-blue-hover md:hidden"
+        className="fixed bottom-20 right-4 z-40 rounded-full bg-primary p-4 text-white shadow-lg transition-colors hover:bg-primary-hover md:hidden"
         aria-label="Create new post"
       >
         <Plus className="h-6 w-6" strokeWidth={2.5} />

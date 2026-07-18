@@ -70,17 +70,17 @@ export default function MobileNewPost({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-x-black">
+    <div className="fixed inset-0 z-50 flex flex-col bg-bg">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-x-border p-4">
-        <button onClick={onClose} className="text-x-text">
+      <div className="flex items-center justify-between border-b border-border p-4">
+        <button onClick={onClose} className="text-content">
           <X className="h-6 w-6" />
         </button>
         <button
           className={`flex items-center justify-center rounded-full px-4 py-1.5 text-center text-[15px] font-bold transition duration-300 ${
             !loading && content.trim() !== ''
-              ? 'bg-white text-black hover:bg-white/90'
-              : 'cursor-not-allowed bg-white text-black opacity-50'
+              ? 'bg-primary text-white hover:bg-primary-hover'
+              : 'cursor-not-allowed bg-primary text-white opacity-50'
           }`}
           onClick={() => newPostMutation.mutate()}
           disabled={loading || content.trim() === ''}
@@ -102,7 +102,7 @@ export default function MobileNewPost({ onClose }: { onClose: () => void }) {
         <div className="flex-1">
           <textarea
             ref={textareaRef}
-            className="mt-1 h-14 w-full resize-none bg-transparent text-[17px] text-x-text placeholder-x-text-secondary focus:outline-none"
+            className="mt-1 h-14 w-full resize-none bg-transparent text-[17px] text-content placeholder-muted focus:outline-none"
             placeholder="What's happening?"
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -134,7 +134,7 @@ export default function MobileNewPost({ onClose }: { onClose: () => void }) {
                   />
                   <button
                     onClick={() => removeImage(index)}
-                    className="absolute right-2 top-2 rounded-full bg-black/75 p-1 text-x-text-secondary transition-colors hover:text-x-text"
+                    className="absolute right-2 top-2 rounded-full bg-black/75 p-1 text-white/70 transition-colors hover:text-white"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -146,7 +146,7 @@ export default function MobileNewPost({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-x-border p-4">
+      <div className="border-t border-border p-4">
         <div className="flex items-center">
           <FileUpload onImagesUploaded={handleImagesUploaded} />
         </div>
