@@ -4,24 +4,33 @@ import type React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import DropDownMenu from './DropDownMenu';
 import type { Post } from '../../types/Post';
 import LikeButton from '../ui/LikeButton';
+import Avatar from '../ui/Avatar';
+import VerifiedBadge from '../ui/VerifiedBadge';
+import ActionButton from '../ui/ActionButton';
 import {
   ChevronLeft,
   ChevronRight,
   MessageCircle,
+  Repeat2,
+  Bookmark,
+  Share,
   MoreHorizontal,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getPost } from '../../utils/fetchInfo';
 import { universalHandleClick } from '@/app/utils/handleClick';
+import { toHandle } from '@/app/utils/handle';
+import { relativeTime } from '@/app/utils/relativeTime';
 
 export default function PostItem({
   post,
   onDelete,
 }: {
-  post: Post;
+  post: Post & { verified?: boolean; commentCount?: number };
   onDelete: () => void;
 }) {
   const { data: session } = useSession();
@@ -59,35 +68,56 @@ export default function PostItem({
     );
   };
 
+  const handle = toHandle(post.name);
+
   return (
     <div
-      className="post-hover relative flex w-full min-h-[98px] cursor-pointer flex-row gap-3 border-b border-x-border p-4"
+      className="post-hover relative flex w-full min-h-[98px] cursor-pointer flex-row gap-3 border-b border-border p-4"
       onClick={
         !isCurrentPage
           ? (e) => universalHandleClick(e, router, 'post', post.id)
           : undefined
       }
     >
-      <img
-        className="h-12 w-12 flex-shrink-0 rounded-full"
-        src={post?.authorImage || '/Logo.png'}
-        referrerPolicy="no-referrer"
+      <Avatar
+        src={post?.authorImage}
         alt={`${post.name}'s profile`}
+        size="lg"
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-1 text-[15px] text-x-text-secondary">
-          <span className="font-bold text-x-text hover:underline">
+        <div className="flex min-w-0 items-center gap-1 text-[15px] text-muted">
+          <span className="font-bold text-content hover:underline">
             {post.name}
           </span>
+          {post.verified && <VerifiedBadge />}
+          {handle && <span className="truncate">{handle}</span>}
           <span aria-hidden="true">·</span>
-          <span>
-            {new Date(post.createdAt).toLocaleDateString(undefined, {
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
+          <span className="flex-shrink-0">{relativeTime(post.createdAt)}</span>
+          <button
+            className="interactive-element ml-auto rounded-full p-1.5 text-muted transition-colors hover:bg-primary-bg hover:text-primary"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDropdownOpen(!dropdownOpen);
+            }}
+            aria-label="More options"
+          >
+            <MoreHorizontal className="h-[18px] w-[18px]" />
+          </button>
+          {dropdownOpen && session?.user?.id === post.author && (
+            <div
+              className="dropdown-menu"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropDownMenu
+                type="post"
+                onDelete={onDelete}
+                onEdit={() => router.push(`/posts/${post.id}/editPost`)}
+                onClose={() => setDropdownOpen(false)}
+              />
+            </div>
+          )}
         </div>
-        <div className="text-[15px] leading-5 text-x-text break-all whitespace-pre-wrap">
+        <div className="text-[15px] leading-5 text-content break-words whitespace-pre-wrap">
           {showMore ? post.content : `${post.content.substring(0, 300)}`}
           {post.content.length > 300 && (
             <button
@@ -95,7 +125,7 @@ export default function PostItem({
                 e.stopPropagation();
                 setShowMore(!showMore);
               }}
-              className="interactive-element ml-1 font-bold text-x-blue hover:underline"
+              className="interactive-element ml-1 font-bold text-primary hover:underline"
             >
               {showMore ? 'Show less' : 'Show more'}
             </button>
@@ -105,7 +135,7 @@ export default function PostItem({
               <div className="relative">
                 <img
                   src={post.images[currentImageIndex] || '/placeholder.svg'}
-                  className="max-h-[512px] w-full rounded-2xl border border-x-border object-cover"
+                  className="max-h-[512px] w-full rounded-2xl border border-border object-cover"
                   alt={`Post image ${currentImageIndex + 1}`}
                 />
                 {post.images.length > 1 && (
@@ -140,20 +170,27 @@ export default function PostItem({
             </div>
           )}
         </div>
-        <div className="mt-3 flex max-w-md items-center justify-between">
-          <button
-            className="interactive-element like-button group flex items-center gap-2 text-x-text-secondary"
+        <div className="mt-3 flex max-w-[425px] items-center justify-between">
+          <ActionButton
+            icon={MessageCircle}
+            accent="blue"
+            count={post.commentCount ?? 0}
+            aria-label="Reply"
             onClick={(e) => {
               e.stopPropagation();
               router.push(`/posts/${post.id}`);
             }}
-            aria-label="Reply"
-          >
-            <span className="rounded-full p-2 transition-colors group-hover:bg-x-blue-bg group-hover:text-x-blue">
-              <MessageCircle className="h-[18px] w-[18px]" />
-            </span>
-          </button>
-          <div className="like-button" onClick={(e) => e.stopPropagation()}>
+          />
+          <ActionButton
+            icon={Repeat2}
+            accent="green"
+            aria-label="Repost"
+            onClick={(e) => {
+              e.stopPropagation();
+              toast('Coming soon');
+            }}
+          />
+          <div onClick={(e) => e.stopPropagation()}>
             <LikeButton
               type="post"
               targetId={post.id}
@@ -161,32 +198,25 @@ export default function PostItem({
               initialLikes={post.likes}
             />
           </div>
+          <ActionButton
+            icon={Bookmark}
+            accent="blue"
+            aria-label="Bookmark"
+            onClick={(e) => {
+              e.stopPropagation();
+              toast('Coming soon');
+            }}
+          />
+          <ActionButton
+            icon={Share}
+            accent="blue"
+            aria-label="Share"
+            onClick={(e) => {
+              e.stopPropagation();
+              toast('Coming soon');
+            }}
+          />
         </div>
-      </div>
-      <div
-        className="interactive-element absolute right-2 top-2"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          className="rounded-full p-1.5 text-x-text-secondary transition-colors hover:bg-x-blue-bg hover:text-x-blue"
-          onClick={(e) => {
-            e.stopPropagation();
-            setDropdownOpen(!dropdownOpen);
-          }}
-          aria-label="More options"
-        >
-          <MoreHorizontal className="h-[18px] w-[18px]" />
-        </button>
-        {dropdownOpen && session?.user?.id === post.author && (
-          <div className="dropdown-menu">
-            <DropDownMenu
-              type="post"
-              onDelete={onDelete}
-              onEdit={() => router.push(`/posts/${post.id}/editPost`)}
-              onClose={() => setDropdownOpen(false)}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
