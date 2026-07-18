@@ -15,7 +15,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Menu, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 import ProfileTab from './ProfileTab';
+import ThemeToggle from './ThemeToggle';
 
 interface NavLinkItem {
   href: string;
@@ -46,8 +49,8 @@ function NavItem({
     <li>
       <Link
         href={href}
-        className={`flex w-fit items-center gap-4 rounded-full py-3 pl-3 pr-5 text-x-text transition-colors hover:bg-x-hover ${
-          isActive ? 'font-bold' : ''
+        className={`flex w-fit items-center gap-4 rounded-full py-3 pl-3 pr-5 text-content transition-colors hover:bg-hover ${
+          isActive ? 'font-bold' : 'font-normal'
         }`}
       >
         <Icon
@@ -68,11 +71,11 @@ export default function NavMenu() {
       <nav>
         <Link
           href="/posts"
-          className="mb-1 flex h-[50px] w-[50px] items-center justify-center rounded-full transition-colors hover:bg-x-hover"
+          className="mb-1 flex h-[50px] w-[50px] items-center justify-center rounded-full transition-colors hover:bg-hover"
           aria-label="X"
         >
           <svg
-            className="h-7 w-7 text-x-text"
+            className="h-7 w-7 text-content"
             aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
             fill="currentColor"
@@ -91,16 +94,36 @@ export default function NavMenu() {
             />
           ))}
           <li>
-            <div className="flex w-fit items-center gap-4 rounded-full py-3 pl-3 pr-5 text-x-text-secondary">
-              <MoreHorizontal className="h-[26px] w-[26px] flex-shrink-0" />
-              <span className="text-xl">More</span>
-            </div>
+            <Menu as="div" className="relative w-fit">
+              <Menu.Button className="flex w-fit items-center gap-4 rounded-full py-3 pl-3 pr-5 text-content transition-colors hover:bg-hover">
+                <MoreHorizontal className="h-[26px] w-[26px] flex-shrink-0" />
+                <span className="text-xl">More</span>
+              </Menu.Button>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute bottom-full left-0 mb-2 w-72 origin-bottom-left rounded-2xl border border-border-strong bg-bg p-2 shadow-lg focus:outline-none">
+                  <div className="px-2 py-1.5 text-xs font-bold uppercase text-muted">
+                    Display
+                  </div>
+                  <Menu.Item>
+                    <ThemeToggle />
+                  </Menu.Item>
+                </Menu.Items>
+              </Transition>
+            </Menu>
           </li>
         </ul>
 
         <Link
           href="/newPost"
-          className="mt-4 flex h-[52px] w-full items-center justify-center rounded-full bg-x-blue text-lg font-bold text-white transition-colors hover:bg-x-blue-hover"
+          className="mt-4 flex h-[52px] w-full items-center justify-center rounded-full bg-primary text-[17px] font-bold text-white transition-colors hover:bg-primary-hover"
         >
           Post
         </Link>
