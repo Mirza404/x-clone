@@ -1,32 +1,37 @@
 import Link from 'next/link';
 import { Search } from 'lucide-react';
+import Card from './Card';
+import TodaysNews from '../rail/TodaysNews';
+import WhatsHappening from '../rail/WhatsHappening';
 
 const SideBar = () => {
   return (
-    <div className="sticky top-0 flex h-screen flex-col gap-4 py-1">
+    <div className="sticky top-0 flex h-screen flex-col gap-4 overflow-y-auto py-1">
       {/* Search Box */}
       <div className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-x-text-secondary" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
         <input
           type="text"
           placeholder="Search"
-          className="w-full rounded-full border border-transparent bg-x-surface py-3 pl-12 pr-4 text-x-text placeholder-x-text-secondary outline-none focus:border-x-blue focus:bg-x-black"
+          className="w-full rounded-full border border-transparent bg-input py-3 pl-12 pr-4 text-content placeholder-muted outline-none focus:border-border-strong focus:bg-bg"
         />
       </div>
 
       {/* Subscribe Box */}
-      <div className="flex flex-col rounded-2xl border border-x-border p-4 text-x-text">
-        <h2 className="text-xl font-bold">Subscribe To Premium</h2>
-        <p className="my-2 text-[15px] text-x-text-secondary">
-          Subscribe to unlock new features and if eligible, receive a share of
-          revenue.
+      <Card title="Subscribe to Premium">
+        <p className="mb-3 text-[15px] text-muted">
+          Get rid of ads, see your analytics, boost your replies and unlock
+          20+ features.
         </p>
-        <button className="w-fit rounded-full bg-x-blue px-4 py-2 text-[15px] font-bold text-white transition-colors hover:bg-x-blue-hover">
+        <button className="w-fit rounded-full bg-primary px-4 py-2 text-[15px] font-bold text-white transition-colors hover:bg-primary-hover">
           Subscribe
         </button>
-      </div>
+      </Card>
 
-      <footer className="flex flex-wrap text-[13px] text-x-text-secondary">
+      <TodaysNews />
+      <WhatsHappening />
+
+      <footer className="flex flex-wrap text-[13px] text-muted">
         <Link href="/posts" className="m-1 hover:underline">
           Terms of Service
         </Link>
