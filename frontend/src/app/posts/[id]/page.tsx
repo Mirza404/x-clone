@@ -2,6 +2,7 @@
 import { getPost } from '../../utils/fetchInfo';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import PostItem from '@/app/components/posts/PostItem';
 import LoadCircle from '@/app/components/ui/LoadCircle';
 import { usePostMutations } from '@/app/utils/postMutations';
@@ -29,6 +30,17 @@ export default function Page({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen">
+      <div className="sticky top-0 z-20 flex items-center gap-6 border-b border-border bg-bg/85 px-4 py-2 backdrop-blur">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="Back"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-content transition-colors hover:bg-hover"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <h1 className="text-xl font-bold text-content">Post</h1>
+      </div>
       {postsQuery.data && (
         <PostItem
           post={postsQuery.data}
