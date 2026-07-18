@@ -3,13 +3,40 @@
 @tailwind utilities;
 
 :root {
-  --background: #000000;
-  --foreground: #e7e9ea;
+  --color-bg: #ffffff;
+  --color-surface: #f7f9f9;
+  --color-input: #eff3f4;
+  --color-border: #eff3f4;
+  --color-border-strong: #cfd9de;
+  --color-text: #0f1419;
+  --color-text-secondary: #536471;
+  --color-hover: rgba(15, 20, 25, 0.03);
+  --color-btn: #0f1419;
+  --color-btn-hover: #272c30;
+  --color-btn-fg: #ffffff;
+
+  /* legacy aliases kept so existing classes theme automatically */
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+}
+
+.dark {
+  --color-bg: #000000;
+  --color-surface: #16181c;
+  --color-input: #202327;
+  --color-border: #2f3336;
+  --color-border-strong: #3e4144;
+  --color-text: #e7e9ea;
+  --color-text-secondary: #71767b;
+  --color-hover: rgba(255, 255, 255, 0.03);
+  --color-btn: #eff3f4;
+  --color-btn-hover: #d7dbdc;
+  --color-btn-fg: #0f1419;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--color-text);
+  background: var(--color-bg);
   font-family:
     var(--font-geist-sans),
     -apple-system,
@@ -29,5 +56,16 @@ body {
   transition: background-color 180ms ease-in-out;
 }
 .post-hover:hover {
-  background-color: theme('colors.x.hover');
+  background-color: var(--color-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
