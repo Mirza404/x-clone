@@ -6,6 +6,9 @@ import { useInView } from 'react-intersection-observer';
 import PostItem from './PostItem';
 import { usePostMutations } from '@/app/utils/postMutations';
 import LoadCircle from '../ui/LoadCircle';
+import PostSkeleton from '../ui/PostSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Button from '../ui/Button';
 
 function PostListInfinite() {
   const { ref, inView } = useInView();
@@ -13,8 +16,14 @@ function PostListInfinite() {
     usePostMutations();
   const postsQuery = useFetchPosts();
   const deletePostMutation = useDeletePost();
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
-    useFetchInfinitePosts();
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+    refetch,
+  } = useFetchInfinitePosts();
 
   useEffect(() => {
     if (inView) {
@@ -23,11 +32,38 @@ function PostListInfinite() {
   }, [fetchNextPage, inView]);
 
   if (postsQuery.isLoading || status === 'pending') {
-    return <LoadCircle />;
+    return (
+      <div className="w-full">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <PostSkeleton key={i} />
+        ))}
+      </div>
+    );
   }
 
   if (postsQuery.isError || status === 'error') {
-    return <div>Error happened</div>;
+    return (
+      <div className="flex flex-col items-center gap-3 border-b border-border py-10 text-center">
+        <p className="text-[15px] text-muted">Something went wrong.</p>
+        <Button variant="secondary-outline" size="sm" onClick={() => refetch()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  const totalPosts = data?.pages?.reduce(
+    (sum, group) => sum + (group?.posts?.length ?? 0),
+    0
+  );
+
+  if (totalPosts === 0) {
+    return (
+      <EmptyState
+        title="Welcome to X Clone"
+        subtitle="When posts arrive, they'll show up here."
+      />
+    );
   }
 
   return (
@@ -46,14 +82,12 @@ function PostListInfinite() {
       ))}
       <div
         ref={ref}
-        className="flex justify-center border-b border-x-border py-6"
+        className="flex justify-center border-b border-border py-6"
       >
         {isFetchingNextPage ? (
           <LoadCircle />
-        ) : hasNextPage ? (
-          <span className="text-x-text-secondary">Load More</span>
-        ) : (
-          <span className="text-x-text-secondary">Nothing more to load.</span>
+        ) : hasNextPage ? null : (
+          <span className="text-muted">Nothing more to load.</span>
         )}
       </div>
     </div>
