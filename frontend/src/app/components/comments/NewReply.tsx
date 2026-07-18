@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { useCommentMutations } from '../../utils/commentMutations';
 import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import Avatar from '../ui/Avatar';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 
 interface ReplyProps {
@@ -56,13 +57,12 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
 
   return (
     <div>
-      <div className="flex flex-row border-t border-x-border px-4 pt-2">
+      <div className="flex flex-row border-t border-border px-4 pt-2">
         <div className="mr-5 w-8 min-w-[32px] flex-shrink-0 pt-2">
-          <img
-            className="flex h-10 w-10 items-stretch rounded-full"
-            src={session?.user?.image ?? '/Logo.png'}
-            referrerPolicy="no-referrer"
+          <Avatar
+            src={session?.user?.image}
             alt={session?.user?.name ?? 'Profile'}
+            size="md"
           />
         </div>
         <div className="flex min-w-0 flex-1 flex-col py-3">
@@ -77,7 +77,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
           >
             <textarea
               ref={textareaRef}
-              className="ml-1 h-7 w-full resize-none overflow-hidden bg-transparent py-0.5 text-[15px] text-x-text placeholder-x-text-secondary focus:outline-none"
+              className="ml-1 h-7 w-full resize-none overflow-hidden bg-transparent py-0.5 text-[15px] text-content placeholder-muted focus:outline-none"
               onKeyDown={useEnterSubmit({
                 loading,
                 content,
@@ -112,9 +112,9 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
                     className={classNames(
                       'flex h-8 items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
                       {
-                        'bg-white text-black hover:bg-white/90':
+                        'bg-primary text-white hover:bg-primary-hover':
                           !loading && content.trim() !== '',
-                        'cursor-not-allowed bg-white text-black opacity-50':
+                        'cursor-not-allowed bg-primary text-white opacity-50':
                           loading || content.trim() === '',
                       }
                     )}
@@ -125,7 +125,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
                   </button>
                 </div>
                 <p
-                  className={`mt-1 text-right text-xs ${content.length > 380 ? 'text-x-like' : 'text-x-text-secondary'}`}
+                  className={`mt-1 text-right text-xs ${content.length > 380 ? 'text-like' : 'text-muted'}`}
                 >
                   {content.length}/380
                 </p>

@@ -38,7 +38,7 @@ export const CommentListInfinite = () => {
   }
 
   if (isError) {
-    return <div>Error happened</div>;
+    return <div className="p-4 text-center text-muted">Something went wrong.</div>;
   }
 
   return (
@@ -61,16 +61,12 @@ export const CommentListInfinite = () => {
       <div ref={ref}>
         {isFetchingNextPage ? (
           <LoadCircle />
-        ) : hasNextPage ? (
-          <div className="p-4 text-center text-x-text-secondary">Load More</div>
-        ) : data?.pages[0]?.comments?.length ? (
-          <div className="p-4 text-center text-x-text-secondary">
+        ) : hasNextPage ? null : data?.pages[0]?.comments?.length ? (
+          <div className="p-4 text-center text-muted">
             Nothing more to load.
           </div>
         ) : (
-          <div className="p-4 text-center text-x-text-secondary">
-            No comments yet.
-          </div>
+          <div className="p-4 text-center text-muted">No comments yet.</div>
         )}
       </div>
     </div>

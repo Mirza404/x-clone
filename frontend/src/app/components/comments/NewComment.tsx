@@ -3,6 +3,7 @@ import LoadingBar from '../ui/CustomLoadBar';
 import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
 import CustomToaster from '../ui/CustomToaster';
+import Avatar from '../ui/Avatar';
 import { useParams } from 'next/navigation';
 import { useCommentMutations } from '../../utils/commentMutations';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
@@ -42,20 +43,17 @@ const NewComment = () => {
 
   return (
     <>
-      <h2 className="border-b border-x-border p-4 text-xl font-bold text-x-text">
+      <h2 className="border-b border-border p-4 text-xl font-bold text-content">
         Comments
       </h2>
       <div className="flex w-full min-h-[116px] items-center justify-center">
         <LoadingBar progress={progress} />
-        <div className="mx-auto flex w-full flex-row border-b border-x-border px-4 pt-2">
+        <div className="mx-auto flex w-full flex-row border-b border-border px-4 pt-2">
           <div className="mr-2 w-10 min-w-[40px] flex-shrink-0 pt-2">
-            <img
-              className="flex h-10 w-10 items-stretch rounded-full"
-              src={session?.user?.image ?? '/Logo.png'}
-              referrerPolicy="no-referrer"
-              onLoad={() => setLoading(false)}
-              onError={() => setLoading(false)}
+            <Avatar
+              src={session?.user?.image}
               alt={session?.user?.name ?? 'Profile'}
+              size="md"
             />
           </div>
           <div className="flex min-w-0 flex-1 flex-col py-3">
@@ -70,14 +68,14 @@ const NewComment = () => {
             >
               <textarea
                 ref={textareaRef}
-                className="h-7 w-full resize-none overflow-hidden bg-transparent py-0.5 text-[15px] text-x-text placeholder-x-text-secondary focus:outline-none"
+                className="h-7 w-full resize-none overflow-hidden bg-transparent py-0.5 text-[15px] text-content placeholder-muted focus:outline-none"
                 onKeyDown={useEnterSubmit({
                   loading,
                   content,
                   onSubmit: handleSubmit,
                 })}
                 placeholder="What's up?"
-                maxLength={380} // ✅ Enforces the limit at the input level
+                maxLength={380}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 onInput={(e) => {
@@ -104,9 +102,9 @@ const NewComment = () => {
                     className={classNames(
                       'flex h-8 items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
                       {
-                        'bg-white text-black hover:bg-white/90':
+                        'bg-primary text-white hover:bg-primary-hover':
                           !loading && content.trim() !== '',
-                        'cursor-not-allowed bg-white text-black opacity-50':
+                        'cursor-not-allowed bg-primary text-white opacity-50':
                           loading || content.trim() === '',
                       }
                     )}
@@ -120,9 +118,7 @@ const NewComment = () => {
                   </button>
                   <p
                     className={`mt-1 text-right text-xs ${
-                      content.length > 380
-                        ? 'text-x-like'
-                        : 'text-x-text-secondary'
+                      content.length > 380 ? 'text-like' : 'text-muted'
                     }`}
                   >
                     {content.length}/380
