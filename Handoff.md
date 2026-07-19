@@ -4,7 +4,7 @@ Plan: `DELIVERABLE.md` (repo root). Groups A-G, steps numbered inside each group
 
 ## Status: Groups A-G done. Redesign complete.
 
-All committed to `main`, one granular commit per file/logical unit (repo convention — check `git log --oneline` for style). Last commit: `44327ab`.
+All committed to `main`, one granular commit per file/logical unit (repo convention — check `git log --oneline` for style). Last commit: `829e53c`.
 
 ### Done
 - **Group A** (tokens/theming): globals.css, tailwind.config.ts, ThemeProvider, layout.tsx no-flash script + wrap.
@@ -23,10 +23,9 @@ All committed to `main`, one granular commit per file/logical unit (repo convent
 - Dev server smoke check: `npm run dev`, `curl localhost:3000/` and `/posts` both returned 200, no errors in log.
 
 ### NOT done yet
-- **Group G step 30**: manual walk of Appendix A checklist against `ui_reference/target.png` — needs an actual browser (light mode pixel-compare, dark mode completeness check, no-FOUC hard-refresh check in both modes, mobile `<768px` check). Nobody has looked at this in a real browser yet — everything above is typecheck/lint/test/build-level verification only.
-- Did **not** verify Appendix A items about Headless UI "More" menu actually opening/closing correctly at runtime, ThemeToggle actually flipping `.dark` class and persisting across reload, or FloatingActions/toast('Coming soon') firing correctly — these are all new interactive wiring that only got a build-level check, not a click-through.
+- Nothing — Group G step 30 (Appendix A manual walk) is done, see below. One residual open item: whether `/posts` should actually redirect guests to sign-in (see "Known pre-existing issue" below) is a product-scope question, not a task item.
 - A `git worktree` at `/c/CODEEEE/x-clone-baseline-check` was created for the regression-check and removed afterward (`git worktree remove --force`) — confirm `git worktree list` is clean if anything looks odd.
-- A background `npm run dev` process may still be running (started for the smoke check, was not confirmed killed — the shell tool call to kill it was rejected by the user mid-session). Check for stray `node` processes on port 3000 before starting a new dev server.
+- A background `npm run dev` process may still be running on port 3000, and a backend `npm run dev` on port 3001 (PID 4840) — check for stray `node` processes before starting new dev servers.
 
 ### Notes / decisions made along the way (not spelled out in DELIVERABLE.md)
 - Composer "Post" buttons: plan flags the blue-vs-black choice as an ASSUMPTION in a couple spots; went with **blue** everywhere (nav Post pill, desktop composer, mobile composer, comment/reply composers) for consistency, matching the plan's own stated assumption in §3.2.
