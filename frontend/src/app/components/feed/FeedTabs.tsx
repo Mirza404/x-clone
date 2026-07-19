@@ -1,10 +1,6 @@
 'use client';
 
-import { Plus } from 'lucide-react';
-import toast from 'react-hot-toast';
 import Tab from '../ui/Tab';
-
-const TOPIC_TABS = ['Tech', 'Business', 'Crypto'];
 
 interface FeedTabsProps {
   activeTab: 'for-you' | 'following';
@@ -27,22 +23,6 @@ export default function FeedTabs({ activeTab, onTabChange }: FeedTabsProps) {
         isActive={activeTab === 'following'}
         onClick={() => onTabChange('following')}
       />
-      {TOPIC_TABS.map((topic) => (
-        <Tab
-          key={topic}
-          label={topic}
-          isActive={false}
-          onClick={() => toast('Coming soon')}
-        />
-      ))}
-      <button
-        type="button"
-        onClick={() => toast('Coming soon')}
-        aria-label="Add topic"
-        className="flex flex-shrink-0 items-center justify-center px-4 text-muted transition-colors hover:bg-hover"
-      >
-        <Plus className="h-5 w-5" />
-      </button>
     </div>
   );
 }
