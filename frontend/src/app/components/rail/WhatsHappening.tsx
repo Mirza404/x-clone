@@ -29,7 +29,10 @@ export default function WhatsHappening() {
           </li>
         ))}
       </ul>
-      <a href="#" className="mt-1 block text-[15px] text-primary hover:underline">
+      <a
+        href="#"
+        className="mt-1 block text-[15px] text-primary hover:underline"
+      >
         Show more
       </a>
     </Card>

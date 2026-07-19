@@ -52,7 +52,11 @@ const ProfileTab = () => {
         className="flex w-full items-center gap-3 text-left"
         onClick={handleClick}
       >
-        <Avatar src={session?.user?.image} alt={session?.user?.name ?? 'Profile'} size="sm" />
+        <Avatar
+          src={session?.user?.image}
+          alt={session?.user?.name ?? 'Profile'}
+          size="sm"
+        />
         <div className="min-w-0 flex-1 overflow-hidden">
           <span className="block truncate text-[15px] font-bold leading-5">
             {showSignOutText ? 'Sign Out' : session?.user?.name}

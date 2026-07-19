@@ -104,10 +104,7 @@ export default function PostItem({
             <MoreHorizontal className="h-[18px] w-[18px]" />
           </button>
           {dropdownOpen && session?.user?.id === post.author && (
-            <div
-              className="dropdown-menu"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="dropdown-menu" onClick={(e) => e.stopPropagation()}>
               <DropDownMenu
                 type="post"
                 onDelete={onDelete}

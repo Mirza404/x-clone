@@ -209,10 +209,30 @@ const NewPostPage = () => {
                 <div className="flex flex-row w-full h-full items-center justify-between">
                   <div className="flex items-center gap-1">
                     <FileUpload onImagesUploaded={handleImagesUploaded} />
-                    <IconButton icon={ListOrdered} accent="blue" aria-label="Add poll" disabled />
-                    <IconButton icon={Smile} accent="blue" aria-label="Add emoji" disabled />
-                    <IconButton icon={Calendar} accent="blue" aria-label="Schedule post" disabled />
-                    <IconButton icon={MapPin} accent="blue" aria-label="Add location" disabled />
+                    <IconButton
+                      icon={ListOrdered}
+                      accent="blue"
+                      aria-label="Add poll"
+                      disabled
+                    />
+                    <IconButton
+                      icon={Smile}
+                      accent="blue"
+                      aria-label="Add emoji"
+                      disabled
+                    />
+                    <IconButton
+                      icon={Calendar}
+                      accent="blue"
+                      aria-label="Schedule post"
+                      disabled
+                    />
+                    <IconButton
+                      icon={MapPin}
+                      accent="blue"
+                      aria-label="Add location"
+                      disabled
+                    />
                   </div>
                   <button
                     className={classNames(

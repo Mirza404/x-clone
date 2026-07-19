@@ -20,8 +20,8 @@ const SideBar = () => {
       {/* Subscribe Box */}
       <Card title="Subscribe to Premium">
         <p className="mb-3 text-[15px] text-muted">
-          Get rid of ads, see your analytics, boost your replies and unlock
-          20+ features.
+          Get rid of ads, see your analytics, boost your replies and unlock 20+
+          features.
         </p>
         <button className="w-fit rounded-full bg-primary px-4 py-2 text-[15px] font-bold text-white transition-colors hover:bg-primary-hover">
           Subscribe

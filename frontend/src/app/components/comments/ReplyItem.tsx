@@ -46,7 +46,11 @@ const ReplyItem = ({
           : undefined
       }
     >
-      <Avatar src={reply?.authorImage} alt={`${reply.name}'s profile`} size="sm" />
+      <Avatar
+        src={reply?.authorImage}
+        alt={`${reply.name}'s profile`}
+        size="sm"
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-w-0 items-center gap-1 text-[15px] text-muted">
           <span className="font-bold text-content hover:underline">

@@ -59,7 +59,11 @@ const CommentItem = ({
           : undefined
       }
     >
-      <Avatar src={comment?.authorImage} alt={`${comment.name}'s profile`} size="lg" />
+      <Avatar
+        src={comment?.authorImage}
+        alt={`${comment.name}'s profile`}
+        size="lg"
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-w-0 items-center gap-1 text-[15px] text-muted">
           <span className="font-bold text-content hover:underline">
@@ -67,7 +71,9 @@ const CommentItem = ({
           </span>
           {handle && <span className="truncate">{handle}</span>}
           <span aria-hidden="true">·</span>
-          <span className="flex-shrink-0">{relativeTime(comment.createdAt)}</span>
+          <span className="flex-shrink-0">
+            {relativeTime(comment.createdAt)}
+          </span>
         </div>
         <div className="text-[15px] leading-5 text-content break-words whitespace-pre-wrap">
           {showMore

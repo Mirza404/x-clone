@@ -50,47 +50,47 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
-        <QueryProvider>
-          <SessionProvider>
-          <PostModalProvider>
-            {/* Mobile Header - Only visible on mobile */}
-            <MobileHeader />
+          <QueryProvider>
+            <SessionProvider>
+              <PostModalProvider>
+                {/* Mobile Header - Only visible on mobile */}
+                <MobileHeader />
 
-            <div className="flex justify-center min-h-screen pb-14 md:pb-0">
-              {/* Main content layout */}
-              <div className="flex w-full max-w-[1265px] mx-auto">
-                {/* Left navigation - Hidden on mobile */}
-                <div className="hidden md:block w-[275px] flex-shrink-0">
-                  <NavMenu />
+                <div className="flex justify-center min-h-screen pb-14 md:pb-0">
+                  {/* Main content layout */}
+                  <div className="flex w-full max-w-[1265px] mx-auto">
+                    {/* Left navigation - Hidden on mobile */}
+                    <div className="hidden md:block w-[275px] flex-shrink-0">
+                      <NavMenu />
+                    </div>
+
+                    {/* Center content */}
+                    <main className="w-full md:w-[600px] min-h-screen border-x border-border">
+                      {/* Mobile Tabs - Only visible on mobile */}
+                      <MobileTabs />
+
+                      {children}
+                      {/* Page Content */}
+
+                      {/* Mobile Post Button - Only visible on mobile */}
+                      <MobilePostButton />
+                    </main>
+
+                    {/* Right sidebar - Hidden on mobile */}
+                    <div className="hidden md:block w-[350px] ml-2">
+                      <SideBar />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Center content */}
-                <main className="w-full md:w-[600px] min-h-screen border-x border-border">
-                  {/* Mobile Tabs - Only visible on mobile */}
-                  <MobileTabs />
+                {/* Mobile Navigation Bar - Only visible on mobile */}
+                <MobileNavBar />
 
-                  {children}
-                  {/* Page Content */}
-
-                  {/* Mobile Post Button - Only visible on mobile */}
-                  <MobilePostButton />
-                </main>
-
-                {/* Right sidebar - Hidden on mobile */}
-                <div className="hidden md:block w-[350px] ml-2">
-                  <SideBar />
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Navigation Bar - Only visible on mobile */}
-            <MobileNavBar />
-
-            {/* Floating action buttons - desktop only */}
-            <FloatingActions />
-          </PostModalProvider>
-          </SessionProvider>
-        </QueryProvider>
+                {/* Floating action buttons - desktop only */}
+                <FloatingActions />
+              </PostModalProvider>
+            </SessionProvider>
+          </QueryProvider>
         </ThemeProvider>
         <CustomToaster />
       </body>

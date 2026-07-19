@@ -6,7 +6,11 @@ interface EmptyStateProps {
   action?: ReactNode;
 }
 
-export default function EmptyState({ title, subtitle, action }: EmptyStateProps) {
+export default function EmptyState({
+  title,
+  subtitle,
+  action,
+}: EmptyStateProps) {
   return (
     <div className="px-8 py-16 text-center">
       <h2 className="text-2xl font-extrabold text-content">{title}</h2>

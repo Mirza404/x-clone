@@ -100,7 +100,10 @@ export default function TodaysNews() {
       <ul className="flex flex-col gap-3">
         {NEWS_ITEMS.map((item) => (
           <li key={item.headline}>
-            <a href="#" className="flex items-start gap-3 post-hover -mx-2 rounded-xl p-2">
+            <a
+              href="#"
+              className="flex items-start gap-3 post-hover -mx-2 rounded-xl p-2"
+            >
               <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-input" />
               <div className="min-w-0">
                 <p className="line-clamp-2 text-[15px] font-bold text-content">

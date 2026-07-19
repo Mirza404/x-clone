@@ -52,7 +52,9 @@ export default function ActionButton({
     >
       <span
         className={`rounded-full p-2 transition-colors ${
-          active ? '' : `${ACCENT_HOVER_PAD[accent]} ${ACCENT_HOVER_TEXT[accent]}`
+          active
+            ? ''
+            : `${ACCENT_HOVER_PAD[accent]} ${ACCENT_HOVER_TEXT[accent]}`
         }`}
       >
         <Icon
