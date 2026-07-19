@@ -1,4 +1,5 @@
 'use client';
+import { use } from 'react';
 import { getPost } from '../../utils/fetchInfo';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -10,8 +11,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import CommentListInfinite from '@/app/components/comments/CommentListInfinite';
 import NewComment from '@/app/components/comments/NewComment';
 
-export default function Page({ params }: { params: { id: string } }) {
-  const id = params.id;
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { useDeletePost } = usePostMutations();
