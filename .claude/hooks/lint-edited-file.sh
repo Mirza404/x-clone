@@ -2,12 +2,14 @@
 # PostToolUse hook (Write|Edit) — lints the just-edited TS/TSX file and blocks
 # on ESLint errors, giving fast local feedback for rules like no-explicit-any
 # and no-console before they ever reach CI. See .claude/rules/typescript.md.
+# Routing/binary-resolution helpers live in hook-common.sh (shared, sourced).
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/hook-common.sh"
 
-input="$(cat)"
-file_path="$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_response.filePath // empty')"
+REPO_ROOT="$(repo_root)"
+file_path="$(hook_input_file_path)"
 
 [ -z "$file_path" ] && exit 0
 
@@ -18,19 +20,8 @@ esac
 
 [ -f "$file_path" ] || exit 0
 
-case "$file_path" in
-  "$REPO_ROOT"/backend/*) subdir="$REPO_ROOT/backend" ;;
-  "$REPO_ROOT"/frontend/*) subdir="$REPO_ROOT/frontend" ;;
-  *) exit 0 ;;
-esac
-
-if [ -x "$subdir/node_modules/.bin/eslint" ]; then
-  eslint_bin="$subdir/node_modules/.bin/eslint"
-elif [ -x "$REPO_ROOT/node_modules/.bin/eslint" ]; then
-  eslint_bin="$REPO_ROOT/node_modules/.bin/eslint"
-else
-  exit 0
-fi
+subdir="$(resolve_subdir "$file_path" "$REPO_ROOT")" || exit 0
+eslint_bin="$(resolve_eslint_bin "$subdir" "$REPO_ROOT")" || exit 0
 
 rel_file="${file_path#"$subdir"/}"
 
