@@ -19,9 +19,9 @@ async function connectToDatabase() {
   }
   try {
     await mongoose.connect(uri);
-    console.log('Mongo DB connection established');
+    console.info('Mongo DB connection established');
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw new Error('Can not connect to the Database.');
   }
 }
@@ -30,7 +30,7 @@ async function disconnectFromDatabase() {
   try {
     await mongoose.disconnect();
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw new Error('Error disconnecting from the Database.');
   }
 }
