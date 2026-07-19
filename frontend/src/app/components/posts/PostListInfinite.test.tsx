@@ -72,9 +72,9 @@ describe('PostListInfinite', () => {
       infinite: { status: 'pending' },
     });
 
-    const { container } = render(<PostListInfinite />);
+    render(<PostListInfinite />);
 
-    expect(container.querySelectorAll('.animate-pulse').length).toBe(5);
+    expect(screen.getAllByTestId('post-skeleton')).toHaveLength(5);
   });
 
   it('shows an error message and retry button when the posts query fails', () => {
