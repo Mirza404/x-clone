@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getSession, useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useMutation } from '@tanstack/react-query';
@@ -22,6 +23,7 @@ const NewPostPage = () => {
   const [email, setEmail] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const queryClient = useQueryClient();
   const router = useRouter();
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
@@ -32,11 +34,13 @@ const NewPostPage = () => {
     const fetchSession = async () => {
       const session = await getSession();
       if (!session || !session.user) {
-        router.push('/api/auth/signin');
+        setSignedIn(false);
+        setLoading(false);
       } else {
         if (session.user.email) {
           setEmail(session.user.email);
         }
+        setSignedIn(true);
         setLoading(false);
       }
     };
@@ -100,6 +104,30 @@ const NewPostPage = () => {
     },
   });
 
+  const handleTextareaKeyDown = useEnterSubmit({
+    loading,
+    content,
+    onSubmit: () => newPostMutation.mutate(),
+  });
+
+  if (signedIn === null) {
+    return null;
+  }
+
+  if (signedIn === false) {
+    return (
+      <div className="hidden md:flex items-center justify-between bg-bg w-full px-4 py-4 border-b border-border">
+        <span className="text-content">Sign in to post.</span>
+        <Link
+          href="/api/auth/signin"
+          className="flex justify-center items-center rounded-full px-4 h-9 text-[15px] font-bold bg-primary text-white hover:bg-primary-hover transition duration-300"
+        >
+          Sign in
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="hidden md:flex items-center justify-center bg-bg w-full min-h-[116px] border-b border-border">
@@ -126,11 +154,7 @@ const NewPostPage = () => {
               <textarea
                 ref={textareaRef}
                 className="w-full h-7 py-0.5 text-content bg-transparent rounded-lg focus:outline-none text-xl placeholder-muted overflow-hidden resize-none"
-                onKeyDown={useEnterSubmit({
-                  loading,
-                  content,
-                  onSubmit: () => newPostMutation.mutate(),
-                })}
+                onKeyDown={handleTextareaKeyDown}
                 placeholder="What's happening?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
