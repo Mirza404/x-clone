@@ -7,7 +7,7 @@ import { getSession, useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
-import { Image as ImageIcon, Smile, Calendar, MapPin, ListOrdered } from 'lucide-react';
+import { Smile, Calendar, MapPin, ListOrdered } from 'lucide-react';
 import CustomToaster from '../components/ui/CustomToaster';
 import LoadingBar from '../components/ui/CustomLoadBar';
 import FileUpload from '../utils/FileUpload';
@@ -209,7 +209,6 @@ const NewPostPage = () => {
                 <div className="flex flex-row w-full h-full items-center justify-between">
                   <div className="flex items-center gap-1">
                     <FileUpload onImagesUploaded={handleImagesUploaded} />
-                    <IconButton icon={ImageIcon} accent="blue" aria-label="Add GIF" disabled />
                     <IconButton icon={ListOrdered} accent="blue" aria-label="Add poll" disabled />
                     <IconButton icon={Smile} accent="blue" aria-label="Add emoji" disabled />
                     <IconButton icon={Calendar} accent="blue" aria-label="Schedule post" disabled />
