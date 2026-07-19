@@ -43,12 +43,15 @@ export async function getPostsPaginated(page: number) {
   }
 }
 
-export async function getComment(postId: string, commentId: string) {
+export async function getComment(
+  postId: string,
+  commentId: string
+): Promise<Comment | null> {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const response = await axios.get(
     `${serverUrl}/api/post/${postId}/comment/${commentId}`
   );
-  return response.data.comment;
+  return (response.data as Comment[])[0] ?? null;
 }
 
 export async function getCommentsPaginated(postId: string, page: number) {
