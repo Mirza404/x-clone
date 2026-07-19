@@ -97,8 +97,6 @@ const EditCommentPage = () => {
       toast.error('Comment cannot be empty');
       return;
     }
-    console.log('Saving comment with content:', content);
-
     editCommentMutation.mutate({ commentId, content });
   };
 

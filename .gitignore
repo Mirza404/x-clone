@@ -5,7 +5,7 @@ coverage/
 .env
 .env.local
 *.log
-.claude/
+.claude/settings.local.json
 Handoff.md
 DELIVERABLE.md
 bugs_reported/

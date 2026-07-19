@@ -10,7 +10,7 @@ config();
 
 async function connectToMongo() {
   await connectToDatabase();
-  console.log('Database connection established');
+  console.info('Database connection established');
 }
 
 app.use(cors());
