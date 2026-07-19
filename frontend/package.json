@@ -62,7 +62,12 @@
   },
   "overrides": {
     "next-auth": {
-      "next": "$next"
-    }
+      "next": "$next",
+      "cookie": "^0.7.2",
+      "@auth/core": {
+        "cookie": "^0.7.2"
+      }
+    },
+    "uuid": "^11.1.1"
   }
 }
