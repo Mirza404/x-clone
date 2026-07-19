@@ -14,11 +14,13 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import ProfileTab from './ProfileTab';
 import ThemeToggle from './ThemeToggle';
+import { usePostModal } from '@/app/utils/PostModalProvider';
 
 interface NavLinkItem {
   href: string;
@@ -65,6 +67,17 @@ function NavItem({
 
 export default function NavMenu() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { openPostModal } = usePostModal();
+
+  const handlePostClick = () => {
+    if (!session) {
+      router.push('/api/auth/signin');
+      return;
+    }
+    openPostModal();
+  };
 
   return (
     <div className="sticky top-0 flex h-screen flex-col justify-between py-1">
@@ -121,12 +134,13 @@ export default function NavMenu() {
           </li>
         </ul>
 
-        <Link
-          href="/newPost"
-          className="mt-4 flex h-[52px] w-full items-center justify-center rounded-full bg-primary text-[17px] font-bold text-white transition-colors hover:bg-primary-hover"
+        <button
+          type="button"
+          onClick={handlePostClick}
+          className="mx-3 mt-4 flex h-[52px] items-center justify-center rounded-full bg-primary text-[17px] font-bold text-white transition-colors hover:bg-primary-hover"
         >
           Post
-        </Link>
+        </button>
       </nav>
 
       <div className="mb-2">
