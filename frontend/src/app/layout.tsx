@@ -13,6 +13,7 @@ import MobileNavBar from './components/mobile/MobileNavBar';
 import MobileTabs from './components/mobile/MobileTabs';
 import ThemeProvider from './utils/ThemeProvider';
 import FloatingActions from './components/ui/FloatingActions';
+import PostModalProvider from './utils/PostModalProvider';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -51,6 +52,7 @@ export default async function RootLayout({
         <ThemeProvider>
         <QueryProvider>
           <SessionProvider>
+          <PostModalProvider>
             {/* Mobile Header - Only visible on mobile */}
             <MobileHeader />
 
@@ -86,6 +88,7 @@ export default async function RootLayout({
 
             {/* Floating action buttons - desktop only */}
             <FloatingActions />
+          </PostModalProvider>
           </SessionProvider>
         </QueryProvider>
         </ThemeProvider>
