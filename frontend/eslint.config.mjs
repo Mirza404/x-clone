@@ -12,6 +12,8 @@ const eslintConfig = [
   {
     rules: {
       '@next/next/no-img-element': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
+      'no-console': ['error', { allow: ['info', 'warn', 'error'] }],
     },
   },
 ];
