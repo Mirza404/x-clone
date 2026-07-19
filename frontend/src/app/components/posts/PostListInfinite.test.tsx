@@ -66,7 +66,7 @@ describe('PostListInfinite', () => {
     jest.clearAllMocks();
   });
 
-  it('shows a loading indicator while posts are loading', () => {
+  it('shows skeleton rows while posts are loading', () => {
     mockMutations({
       postsQuery: { isLoading: true },
       infinite: { status: 'pending' },
@@ -74,10 +74,10 @@ describe('PostListInfinite', () => {
 
     render(<PostListInfinite />);
 
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getAllByTestId('post-skeleton')).toHaveLength(5);
   });
 
-  it('shows an error message when the posts query fails', () => {
+  it('shows an error message and retry button when the posts query fails', () => {
     mockMutations({
       postsQuery: { isError: true },
       infinite: { status: 'error' },
@@ -85,7 +85,8 @@ describe('PostListInfinite', () => {
 
     render(<PostListInfinite />);
 
-    expect(screen.getByText('Error happened')).toBeInTheDocument();
+    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
   it('renders each post returned by the infinite query', () => {
@@ -131,18 +132,28 @@ describe('PostListInfinite', () => {
   });
 
   it('shows "Nothing more to load" once there is no next page', () => {
-    mockMutations({ infinite: { hasNextPage: false } });
+    mockMutations({
+      infinite: {
+        hasNextPage: false,
+        data: { pages: [{ posts: [{ id: 'post-1', content: 'First post' }] }] },
+      },
+    });
 
     render(<PostListInfinite />);
 
     expect(screen.getByText('Nothing more to load.')).toBeInTheDocument();
   });
 
-  it('shows "Load More" when another page is available', () => {
-    mockMutations({ infinite: { hasNextPage: true } });
+  it('renders no sentinel text while another page is available', () => {
+    mockMutations({
+      infinite: {
+        hasNextPage: true,
+        data: { pages: [{ posts: [{ id: 'post-1', content: 'First post' }] }] },
+      },
+    });
 
     render(<PostListInfinite />);
 
-    expect(screen.getByText('Load More')).toBeInTheDocument();
+    expect(screen.queryByText('Nothing more to load.')).not.toBeInTheDocument();
   });
 });

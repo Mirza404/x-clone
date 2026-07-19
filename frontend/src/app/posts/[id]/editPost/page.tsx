@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { use, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -11,8 +11,8 @@ import FileUpload from '@/app/utils/FileUpload';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 import { getApiErrorMessage } from '@/app/utils/apiError';
 
-const EditPostPage = ({ params }: { params: { id: string } }) => {
-  const id = params.id;
+const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = use(params);
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState('');

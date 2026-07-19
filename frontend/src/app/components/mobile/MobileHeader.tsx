@@ -1,25 +1,45 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+
+const ROUTE_LABELS: Record<string, string> = {
+  '/posts': 'Home',
+  '/explore': 'Explore',
+  '/notifications': 'Notifications',
+  '/messages': 'Messages',
+  '/bookmarks': 'Bookmarks',
+  '/jobs': 'Jobs',
+  '/communities': 'Communities',
+  '/premium': 'Premium',
+  '/verifiedorgs': 'Verified Orgs',
+  '/profile': 'Profile',
+};
 
 export default function MobileHeader() {
   const { data: session } = useSession();
+  const pathname = usePathname();
+  const label = ROUTE_LABELS[pathname];
+
+  if (!label) {
+    return null;
+  }
 
   return (
-    <div className="sticky top-0 z-40 bg-black bg-opacity-80 backdrop-blur-sm border-b border-gray-800 md:hidden">
-      <div className="flex justify-between items-center h-14 px-4">
+    <div className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur-sm md:hidden">
+      <div className="flex h-14 items-center justify-between px-4">
         {/* Left side - Profile image or back button */}
         <div className="flex items-center">
           {session?.user?.image && (
             <img
               src={session.user.image || '/placeholder.svg'}
               alt="Profile"
-              className="w-8 h-8 rounded-full"
+              className="h-8 w-8 rounded-full"
               referrerPolicy="no-referrer"
             />
           )}
-          <div className="flex items-center justify-center font-bold ml-2 ">
-            Home
+          <div className="ml-2 flex items-center justify-center text-lg font-bold text-content">
+            {label}
           </div>
         </div>
       </div>

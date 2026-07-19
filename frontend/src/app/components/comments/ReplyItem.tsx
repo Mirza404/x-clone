@@ -5,9 +5,13 @@ import { useSession } from 'next-auth/react';
 import { useState, useMemo } from 'react';
 import Dropdown from '../posts/DropDownMenu';
 import LikeButton from '../ui/LikeButton';
+import Avatar from '../ui/Avatar';
 import { useParams } from 'next/navigation';
 import { universalHandleClick } from '@/app/utils/handleClick';
+import { toHandle } from '@/app/utils/handle';
+import { relativeTime } from '@/app/utils/relativeTime';
 import { usePathname, useRouter } from 'next/navigation';
+import { MoreHorizontal } from 'lucide-react';
 
 const ReplyItem = ({
   reply,
@@ -31,50 +35,47 @@ const ReplyItem = ({
     [pathname, postId, reply.id]
   );
 
+  const handle = toHandle(reply.name);
+
   return (
     <div
-      className="relative flex flex-row p-3 pl-4 m-0 w-full min-h-[70px] overflow-visible post-hover cursor-pointer"
+      className="post-hover relative flex w-full min-h-[70px] cursor-pointer flex-row gap-3 p-3 pl-4"
       onClick={
         !isCurrentPage
           ? (e) => universalHandleClick(e, router, 'comment', postId, reply.id)
           : undefined
       }
     >
-      <img
-        className="flex items-stretch w-10 h-10 rounded-full mr-3"
-        src={reply?.authorImage ?? '/Logo.png'}
-        referrerPolicy="no-referrer"
+      <Avatar
+        src={reply?.authorImage}
         alt={`${reply.name}'s profile`}
+        size="sm"
       />
-      <div className="flex flex-col flex-1">
-        <div className="flex items-center mb-0 text-gray-400">
-          <span className="font-bold text-white text-sm">{reply.name}</span>
-          <span className="mx-1">·</span>
-          <span>
-            {new Date(reply.createdAt).toLocaleDateString(undefined, {
-              month: 'long',
-              day: 'numeric',
-            })}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 items-center gap-1 text-[15px] text-muted">
+          <span className="font-bold text-content hover:underline">
+            {reply.name}
           </span>
+          {handle && <span className="truncate">{handle}</span>}
+          <span aria-hidden="true">·</span>
+          <span className="flex-shrink-0">{relativeTime(reply.createdAt)}</span>
         </div>
-        <div className="bg-transparent text-sm">
-          {reply.content ? (
-            <div className="text-white break-all whitespace-pre-wrap">
-              {showMore ? reply.content : `${reply.content.substring(0, 200)}`}
-              {reply.content.length > 200 && (
-                <button
-                  onClick={() => setShowMore(!showMore)}
-                  className="ml-1 font-bold text-gray-400 interactive-element hover:text-gray-300 hover:underline"
-                >
-                  {showMore ? 'Show less' : 'Read more'}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="text-gray-500 italic">No content</div>
-          )}
-        </div>
-        <div className="flex items-center gap-3 mt-2 like-button">
+        {reply.content ? (
+          <div className="text-[15px] leading-5 text-content break-words whitespace-pre-wrap">
+            {showMore ? reply.content : `${reply.content.substring(0, 200)}`}
+            {reply.content.length > 200 && (
+              <button
+                onClick={() => setShowMore(!showMore)}
+                className="interactive-element ml-1 font-bold text-primary hover:underline"
+              >
+                {showMore ? 'Show less' : 'Show more'}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="text-[15px] italic text-muted">No content</div>
+        )}
+        <div className="like-button mt-2 flex items-center gap-3">
           <LikeButton
             type="comment"
             targetId={reply.id}
@@ -83,22 +84,13 @@ const ReplyItem = ({
           />
         </div>
       </div>
-      <div className="absolute top-2 right-2 mr-2 interactive-element">
+      <div className="interactive-element absolute right-2 top-2">
         <button
-          className="p-1 rounded-full hover:bg-[#1D9BF0] hover:bg-opacity-20 transition-colors"
+          className="rounded-full p-1.5 text-muted transition-colors hover:bg-primary-bg hover:text-primary"
           onClick={() => setDropdownOpen(!dropdownOpen)}
+          aria-label="More options"
         >
-          <svg
-            fill="#9ca3af"
-            height="12px"
-            width="12px"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 16 16"
-            stroke="#9ca3af"
-            strokeWidth="0.848"
-          >
-            <path d="M8,6.5A1.5,1.5,0,1,1,6.5,8,1.5,1.5,0,0,1,8,6.5ZM.5,8A1.5,1.5,0,1,0,2,6.5,1.5,1.5,0,0,0,.5,8Zm12,0A1.5,1.5,0,1,0,14,6.5,1.5,1.5,0,0,0,12.5,8Z"></path>
-          </svg>
+          <MoreHorizontal className="h-4 w-4" />
         </button>
         {dropdownOpen && session?.user?.id === reply.author && (
           <div className="dropdown-menu">

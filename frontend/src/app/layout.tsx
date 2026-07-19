@@ -11,6 +11,9 @@ import MobilePostButton from './components/mobile/MobilePostButton';
 import MobileHeader from './components/mobile/MobileHeader';
 import MobileNavBar from './components/mobile/MobileNavBar';
 import MobileTabs from './components/mobile/MobileTabs';
+import ThemeProvider from './utils/ThemeProvider';
+import FloatingActions from './components/ui/FloatingActions';
+import PostModalProvider from './utils/PostModalProvider';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -34,49 +37,61 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.classList.toggle('dark',t==='dark');}catch(e){}})();`,
+          }}
+        />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <QueryProvider>
-          <SessionProvider>
-            {/* Mobile Header - Only visible on mobile */}
-            <MobileHeader />
+        <ThemeProvider>
+          <QueryProvider>
+            <SessionProvider>
+              <PostModalProvider>
+                {/* Mobile Header - Only visible on mobile */}
+                <MobileHeader />
 
-            <div className="flex justify-center min-h-screen pb-14 md:pb-0">
-              {/* Main content layout */}
-              <div className="flex w-full max-w-[1265px] mx-auto">
-                {/* Left navigation - Hidden on mobile */}
-                <div className="hidden md:block w-[275px] flex-shrink-0">
-                  <NavMenu />
+                <div className="flex justify-center min-h-screen pb-14 md:pb-0">
+                  {/* Main content layout */}
+                  <div className="flex w-full max-w-[1265px] mx-auto">
+                    {/* Left navigation - Hidden on mobile */}
+                    <div className="hidden md:block w-[275px] flex-shrink-0">
+                      <NavMenu />
+                    </div>
+
+                    {/* Center content */}
+                    <main className="w-full md:w-[600px] min-h-screen border-x border-border">
+                      {/* Mobile Tabs - Only visible on mobile */}
+                      <MobileTabs />
+
+                      {children}
+                      {/* Page Content */}
+
+                      {/* Mobile Post Button - Only visible on mobile */}
+                      <MobilePostButton />
+                    </main>
+
+                    {/* Right sidebar - Hidden on mobile */}
+                    <div className="hidden md:block w-[350px] ml-2">
+                      <SideBar />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Center content */}
-                <main className="w-full md:w-[598px] min-h-screen">
-                  {/* Mobile Tabs - Only visible on mobile */}
-                  <MobileTabs />
+                {/* Mobile Navigation Bar - Only visible on mobile */}
+                <MobileNavBar />
 
-                  {children}
-                  {/* Page Content */}
-
-                  {/* Mobile Post Button - Only visible on mobile */}
-                  <MobilePostButton />
-                </main>
-
-                {/* Right sidebar - Hidden on mobile */}
-                <div className="hidden md:block w-[350px] ml-2">
-                  <SideBar />
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Navigation Bar - Only visible on mobile */}
-            <MobileNavBar />
-          </SessionProvider>
-        </QueryProvider>
+                {/* Floating action buttons - desktop only */}
+                <FloatingActions />
+              </PostModalProvider>
+            </SessionProvider>
+          </QueryProvider>
+        </ThemeProvider>
         <CustomToaster />
       </body>
     </html>

@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { useCommentMutations } from '../../utils/commentMutations';
 import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import Avatar from '../ui/Avatar';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 
 interface ReplyProps {
@@ -56,16 +57,15 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
 
   return (
     <div>
-      <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm px-4 pt-2 border-t  border-gray-700 shadow-lg">
-        <div className="pt-2 min-w-[32px] w-[32px] flex-shrink-0 mr-5">
-          <img
-            className="flex items-stretch min-w-10 h-10 rounded-full "
-            src={session?.user?.image ?? '/Logo.png'}
-            referrerPolicy="no-referrer"
+      <div className="flex flex-row border-t border-border px-4 pt-2">
+        <div className="mr-5 w-8 min-w-[32px] flex-shrink-0 pt-2">
+          <Avatar
+            src={session?.user?.image}
             alt={session?.user?.name ?? 'Profile'}
+            size="md"
           />
         </div>
-        <div className="flex flex-col py-3 flex-1 min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col py-3">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -77,7 +77,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
           >
             <textarea
               ref={textareaRef}
-              className="w-full h-7 py-0.5 ml-1 text-white bg-black rounded-lg focus:outline-none text-sm overflow-hidden resize-none"
+              className="ml-1 h-7 w-full resize-none overflow-hidden bg-transparent py-0.5 text-[15px] text-content placeholder-muted focus:outline-none"
               onKeyDown={useEnterSubmit({
                 loading,
                 content,
@@ -105,16 +105,16 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
               disabled={loading}
             />
 
-            <div className="w-full h-[40px] py-0.5 mt-1.5">
-              <div className="flex flex-row w-full h-full items-center justify-between">
+            <div className="mt-1.5 h-[40px] w-full py-0.5">
+              <div className="flex h-full w-full flex-row items-center justify-between">
                 <div className="flex gap-2">
                   <button
                     className={classNames(
-                      'flex justify-center items-center text-center text-sm rounded-full px-3 h-8 font-bold transition duration-300',
+                      'flex h-8 items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
                       {
-                        'bg-white text-black hover:bg-gray-300':
+                        'bg-primary text-white hover:bg-primary-hover':
                           !loading && content.trim() !== '',
-                        'bg-white text-black opacity-70 cursor-not-allowed':
+                        'cursor-not-allowed bg-primary text-white opacity-50':
                           loading || content.trim() === '',
                       }
                     )}
@@ -125,7 +125,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
                   </button>
                 </div>
                 <p
-                  className={`text-xs text-right mt-1 ${content.length > 380 ? 'text-red-500' : 'text-gray-400'}`}
+                  className={`mt-1 text-right text-xs ${content.length > 380 ? 'text-like' : 'text-muted'}`}
                 >
                   {content.length}/380
                 </p>

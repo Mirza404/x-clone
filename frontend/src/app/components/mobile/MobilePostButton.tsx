@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Plus } from 'lucide-react';
 import MobileNewPost from './MobileNewPost';
 
 export default function MobilePostButton() {
@@ -23,23 +24,10 @@ export default function MobilePostButton() {
       {/* Only show on mobile devices */}
       <button
         onClick={handleClick}
-        className="fixed right-4 bottom-20 md:hidden bg-[#1d9bf0] text-white rounded-full p-3 shadow-lg z-40"
+        className="fixed bottom-20 right-4 z-40 rounded-full bg-primary p-4 text-white shadow-lg transition-colors hover:bg-primary-hover md:hidden"
         aria-label="Create new post"
       >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-          />
-        </svg>
+        <Plus className="h-6 w-6" strokeWidth={2.5} />
       </button>
 
       {showNewPost && <MobileNewPost onClose={() => setShowNewPost(false)} />}
