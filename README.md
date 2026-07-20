@@ -12,6 +12,7 @@ Getting started (dev)
 1. Copy env files:
    - Backend: copy [backend/.env.example](backend/.env.example) -> `backend/.env` and set your Atlas URL and secrets.
    - Frontend: copy [frontend/.env.example](frontend/.env.example) -> `frontend/.env`.
+   - Both apps need the same `BACKEND_JWT_SECRET` value — generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and paste it into both `backend/.env` and `frontend/.env`. Next.js uses it to mint short-lived tokens from the NextAuth session; Express uses it to verify them.
 2. Start backend:
    - `cd backend`
    - `npm install`
