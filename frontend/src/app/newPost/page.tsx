@@ -224,9 +224,9 @@ const NewPostPage = () => {
                     className={classNames(
                       'flex justify-center items-center text-center rounded-full px-4 h-9 text-[15px] font-bold transition duration-300',
                       {
-                        'bg-primary text-white hover:bg-primary-hover':
+                        'bg-btn text-btn-fg hover:bg-btn-hover':
                           !loading && content.trim() !== '',
-                        'bg-primary text-white opacity-50 cursor-not-allowed':
+                        'bg-btn text-btn-fg opacity-50 cursor-not-allowed':
                           loading || content.trim() === '',
                       }
                     )}

@@ -138,8 +138,8 @@ export default function NewPostModal({ onClose }: { onClose: () => void }) {
           <button
             className={`flex items-center justify-center rounded-full px-4 py-1.5 text-center text-[15px] font-bold transition duration-300 ${
               !loading && content.trim() !== ''
-                ? 'bg-primary text-white hover:bg-primary-hover'
-                : 'cursor-not-allowed bg-primary text-white opacity-50'
+                ? 'bg-btn text-btn-fg hover:bg-btn-hover'
+                : 'cursor-not-allowed bg-btn text-btn-fg opacity-50'
             }`}
             onClick={() => newPostMutation.mutate()}
             disabled={loading || content.trim() === ''}

@@ -103,9 +103,9 @@ const NewComment = () => {
                     className={classNames(
                       'flex h-8 items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
                       {
-                        'bg-primary text-white hover:bg-primary-hover':
+                        'bg-btn text-btn-fg hover:bg-btn-hover':
                           !loading && content.trim() !== '',
-                        'cursor-not-allowed bg-primary text-white opacity-50':
+                        'cursor-not-allowed bg-btn text-btn-fg opacity-50':
                           loading || content.trim() === '',
                       }
                     )}
