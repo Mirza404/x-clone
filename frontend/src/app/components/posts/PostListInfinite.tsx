@@ -1,17 +1,23 @@
 'use client';
 
-import { Fragment, useEffect } from 'react';
+import { useEffect } from 'react';
 import type { Post } from '../../types/Post';
 import { useInView } from 'react-intersection-observer';
+import { useSession } from 'next-auth/react';
 import PostItem from './PostItem';
 import { usePostMutations } from '@/app/utils/postMutations';
 import LoadCircle from '../ui/LoadCircle';
 import PostSkeleton from '../ui/PostSkeleton';
 import EmptyState from '../ui/EmptyState';
 import Button from '../ui/Button';
+import AuthWall from '../ui/AuthWall';
+
+const GUEST_POST_LIMIT = 6;
 
 function PostListInfinite() {
   const { ref, inView } = useInView();
+  const { status: sessionStatus } = useSession();
+  const isGuest = sessionStatus === 'unauthenticated';
   const { useFetchPosts, useFetchInfinitePosts, useDeletePost } =
     usePostMutations();
   const postsQuery = useFetchPosts();
@@ -25,11 +31,18 @@ function PostListInfinite() {
     refetch,
   } = useFetchInfinitePosts();
 
+  const allPosts: Post[] =
+    data?.pages?.flatMap((group) => group?.posts ?? []) ?? [];
+  const isWalled = isGuest && allPosts.length >= GUEST_POST_LIMIT;
+  const visiblePosts = isWalled
+    ? allPosts.slice(0, GUEST_POST_LIMIT)
+    : allPosts;
+
   useEffect(() => {
-    if (inView) {
+    if (inView && !isWalled) {
       fetchNextPage();
     }
-  }, [fetchNextPage, inView]);
+  }, [fetchNextPage, inView, isWalled]);
 
   if (postsQuery.isLoading || status === 'pending') {
     return (
@@ -52,12 +65,7 @@ function PostListInfinite() {
     );
   }
 
-  const totalPosts = data?.pages?.reduce(
-    (sum, group) => sum + (group?.posts?.length ?? 0),
-    0
-  );
-
-  if (totalPosts === 0) {
+  if (allPosts.length === 0) {
     return (
       <EmptyState
         title="Welcome to X Clone"
@@ -68,28 +76,28 @@ function PostListInfinite() {
 
   return (
     <div className="w-full">
-      {data?.pages?.map((group, i) => (
-        <Fragment key={i}>
-          {group?.posts?.map((post: Post) => (
-            <div key={post.id} className="relative">
-              <PostItem
-                post={post}
-                onDelete={() => deletePostMutation.mutate(post.id)}
-              />
-            </div>
-          ))}
-        </Fragment>
+      {visiblePosts.map((post: Post) => (
+        <div key={post.id} className="relative">
+          <PostItem
+            post={post}
+            onDelete={() => deletePostMutation.mutate(post.id)}
+          />
+        </div>
       ))}
-      <div
-        ref={ref}
-        className="flex justify-center border-b border-border py-6"
-      >
-        {isFetchingNextPage ? (
-          <LoadCircle />
-        ) : hasNextPage ? null : (
-          <span className="text-muted">Nothing more to load.</span>
-        )}
-      </div>
+      {isWalled ? (
+        <AuthWall />
+      ) : (
+        <div
+          ref={ref}
+          className="flex justify-center border-b border-border py-6"
+        >
+          {isFetchingNextPage ? (
+            <LoadCircle />
+          ) : hasNextPage ? null : (
+            <span className="text-muted">Nothing more to load.</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
