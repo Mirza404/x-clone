@@ -1,5 +1,4 @@
 'use client';
-import axios from 'axios';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -16,17 +15,16 @@ import Avatar from '../components/ui/Avatar';
 import classNames from 'classnames';
 import { uploadImages } from '../utils/imageUtils';
 import { useEnterSubmit } from '../utils/formSubmit';
+import api from '../utils/apiClient';
 
 const NewPostPage = () => {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const queryClient = useQueryClient();
   const router = useRouter();
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -37,9 +35,6 @@ const NewPostPage = () => {
         setSignedIn(false);
         setLoading(false);
       } else {
-        if (session.user.email) {
-          setEmail(session.user.email);
-        }
         setSignedIn(true);
         setLoading(false);
       }
@@ -72,19 +67,10 @@ const NewPostPage = () => {
 
       // Then create post
       setProgress(50); // Start second 50% for post creation
-      const response = await axios.post(
-        `${serverUrl}/api/post/new`,
-        {
-          content,
-          email,
-          images: uploadedUrls,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await api.post('/api/post/new', {
+        content,
+        images: uploadedUrls,
+      });
       setProgress(100);
       return response;
     },

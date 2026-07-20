@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { Request, Response } from 'express';
-import { getUserIdByEmail, getUserNameByID } from './user-controller';
+import type {} from '../types/express';
+import { getUserNameByID } from './user-controller';
 import { hasObjectId, toObjectId } from '../utils/object-id';
 import { getUsersCollection } from '../db/connection';
 
@@ -158,17 +159,11 @@ async function getPost(req: Request, res: Response): Promise<void> {
 
 async function createPost(req: Request, res: Response): Promise<void> {
   try {
-    const { content, email, images } = req.body; // Accept images array
-
-    if (!email) {
-      res.status(400).json({ message: 'Email is required' });
-      return;
-    }
-
-    const author = await getUserIdByEmail(email);
+    const { content, images } = req.body; // Accept images array
+    const author = req.userId;
 
     if (!author) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(401).json({ message: 'Authentication required' });
       return;
     }
 

@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import { X, Info } from 'lucide-react';
 import { uploadImages } from '../../utils/imageUtils';
 import FileUpload from '../../utils/FileUpload';
 import LoadingBar from '../ui/CustomLoadBar';
 import Avatar from '../ui/Avatar';
+import api from '../../utils/apiClient';
 
 export default function NewPostModal({ onClose }: { onClose: () => void }) {
   const [content, setContent] = useState('');
@@ -19,7 +19,6 @@ export default function NewPostModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -49,19 +48,10 @@ export default function NewPostModal({ onClose }: { onClose: () => void }) {
       const uploadedUrls = await uploadImages(selectedFiles);
 
       setProgress(50);
-      const response = await axios.post(
-        `${serverUrl}/api/post/new`,
-        {
-          content,
-          email: session?.user?.email,
-          images: uploadedUrls,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await api.post('/api/post/new', {
+        content,
+        images: uploadedUrls,
+      });
       setProgress(100);
       return response;
     },
