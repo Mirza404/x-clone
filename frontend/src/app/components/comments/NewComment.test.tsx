@@ -1,10 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../../utils/apiClient';
 import { useSession } from 'next-auth/react';
 import NewComment from './NewComment';
 
-jest.mock('axios');
+jest.mock('../../utils/apiClient', () => ({
+  __esModule: true,
+  default: { post: jest.fn() },
+}));
 jest.mock('next/navigation', () => ({
   useParams: () => ({ id: 'post-1' }),
 }));
@@ -12,7 +15,7 @@ jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
 }));
 
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+const mockedApi = api as jest.Mocked<typeof api>;
 const mockedUseSession = useSession as jest.Mock;
 
 function renderWithClient(ui: React.ReactElement) {
@@ -52,8 +55,8 @@ describe('NewComment composer', () => {
     expect(screen.getByRole('button', { name: 'Post' })).toBeEnabled();
   });
 
-  it('submits the comment with the post id and signed-in email', async () => {
-    mockedAxios.post.mockResolvedValueOnce({ data: {} });
+  it('submits the comment with the post id', async () => {
+    mockedApi.post.mockResolvedValueOnce({ data: {} });
 
     renderWithClient(<NewComment />);
     fireEvent.error(screen.getByAltText('Ada'));
@@ -63,19 +66,18 @@ describe('NewComment composer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Post' }));
 
     await waitFor(() =>
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockedApi.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/post/post-1/comment/new'),
         {
           parentCommentId: undefined,
           content: 'Hello world',
-          email: 'ada@example.com',
         }
       )
     );
   });
 
   it('clears the textarea after a successful submit', async () => {
-    mockedAxios.post.mockResolvedValueOnce({ data: {} });
+    mockedApi.post.mockResolvedValueOnce({ data: {} });
 
     renderWithClient(<NewComment />);
     fireEvent.error(screen.getByAltText('Ada'));

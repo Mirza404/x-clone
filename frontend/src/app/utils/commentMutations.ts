@@ -1,19 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import api from './apiClient';
 import toast from 'react-hot-toast';
 import { useParams } from 'next/navigation';
 import { getApiErrorMessage } from './apiError';
 
 export function useCommentMutations() {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const postId = useParams().id as string;
   const parentCommentId = useParams().commentId as string;
   const queryClient = useQueryClient();
 
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      const response = await axios.patch(
-        `${serverUrl}/api/post/${postId}/comment/delete/${commentId}`
+      const response = await api.patch(
+        `/api/post/${postId}/comment/delete/${commentId}`
       );
       return response.data;
     },
@@ -33,21 +32,15 @@ export function useCommentMutations() {
       postId,
       parentCommentId,
       content,
-      email,
     }: {
       postId: string;
       parentCommentId?: string | null;
       content: string;
-      email: string;
     }) => {
-      const response = await axios.post(
-        `${serverUrl}/api/post/${postId}/comment/new`,
-        {
-          parentCommentId,
-          content,
-          email,
-        }
-      );
+      const response = await api.post(`/api/post/${postId}/comment/new`, {
+        parentCommentId,
+        content,
+      });
       return response.data;
     },
     onSuccess: () => {
@@ -66,21 +59,15 @@ export function useCommentMutations() {
       postId,
       parentCommentId,
       content,
-      email,
     }: {
       postId: string;
       parentCommentId: string;
       content: string;
-      email: string;
     }) => {
-      const response = await axios.post(
-        `${serverUrl}/api/post/${postId}/comment/new`,
-        {
-          parentCommentId,
-          content,
-          email,
-        }
-      );
+      const response = await api.post(`/api/post/${postId}/comment/new`, {
+        parentCommentId,
+        content,
+      });
       return response.data;
     },
     onSuccess: () => {
@@ -96,8 +83,8 @@ export function useCommentMutations() {
 
   const deleteReplyMutation = useMutation({
     mutationFn: async (replyId: string) => {
-      const response = await axios.patch(
-        `${serverUrl}/api/post/${postId}/comment/delete/${replyId}`
+      const response = await api.patch(
+        `/api/post/${postId}/comment/delete/${replyId}`
       );
       return response.data;
     },

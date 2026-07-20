@@ -56,8 +56,13 @@ function createResponse(): MockResponse {
 function createRequest(options: {
   params?: Record<string, unknown>;
   body?: Record<string, unknown>;
+  userId?: string;
 }): Request {
-  return { params: options.params ?? {}, body: options.body ?? {} } as Request;
+  return {
+    params: options.params ?? {},
+    body: options.body ?? {},
+    userId: options.userId,
+  } as Request;
 }
 
 afterEach(() => {
@@ -108,11 +113,13 @@ test('deleteComment removes a top-level comment and its replies, and unlinks it 
   const postId = new mongoose.Types.ObjectId();
   const commentId = new mongoose.Types.ObjectId();
   const replyId = new mongoose.Types.ObjectId();
+  const authorId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
 
   (Comment as unknown as { findById: unknown }).findById = async () => ({
     _id: commentId,
     postId,
+    author: authorId,
     parentComment: null,
     replies: [replyId],
   });
@@ -129,7 +136,10 @@ test('deleteComment removes a top-level comment and its replies, and unlinks it 
   const response = createResponse();
 
   await deleteComment(
-    createRequest({ params: { commentId: commentId.toString() } }),
+    createRequest({
+      params: { commentId: commentId.toString() },
+      userId: authorId.toString(),
+    }),
     response
   );
 
@@ -145,11 +155,13 @@ test('deleteComment removes a reply and pulls it from its parent instead of the 
   setReadyState(1);
   const parentCommentId = new mongoose.Types.ObjectId();
   const commentId = new mongoose.Types.ObjectId();
+  const authorId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
 
   (Comment as unknown as { findById: unknown }).findById = async () => ({
     _id: commentId,
     postId: new mongoose.Types.ObjectId(),
+    author: authorId,
     parentComment: parentCommentId,
     replies: [],
   });
@@ -166,7 +178,10 @@ test('deleteComment removes a reply and pulls it from its parent instead of the 
   const response = createResponse();
 
   await deleteComment(
-    createRequest({ params: { commentId: commentId.toString() } }),
+    createRequest({
+      params: { commentId: commentId.toString() },
+      userId: authorId.toString(),
+    }),
     response
   );
 
@@ -179,6 +194,38 @@ test('deleteComment removes a reply and pulls it from its parent instead of the 
     ['Comment.deleteMany', { _id: { $in: [commentId] } }],
   ]);
   assert.equal(response.statusCode, 200);
+});
+
+test('deleteComment returns 403 when the caller does not own the comment', async () => {
+  setReadyState(1);
+  const commentId = new mongoose.Types.ObjectId();
+  const authorId = new mongoose.Types.ObjectId();
+  const otherUserId = new mongoose.Types.ObjectId().toString();
+  let deleteManyCalled = false;
+
+  (Comment as unknown as { findById: unknown }).findById = async () => ({
+    _id: commentId,
+    postId: new mongoose.Types.ObjectId(),
+    author: authorId,
+    parentComment: null,
+    replies: [],
+  });
+  (Comment as unknown as { deleteMany: unknown }).deleteMany = async () => {
+    deleteManyCalled = true;
+  };
+
+  const response = createResponse();
+
+  await deleteComment(
+    createRequest({
+      params: { commentId: commentId.toString() },
+      userId: otherUserId,
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(deleteManyCalled, false);
 });
 
 test('toggleLike adds the author when a string authorId matches an ObjectId already stored in likes', async () => {
@@ -197,10 +244,11 @@ test('toggleLike adds the author when a string authorId matches an ObjectId alre
 
   const response = createResponse();
 
-  // authorId arrives from the client as a string, likes are stored as ObjectIds.
+  // req.userId arrives as a string from the verified token, likes are stored as ObjectIds.
   await toggleLike(
     createRequest({
-      body: { id: commentId.toString(), authorId: authorObjectId.toString() },
+      body: { id: commentId.toString() },
+      userId: authorObjectId.toString(),
     }),
     response
   );
@@ -227,7 +275,7 @@ test('toggleLike likes the comment when the author has not liked it yet', async 
   const response = createResponse();
 
   await toggleLike(
-    createRequest({ body: { id: commentId.toString(), authorId } }),
+    createRequest({ body: { id: commentId.toString() }, userId: authorId }),
     response
   );
 

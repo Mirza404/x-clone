@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { Request, Response } from 'express';
-import { getUserIdByEmail, getUserNameByID } from './user-controller';
+import type {} from '../types/express';
+import { getUserNameByID } from './user-controller';
 import { LeanComment } from 'src/types/LeanComment';
 import { hasObjectId, toObjectId } from '../utils/object-id';
 import { collectCommentThreadIds } from '../utils/comment-tree';
@@ -302,18 +303,13 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
 async function createComment(req: Request, res: Response): Promise<void> {
   try {
     const { postId } = req.params;
-    const { content, email, parentCommentId } = req.body;
+    const { content, parentCommentId } = req.body;
+    const author = req.userId;
 
-    if (!postId || !content || !email) {
+    if (!postId || !content || !author) {
       res
         .status(400)
-        .json({ message: 'Post ID, content, and email are required' });
-      return;
-    }
-
-    const author = await getUserIdByEmail(email);
-    if (!author) {
-      res.status(404).json({ message: 'User not found' });
+        .json({ message: 'Post ID and content are required' });
       return;
     }
 
@@ -373,6 +369,13 @@ async function deleteComment(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    if (comment.author.toString() !== req.userId) {
+      res
+        .status(403)
+        .json({ message: 'You can only modify your own comments' });
+      return;
+    }
+
     const commentIdsToDelete = collectCommentThreadIds(comment);
 
     if (comment.parentComment) {
@@ -406,6 +409,22 @@ async function updateComment(req: Request, res: Response): Promise<void> {
       res.status(500).json({ message: 'Database not connected' });
       return;
     }
+
+    const existingComment = await Comment.findById(commentId).select(
+      'author'
+    );
+    if (!existingComment) {
+      res.status(404).json({ message: 'Comment not found' });
+      return;
+    }
+
+    if (existingComment.author.toString() !== req.userId) {
+      res
+        .status(403)
+        .json({ message: 'You can only modify your own comments' });
+      return;
+    }
+
     const updatedComment = await Comment.findByIdAndUpdate(
       commentId,
       { content, updatedAt: new Date() },
@@ -458,12 +477,11 @@ async function getLikes(req: Request, res: Response): Promise<void> {
 
 async function toggleLike(req: Request, res: Response): Promise<void> {
   try {
-    const { id, authorId } = req.body;
+    const { id } = req.body;
+    const authorId = req.userId;
 
     if (!id || !authorId) {
-      res
-        .status(400)
-        .json({ message: 'Comment ID and author ID are required' });
+      res.status(400).json({ message: 'Comment ID is required' });
       return;
     }
 

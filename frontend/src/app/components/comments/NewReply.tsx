@@ -13,7 +13,6 @@ interface ReplyProps {
   postId: string;
   parentCommentId: string;
   content: string;
-  email: string;
 }
 
 const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
@@ -21,7 +20,6 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
   const [content, setContent] = useState('');
-  const email = session?.user?.email || '';
   const { newReplyMutation } = useCommentMutations();
   const params = useParams();
   const postId = params.id as string;
@@ -39,7 +37,6 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
           postId: postId, // This will be handled by the mutation hook
           parentCommentId,
           content,
-          email,
         },
         {
           onSuccess: () => {

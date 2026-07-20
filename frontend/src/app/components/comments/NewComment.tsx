@@ -15,7 +15,6 @@ const NewComment = () => {
   const { data: session } = useSession();
   const [content, setContent] = useState('');
   const { id } = useParams<{ id: string }>();
-  const email = session?.user?.email || '';
   const { newCommentMutation } = useCommentMutations();
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
@@ -27,7 +26,7 @@ const NewComment = () => {
     if (content.trim()) {
       setLoading(true);
       newCommentMutation.mutate(
-        { postId: id, content, email },
+        { postId: id, content },
         {
           onSuccess: () => {
             setContent('');
@@ -64,7 +63,7 @@ const NewComment = () => {
                 e.preventDefault();
                 if (loading || content.trim() === '') return;
 
-                newCommentMutation.mutate({ postId: id, content, email });
+                newCommentMutation.mutate({ postId: id, content });
                 setContent('');
               }}
             >
@@ -111,7 +110,7 @@ const NewComment = () => {
                       }
                     )}
                     onClick={() => {
-                      newCommentMutation.mutate({ postId: id, content, email });
+                      newCommentMutation.mutate({ postId: id, content });
                       setContent('');
                     }}
                     disabled={loading || content.trim() === ''}
