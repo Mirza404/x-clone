@@ -53,8 +53,11 @@ function createResponse(): MockResponse {
   return response;
 }
 
-function createRequest(body: Record<string, unknown>): Request {
-  return { body } as Request;
+function createRequest(
+  body: Record<string, unknown>,
+  userId?: string
+): Request {
+  return { body, userId } as Request;
 }
 
 afterEach(() => {
@@ -103,9 +106,10 @@ test('deletePost returns 404 when the post does not exist', async () => {
 test('deletePost deletes comments for the post before deleting the post', async () => {
   setReadyState(1);
   const postId = new mongoose.Types.ObjectId();
+  const authorId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
   (Post as unknown as { findById: unknown }).findById = () => ({
-    select: async () => ({ _id: postId }),
+    select: async () => ({ _id: postId, author: authorId }),
   });
   (Comment as unknown as { deleteMany: unknown }).deleteMany = async (
     query: unknown
@@ -119,7 +123,10 @@ test('deletePost deletes comments for the post before deleting the post', async 
   };
   const response = createResponse();
 
-  await deletePost(createRequest({ id: postId.toString() }), response);
+  await deletePost(
+    createRequest({ id: postId.toString() }, authorId.toString()),
+    response
+  );
 
   assert.deepEqual(calls, [
     ['Comment.deleteMany', { postId }],
@@ -127,6 +134,29 @@ test('deletePost deletes comments for the post before deleting the post', async 
   ]);
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { message: 'Post deleted successfully' });
+});
+
+test('deletePost returns 403 when the caller does not own the post', async () => {
+  setReadyState(1);
+  const postId = new mongoose.Types.ObjectId();
+  const authorId = new mongoose.Types.ObjectId();
+  const otherUserId = new mongoose.Types.ObjectId().toString();
+  let deleteOneCalled = false;
+  (Post as unknown as { findById: unknown }).findById = () => ({
+    select: async () => ({ _id: postId, author: authorId }),
+  });
+  (Post as unknown as { deleteOne: unknown }).deleteOne = async () => {
+    deleteOneCalled = true;
+  };
+  const response = createResponse();
+
+  await deletePost(
+    createRequest({ id: postId.toString() }, otherUserId),
+    response
+  );
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(deleteOneCalled, false);
 });
 
 test('toggleLike unlikes when a string authorId matches an ObjectId already stored in likes', async () => {
@@ -145,12 +175,9 @@ test('toggleLike unlikes when a string authorId matches an ObjectId already stor
 
   const response = createResponse();
 
-  // authorId arrives from the client as a string, likes are stored as ObjectIds.
+  // req.userId arrives as a string from the verified token, likes are stored as ObjectIds.
   await toggleLike(
-    createRequest({
-      id: postId.toString(),
-      authorId: authorObjectId.toString(),
-    }),
+    createRequest({ id: postId.toString() }, authorObjectId.toString()),
     response
   );
 
@@ -175,10 +202,7 @@ test('toggleLike likes the post when the author has not liked it yet', async () 
 
   const response = createResponse();
 
-  await toggleLike(
-    createRequest({ id: postId.toString(), authorId }),
-    response
-  );
+  await toggleLike(createRequest({ id: postId.toString() }, authorId), response);
 
   assert.equal(calls.length, 1);
   assert.deepEqual(response.body, { message: 'Post liked' });

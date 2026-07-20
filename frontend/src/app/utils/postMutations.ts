@@ -4,7 +4,7 @@ import {
   useQueryClient,
   useInfiniteQuery,
 } from '@tanstack/react-query';
-import axios from 'axios';
+import api from './apiClient';
 import { fetchPosts, getPostsPaginated } from './fetchInfo';
 import toast from 'react-hot-toast';
 import { getCommentsPaginated } from './fetchInfo';
@@ -15,7 +15,6 @@ import { getApiErrorMessage } from './apiError';
 export const usePostMutations = () => {
   const pathname = usePathname();
   const postId = useParams().id as string;
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const isCurrentPage = useMemo(
     () => pathname === `/posts/${postId}`,
     [pathname, postId]
@@ -51,7 +50,7 @@ export const usePostMutations = () => {
 
     return useMutation({
       mutationFn: async (id: string) => {
-        const response = await axios.delete(`${serverUrl}/api/post/delete`, {
+        const response = await api.delete('/api/post/delete', {
           data: { id },
         });
         return response.data;
@@ -87,7 +86,7 @@ export const usePostMutations = () => {
         content: string;
         images: string[];
       }) => {
-        const response = await axios.patch(`${serverUrl}/api/post/edit`, {
+        const response = await api.patch('/api/post/edit', {
           id,
           content,
           images,

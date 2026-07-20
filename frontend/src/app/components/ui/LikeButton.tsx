@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
-import axios from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams } from 'next/navigation';
+import api from '../../utils/apiClient';
 
 interface LikeButtonProps {
   type: 'post' | 'comment';
@@ -23,7 +23,6 @@ export default function LikeButton({
   const [prevInitialLikes, setPrevInitialLikes] = useState(initialLikes);
   const [prevAuthorId, setPrevAuthorId] = useState(authorId);
   const queryClient = useQueryClient();
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const params = useParams();
 
   if (initialLikes !== prevInitialLikes || authorId !== prevAuthorId) {
@@ -36,16 +35,16 @@ export default function LikeButton({
   const likeMutation = useMutation({
     mutationFn: async () => {
       let endpoint = '';
-      const payload = { id: targetId, authorId };
+      const payload = { id: targetId };
 
       if (type !== 'post') {
         const postId = params.id as string;
-        endpoint = `${serverUrl}/api/post/${postId}/comment/like`;
+        endpoint = `/api/post/${postId}/comment/like`;
       } else {
-        endpoint = `${serverUrl}/api/post/like`;
+        endpoint = `/api/post/like`;
       }
 
-      const response = await axios.post(endpoint, payload);
+      const response = await api.post(endpoint, payload);
       return response.data;
     },
     onMutate: async () => {

@@ -16,9 +16,9 @@ const postRoutes = Router();
 postRoutes.get('/', allPosts);
 postRoutes.get('/:id', getPost);
 postRoutes.post('/new', requireAuth, createPost);
-postRoutes.delete('/delete', deletePost);
-postRoutes.patch('/edit', updatePost);
-postRoutes.post('/like', toggleLike);
+postRoutes.delete('/delete', requireAuth, deletePost);
+postRoutes.patch('/edit', requireAuth, updatePost);
+postRoutes.post('/like', requireAuth, toggleLike);
 postRoutes.get('/getLikes/:id', getLikes);
 
 postRoutes.use('/:postId/comment', commentRoutes);

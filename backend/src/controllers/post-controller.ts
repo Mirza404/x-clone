@@ -226,9 +226,16 @@ async function deletePost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const post = await Post.findById(id).select('_id');
+    const post = await Post.findById(id).select('_id author');
     if (!post) {
       res.status(404).json({ message: 'Post not found' });
+      return;
+    }
+
+    if (post.author.toString() !== req.userId) {
+      res
+        .status(403)
+        .json({ message: 'You can only modify your own posts' });
       return;
     }
 
@@ -260,6 +267,19 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 
     if (mongoose.connection.readyState !== 1) {
       res.status(500).json({ message: 'Database not connected' });
+      return;
+    }
+
+    const existingPost = await Post.findById(id).select('author');
+    if (!existingPost) {
+      res.status(404).json({ message: 'Post not found' });
+      return;
+    }
+
+    if (existingPost.author.toString() !== req.userId) {
+      res
+        .status(403)
+        .json({ message: 'You can only modify your own posts' });
       return;
     }
 
@@ -315,10 +335,11 @@ async function getLikes(req: Request, res: Response): Promise<void> {
 
 async function toggleLike(req: Request, res: Response): Promise<void> {
   try {
-    const { id, authorId } = req.body;
+    const { id } = req.body;
+    const authorId = req.userId;
 
     if (!id || !authorId) {
-      res.status(400).json({ message: 'Post ID and author ID are required' });
+      res.status(400).json({ message: 'Post ID is required' });
       return;
     }
 
