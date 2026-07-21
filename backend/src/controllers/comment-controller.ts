@@ -307,9 +307,7 @@ async function createComment(req: Request, res: Response): Promise<void> {
     const author = req.userId;
 
     if (!postId || !content || !author) {
-      res
-        .status(400)
-        .json({ message: 'Post ID and content are required' });
+      res.status(400).json({ message: 'Post ID and content are required' });
       return;
     }
 
@@ -410,9 +408,7 @@ async function updateComment(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const existingComment = await Comment.findById(commentId).select(
-      'author'
-    );
+    const existingComment = await Comment.findById(commentId).select('author');
     if (!existingComment) {
       res.status(404).json({ message: 'Comment not found' });
       return;
