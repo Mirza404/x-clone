@@ -15,10 +15,7 @@ const originalReadyStateDescriptor = Object.getOwnPropertyDescriptor(
   mongoose.connection,
   'readyState'
 );
-const originalDb = Object.getOwnPropertyDescriptor(
-  mongoose.connection,
-  'db'
-);
+const originalDb = Object.getOwnPropertyDescriptor(mongoose.connection, 'db');
 const originalPostCountDocuments = Post.countDocuments;
 const originalFollowCountDocuments = Follow.countDocuments;
 const originalFollowExists = Follow.exists;
@@ -136,8 +133,8 @@ test('getProfile returns profile data with counts and follow state', async () =>
   (
     Follow as unknown as { countDocuments: () => Promise<number> }
   ).countDocuments = async () => 5;
-  (Follow as unknown as { exists: () => Promise<boolean> }).exists =
-    async () => true;
+  (Follow as unknown as { exists: () => Promise<boolean> }).exists = async () =>
+    true;
   const response = createResponse();
 
   await getProfile(
@@ -180,8 +177,8 @@ test('toggleFollow returns 400 when following self', async () => {
 test('toggleFollow creates a follow when none exists', async () => {
   setReadyState(1);
   setUsersCollection({ _id: OTHER_ID });
-  (Follow as unknown as { findOne: () => Promise<null> }).findOne =
-    async () => null;
+  (Follow as unknown as { findOne: () => Promise<null> }).findOne = async () =>
+    null;
   let created: unknown = null;
   (Follow as unknown as { create: (doc: unknown) => Promise<unknown> }).create =
     async (doc: unknown) => {
@@ -203,9 +200,8 @@ test('toggleFollow creates a follow when none exists', async () => {
 test('toggleFollow removes an existing follow (unfollow)', async () => {
   setReadyState(1);
   setUsersCollection({ _id: OTHER_ID });
-  (
-    Follow as unknown as { findOne: () => Promise<{ _id: string }> }
-  ).findOne = async () => ({ _id: 'follow-doc-id' });
+  (Follow as unknown as { findOne: () => Promise<{ _id: string }> }).findOne =
+    async () => ({ _id: 'follow-doc-id' });
   let deletedId: unknown = null;
   (
     Follow as unknown as {

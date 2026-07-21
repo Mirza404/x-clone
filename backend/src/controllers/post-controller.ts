@@ -239,9 +239,7 @@ async function deletePost(req: Request, res: Response): Promise<void> {
     }
 
     if (post.author.toString() !== req.userId) {
-      res
-        .status(403)
-        .json({ message: 'You can only modify your own posts' });
+      res.status(403).json({ message: 'You can only modify your own posts' });
       return;
     }
 
@@ -283,9 +281,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
     }
 
     if (existingPost.author.toString() !== req.userId) {
-      res
-        .status(403)
-        .json({ message: 'You can only modify your own posts' });
+      res.status(403).json({ message: 'You can only modify your own posts' });
       return;
     }
 

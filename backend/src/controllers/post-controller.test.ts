@@ -21,10 +21,7 @@ const originalDeleteMany = Comment.deleteMany;
 const originalFindByIdAndUpdate = Post.findByIdAndUpdate;
 const originalFind = Post.find;
 const originalCountDocuments = Post.countDocuments;
-const originalDb = Object.getOwnPropertyDescriptor(
-  mongoose.connection,
-  'db'
-);
+const originalDb = Object.getOwnPropertyDescriptor(mongoose.connection, 'db');
 
 function setReadyState(readyState: number) {
   Object.defineProperty(mongoose.connection, 'readyState', {
@@ -230,7 +227,10 @@ test('toggleLike likes the post when the author has not liked it yet', async () 
 
   const response = createResponse();
 
-  await toggleLike(createRequest({ id: postId.toString() }, authorId), response);
+  await toggleLike(
+    createRequest({ id: postId.toString() }, authorId),
+    response
+  );
 
   assert.equal(calls.length, 1);
   assert.deepEqual(response.body, { message: 'Post liked' });

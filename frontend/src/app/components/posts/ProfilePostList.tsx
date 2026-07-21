@@ -18,7 +18,8 @@ export default function ProfilePostList({ authorId }: { authorId: string }) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
     useFetchInfiniteAuthorPosts(authorId);
 
-  const posts: Post[] = data?.pages?.flatMap((group) => group?.posts ?? []) ?? [];
+  const posts: Post[] =
+    data?.pages?.flatMap((group) => group?.posts ?? []) ?? [];
 
   useEffect(() => {
     if (inView) {
@@ -62,7 +63,10 @@ export default function ProfilePostList({ authorId }: { authorId: string }) {
           onDelete={() => deletePostMutation.mutate(post.id)}
         />
       ))}
-      <div ref={ref} className="flex justify-center border-b border-border py-6">
+      <div
+        ref={ref}
+        className="flex justify-center border-b border-border py-6"
+      >
         {isFetchingNextPage ? (
           <LoadCircle />
         ) : hasNextPage ? null : (

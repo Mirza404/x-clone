@@ -80,7 +80,10 @@ export default function PostItem({
           : undefined
       }
     >
-      <Link href={`/profile/${post.author}`} onClick={(e) => e.stopPropagation()}>
+      <Link
+        href={`/profile/${post.author}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <Avatar
           src={post?.authorImage}
           alt={`${post.name}'s profile`}

@@ -40,7 +40,10 @@ export default function ProfilePage() {
             className="h-20 w-20"
           />
           {!profile.isSelf && (
-            <FollowButton profileId={profile.id} isFollowing={profile.isFollowing} />
+            <FollowButton
+              profileId={profile.id}
+              isFollowing={profile.isFollowing}
+            />
           )}
         </div>
         <div className="mt-3">
