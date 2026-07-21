@@ -1,6 +1,7 @@
 'use client';
 
 import type React from 'react';
+import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useMemo } from 'react';
@@ -79,16 +80,22 @@ export default function PostItem({
           : undefined
       }
     >
-      <Avatar
-        src={post?.authorImage}
-        alt={`${post.name}'s profile`}
-        size="lg"
-      />
+      <Link href={`/profile/${post.author}`} onClick={(e) => e.stopPropagation()}>
+        <Avatar
+          src={post?.authorImage}
+          alt={`${post.name}'s profile`}
+          size="lg"
+        />
+      </Link>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-w-0 items-center gap-1 text-[15px] text-muted">
-          <span className="font-bold text-content hover:underline">
+          <Link
+            href={`/profile/${post.author}`}
+            onClick={(e) => e.stopPropagation()}
+            className="font-bold text-content hover:underline"
+          >
             {post.name}
-          </span>
+          </Link>
           {post.verified && <VerifiedBadge />}
           {handle && <span className="truncate">{handle}</span>}
           <span aria-hidden="true">·</span>
