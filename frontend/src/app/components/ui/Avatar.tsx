@@ -6,8 +6,10 @@ const SIZES = {
   lg: 'h-12 w-12',
 } as const;
 
-interface AvatarProps
-  extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt' | 'size'> {
+interface AvatarProps extends Omit<
+  ImgHTMLAttributes<HTMLImageElement>,
+  'src' | 'alt' | 'size'
+> {
   src?: string | null;
   alt: string;
   size?: keyof typeof SIZES;

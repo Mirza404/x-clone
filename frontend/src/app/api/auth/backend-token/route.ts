@@ -7,7 +7,10 @@ export async function GET() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+    return NextResponse.json(
+      { message: 'Authentication required' },
+      { status: 401 }
+    );
   }
 
   const secret = process.env.BACKEND_JWT_SECRET;
@@ -23,7 +26,7 @@ export async function GET() {
       expiresIn,
       issuer: 'x-clone-frontend',
       audience: 'x-clone-backend',
-    },
+    }
   );
 
   return NextResponse.json({
