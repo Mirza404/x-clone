@@ -10,6 +10,7 @@ import { uploadImages } from '../../../utils/imageUtils'; // Import the uploadIm
 import FileUpload from '@/app/utils/FileUpload';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 import { getApiErrorMessage } from '@/app/utils/apiError';
+import api from '@/app/utils/apiClient';
 
 const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = use(params);
@@ -60,7 +61,7 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
       // Combine with existing images
       const allImages = [...existingImages, ...uploadedUrls];
       setProgress(50);
-      const response = await axios.patch(`${serverUrl}/api/post/edit`, {
+      const response = await api.patch('/api/post/edit', {
         id,
         content,
         images: allImages,

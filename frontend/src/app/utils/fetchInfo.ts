@@ -81,6 +81,36 @@ export async function getCommentsPaginated(postId: string, page: number) {
     };
   }
 }
+export async function getPostsByAuthorPaginated(
+  authorId: string,
+  page: number
+) {
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+
+  try {
+    const res = await axios.get(`${serverUrl}/api/post/`, {
+      params: { page, author: authorId, sort: 'createdAt', limit: 5 },
+    });
+    const totalPages = res.data.totalPages;
+    const hasNext = page < totalPages;
+    return {
+      nextPage: hasNext ? page + 1 : undefined,
+      previousPage: page > 1 ? page - 1 : undefined,
+      posts: res.data.posts,
+    };
+  } catch (error: unknown) {
+    console.error(
+      'Error fetching author posts:',
+      getApiErrorMessage(error, 'Error')
+    );
+    return {
+      nextPage: undefined,
+      previousPage: undefined,
+      posts: [],
+    };
+  }
+}
+
 export async function getCommentById(
   postId: string,
   commentId: string

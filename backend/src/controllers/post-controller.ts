@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import { Request, Response } from 'express';
-import { getUserIdByEmail, getUserNameByID } from './user-controller';
+import type {} from '../types/express';
+import { getUserNameByID } from './user-controller';
 import { hasObjectId, toObjectId } from '../utils/object-id';
 import { getUsersCollection } from '../db/connection';
 
@@ -16,9 +17,15 @@ async function allPosts(req: Request, res: Response): Promise<void> {
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
+    const { author } = req.query;
+
+    const filter =
+      author && mongoose.Types.ObjectId.isValid(author as string)
+        ? { author: author as string }
+        : {};
 
     // Fetch posts
-    const posts = await Post.find()
+    const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -45,7 +52,7 @@ async function allPosts(req: Request, res: Response): Promise<void> {
       })
     );
 
-    const totalPosts = await Post.countDocuments();
+    const totalPosts = await Post.countDocuments(filter);
     const totalPages = Math.ceil(totalPosts / limit);
 
     res
@@ -158,17 +165,11 @@ async function getPost(req: Request, res: Response): Promise<void> {
 
 async function createPost(req: Request, res: Response): Promise<void> {
   try {
-    const { content, email, images } = req.body; // Accept images array
-
-    if (!email) {
-      res.status(400).json({ message: 'Email is required' });
-      return;
-    }
-
-    const author = await getUserIdByEmail(email);
+    const { content, images } = req.body; // Accept images array
+    const author = req.userId;
 
     if (!author) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(401).json({ message: 'Authentication required' });
       return;
     }
 
@@ -231,9 +232,14 @@ async function deletePost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const post = await Post.findById(id).select('_id');
+    const post = await Post.findById(id).select('_id author');
     if (!post) {
       res.status(404).json({ message: 'Post not found' });
+      return;
+    }
+
+    if (post.author.toString() !== req.userId) {
+      res.status(403).json({ message: 'You can only modify your own posts' });
       return;
     }
 
@@ -265,6 +271,17 @@ async function updatePost(req: Request, res: Response): Promise<void> {
 
     if (mongoose.connection.readyState !== 1) {
       res.status(500).json({ message: 'Database not connected' });
+      return;
+    }
+
+    const existingPost = await Post.findById(id).select('author');
+    if (!existingPost) {
+      res.status(404).json({ message: 'Post not found' });
+      return;
+    }
+
+    if (existingPost.author.toString() !== req.userId) {
+      res.status(403).json({ message: 'You can only modify your own posts' });
       return;
     }
 
@@ -320,10 +337,11 @@ async function getLikes(req: Request, res: Response): Promise<void> {
 
 async function toggleLike(req: Request, res: Response): Promise<void> {
   try {
-    const { id, authorId } = req.body;
+    const { id } = req.body;
+    const authorId = req.userId;
 
     if (!id || !authorId) {
-      res.status(400).json({ message: 'Post ID and author ID are required' });
+      res.status(400).json({ message: 'Post ID is required' });
       return;
     }
 

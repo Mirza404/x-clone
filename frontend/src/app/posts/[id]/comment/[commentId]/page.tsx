@@ -10,15 +10,12 @@ import { getCommentById } from '@/app/utils/fetchInfo';
 import CustomToaster from '@/app/components/ui/CustomToaster';
 import LoadCircle from '@/app/components/ui/LoadCircle';
 import NewReply from '@/app/components/comments/NewReply';
-import { useSession } from 'next-auth/react';
 import type { Comment } from '@/app/types/Comment';
 
 const CommentThreadPage = () => {
   const commentId = useParams().commentId as string;
   const postId = useParams().id as string;
   const { deleteReplyMutation } = useCommentMutations();
-  const { data: session } = useSession();
-  const email = session?.user?.email || '';
 
   const {
     data: commentData,
@@ -66,7 +63,6 @@ const CommentThreadPage = () => {
           postId={postId}
           parentCommentId={commentId}
           content={comment.content}
-          email={email}
         />
         {/* Replies */}
         {Array.isArray(comment.replies) && comment.replies.length > 0 && (

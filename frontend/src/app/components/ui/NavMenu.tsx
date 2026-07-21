@@ -137,7 +137,7 @@ export default function NavMenu() {
         <button
           type="button"
           onClick={handlePostClick}
-          className="mx-3 mt-4 flex h-[52px] items-center justify-center rounded-full bg-primary text-[17px] font-bold text-white transition-colors hover:bg-primary-hover"
+          className="mx-3 mt-4 flex h-[52px] w-[90%] items-center justify-center rounded-full bg-btn text-[17px] font-bold text-btn-fg transition-colors hover:bg-btn-hover"
         >
           Post
         </button>

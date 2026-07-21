@@ -1,14 +1,21 @@
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import PostListInfinite from './PostListInfinite';
 import { usePostMutations } from '@/app/utils/postMutations';
+import { useSession } from 'next-auth/react';
 
 jest.mock('@/app/utils/postMutations', () => ({
   usePostMutations: jest.fn(),
 }));
 
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(),
+}));
+
 jest.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: jest.fn(), inView: false }),
 }));
+
+const mockedUseSession = useSession as jest.Mock;
 
 jest.mock('../ui/LoadCircle', () => ({
   __esModule: true,
@@ -62,6 +69,10 @@ function mockMutations(overrides: {
 }
 
 describe('PostListInfinite', () => {
+  beforeEach(() => {
+    mockedUseSession.mockReturnValue({ status: 'authenticated' });
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -155,5 +166,45 @@ describe('PostListInfinite', () => {
     render(<PostListInfinite />);
 
     expect(screen.queryByText('Nothing more to load.')).not.toBeInTheDocument();
+  });
+
+  it('walls guests off after the guest post limit and stops paginating', () => {
+    mockedUseSession.mockReturnValue({ status: 'unauthenticated' });
+    const posts = Array.from({ length: 8 }, (_, i) => ({
+      id: `post-${i}`,
+      content: `Post ${i}`,
+    }));
+    mockMutations({
+      infinite: {
+        hasNextPage: true,
+        data: { pages: [{ posts }] },
+      },
+    });
+
+    render(<PostListInfinite />);
+
+    expect(screen.getByTestId('post-post-5')).toBeInTheDocument();
+    expect(screen.queryByTestId('post-post-6')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('does not wall signed-in users regardless of post count', () => {
+    const posts = Array.from({ length: 8 }, (_, i) => ({
+      id: `post-${i}`,
+      content: `Post ${i}`,
+    }));
+    mockMutations({
+      infinite: {
+        hasNextPage: true,
+        data: { pages: [{ posts }] },
+      },
+    });
+
+    render(<PostListInfinite />);
+
+    expect(screen.getByTestId('post-post-7')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Sign in' })
+    ).not.toBeInTheDocument();
   });
 });

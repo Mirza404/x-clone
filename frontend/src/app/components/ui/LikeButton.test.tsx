@@ -1,14 +1,17 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../../utils/apiClient';
 import LikeButton from './LikeButton';
 
-jest.mock('axios');
+jest.mock('../../utils/apiClient', () => ({
+  __esModule: true,
+  default: { post: jest.fn() },
+}));
 jest.mock('next/navigation', () => ({
   useParams: () => ({ id: 'post-1' }),
 }));
 
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+const mockedApi = api as jest.Mocked<typeof api>;
 
 function renderWithClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -41,7 +44,7 @@ describe('LikeButton', () => {
   });
 
   it('optimistically likes a post and posts to the post like endpoint', async () => {
-    mockedAxios.post.mockResolvedValueOnce({ data: {} });
+    mockedApi.post.mockResolvedValueOnce({ data: {} });
 
     renderWithClient(
       <LikeButton
@@ -59,15 +62,15 @@ describe('LikeButton', () => {
     ).toBeInTheDocument();
 
     await waitFor(() =>
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockedApi.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/post/like'),
-        { id: 'post-1', authorId: 'user-1' }
+        { id: 'post-1' }
       )
     );
   });
 
   it('posts to the comment like endpoint for comment likes', async () => {
-    mockedAxios.post.mockResolvedValueOnce({ data: {} });
+    mockedApi.post.mockResolvedValueOnce({ data: {} });
 
     renderWithClient(
       <LikeButton
@@ -81,15 +84,15 @@ describe('LikeButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Like post' }));
 
     await waitFor(() =>
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockedApi.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/post/post-1/comment/like'),
-        { id: 'comment-1', authorId: 'user-1' }
+        { id: 'comment-1' }
       )
     );
   });
 
   it('reverts the optimistic update when the request fails', async () => {
-    mockedAxios.post.mockRejectedValueOnce(new Error('network error'));
+    mockedApi.post.mockRejectedValueOnce(new Error('network error'));
 
     renderWithClient(
       <LikeButton

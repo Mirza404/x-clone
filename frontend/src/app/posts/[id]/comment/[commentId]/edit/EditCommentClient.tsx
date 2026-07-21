@@ -5,19 +5,18 @@ import { useSession } from 'next-auth/react';
 import CustomLoadBar from '@/app/components/ui/CustomLoadBar';
 import LoadCircle from '@/app/components/ui/LoadCircle';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useParams } from 'next/navigation';
 import { getCommentById } from '@/app/utils/fetchInfo';
 import { useQuery } from '@tanstack/react-query';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 import { getApiErrorMessage } from '@/app/utils/apiError';
+import api from '@/app/utils/apiClient';
 
 const EditCommentPage = () => {
   const params = useParams();
   const postId = params.id as string;
   const commentId = params.commentId as string;
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState('');
@@ -62,10 +61,9 @@ const EditCommentPage = () => {
       // Simulate progress for better UX
       setProgress(30);
 
-      const response = await axios.patch(
-        `${serverUrl}/api/post/${postId}/comment/edit/${commentId}`,
-        { content },
-        { headers: { 'Content-Type': 'application/json' } }
+      const response = await api.patch(
+        `/api/post/${postId}/comment/edit/${commentId}`,
+        { content }
       );
 
       setProgress(100);
