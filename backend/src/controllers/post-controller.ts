@@ -26,7 +26,7 @@ async function allPosts(req: Request, res: Response): Promise<void> {
 
     // Fetch posts
     const posts = await Post.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
