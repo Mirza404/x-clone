@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
-import { deletePost, toggleLike } from './post-controller';
+import { deletePost, toggleLike, allPosts } from './post-controller';
 
 type MockResponse = Response & {
   statusCode?: number;
@@ -19,6 +19,12 @@ const originalFindById = Post.findById;
 const originalDeleteOne = Post.deleteOne;
 const originalDeleteMany = Comment.deleteMany;
 const originalFindByIdAndUpdate = Post.findByIdAndUpdate;
+const originalFind = Post.find;
+const originalCountDocuments = Post.countDocuments;
+const originalDb = Object.getOwnPropertyDescriptor(
+  mongoose.connection,
+  'db'
+);
 
 function setReadyState(readyState: number) {
   Object.defineProperty(mongoose.connection, 'readyState', {
@@ -60,6 +66,21 @@ function createRequest(
   return { body, userId } as Request;
 }
 
+function createQueryRequest(query: Record<string, unknown>): Request {
+  return { query } as unknown as Request;
+}
+
+function setEmptyUsersCollection() {
+  Object.defineProperty(mongoose.connection, 'db', {
+    configurable: true,
+    get: () => ({
+      collection: () => ({
+        findOne: async () => null,
+      }),
+    }),
+  });
+}
+
 afterEach(() => {
   restoreReadyState();
   (Post as unknown as { findById: typeof originalFindById }).findById =
@@ -71,6 +92,13 @@ afterEach(() => {
   (
     Post as unknown as { findByIdAndUpdate: typeof originalFindByIdAndUpdate }
   ).findByIdAndUpdate = originalFindByIdAndUpdate;
+  (Post as unknown as { find: typeof originalFind }).find = originalFind;
+  (
+    Post as unknown as { countDocuments: typeof originalCountDocuments }
+  ).countDocuments = originalCountDocuments;
+  if (originalDb) {
+    Object.defineProperty(mongoose.connection, 'db', originalDb);
+  }
 });
 
 test('deletePost returns 400 when id is missing', async () => {
@@ -206,4 +234,100 @@ test('toggleLike likes the post when the author has not liked it yet', async () 
 
   assert.equal(calls.length, 1);
   assert.deepEqual(response.body, { message: 'Post liked' });
+});
+
+test('allPosts fetches without an author filter when none is given', async () => {
+  setReadyState(1);
+  setEmptyUsersCollection();
+  const findCalls: unknown[] = [];
+  const countCalls: unknown[] = [];
+
+  (Post as unknown as { find: (filter: unknown) => unknown }).find = (
+    filter: unknown
+  ) => {
+    findCalls.push(filter);
+    return {
+      sort: () => ({
+        skip: () => ({
+          limit: () => ({
+            lean: async () => [],
+          }),
+        }),
+      }),
+    };
+  };
+  (
+    Post as unknown as { countDocuments: (filter: unknown) => Promise<number> }
+  ).countDocuments = async (filter: unknown) => {
+    countCalls.push(filter);
+    return 0;
+  };
+
+  const response = createResponse();
+  await allPosts(createQueryRequest({}), response);
+
+  assert.deepEqual(findCalls, [{}]);
+  assert.deepEqual(countCalls, [{}]);
+  assert.equal(response.statusCode, 200);
+});
+
+test('allPosts filters by author when a valid author id is given', async () => {
+  setReadyState(1);
+  setEmptyUsersCollection();
+  const authorId = new mongoose.Types.ObjectId().toString();
+  const findCalls: unknown[] = [];
+
+  (Post as unknown as { find: (filter: unknown) => unknown }).find = (
+    filter: unknown
+  ) => {
+    findCalls.push(filter);
+    return {
+      sort: () => ({
+        skip: () => ({
+          limit: () => ({
+            lean: async () => [],
+          }),
+        }),
+      }),
+    };
+  };
+  (
+    Post as unknown as { countDocuments: (filter: unknown) => Promise<number> }
+  ).countDocuments = async () => 0;
+
+  const response = createResponse();
+  await allPosts(createQueryRequest({ author: authorId }), response);
+
+  assert.deepEqual(findCalls, [{ author: authorId }]);
+  assert.equal(response.statusCode, 200);
+});
+
+test('allPosts ignores an invalid author id', async () => {
+  setReadyState(1);
+  setEmptyUsersCollection();
+  const findCalls: unknown[] = [];
+
+  (Post as unknown as { find: (filter: unknown) => unknown }).find = (
+    filter: unknown
+  ) => {
+    findCalls.push(filter);
+    return {
+      sort: () => ({
+        skip: () => ({
+          limit: () => ({
+            lean: async () => [],
+          }),
+        }),
+      }),
+    };
+  };
+  (
+    Post as unknown as { countDocuments: (filter: unknown) => Promise<number> }
+  ).countDocuments = async () => 0;
+
+  const response = createResponse();
+  await allPosts(createQueryRequest({ author: 'not-an-id' }), response);
+
+  assert.deepEqual(findCalls, [{}]);
+  assert.equal(response.statusCode, 200);
 });

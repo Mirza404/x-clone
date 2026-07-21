@@ -17,9 +17,15 @@ async function allPosts(req: Request, res: Response): Promise<void> {
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
     const skip = (page - 1) * limit;
+    const { author } = req.query;
+
+    const filter =
+      author && mongoose.Types.ObjectId.isValid(author as string)
+        ? { author: author as string }
+        : {};
 
     // Fetch posts
-    const posts = await Post.find()
+    const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -46,7 +52,7 @@ async function allPosts(req: Request, res: Response): Promise<void> {
       })
     );
 
-    const totalPosts = await Post.countDocuments();
+    const totalPosts = await Post.countDocuments(filter);
     const totalPages = Math.ceil(totalPosts / limit);
 
     res
