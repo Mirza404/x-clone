@@ -11,7 +11,8 @@
     "format": "prettier --write . --ignore-unknown",
     "format:check": "prettier --check . --ignore-unknown",
     "test": "node scripts/run-tests.js",
-    "test:ci": "npm run typecheck && npm test"
+    "test:ci": "npm run typecheck && npm test",
+    "seed": "ts-node scripts/seed.ts"
   },
   "keywords": [],
   "author": "",
