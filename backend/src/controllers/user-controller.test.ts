@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Follow from '../models/Follow';
-import { getProfile, toggleFollow } from './user-controller';
+import { getProfile, toggleFollow, getUserNameByID } from './user-controller';
 
 type MockResponse = Response & {
   statusCode?: number;
@@ -221,4 +221,103 @@ test('toggleFollow removes an existing follow (unfollow)', async () => {
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { following: false });
   assert.equal(deletedId, 'follow-doc-id');
+});
+
+test('toggleFollow returns 400 when userId is not a valid ObjectId', async () => {
+  const response = createResponse();
+
+  await toggleFollow(
+    createRequest({ body: { userId: 'not-an-id' }, userId: VALID_ID }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, { message: 'Valid userId is required' });
+});
+
+test('toggleFollow returns 500 when the database is not connected', async () => {
+  setReadyState(0);
+  const response = createResponse();
+
+  await toggleFollow(
+    createRequest({ body: { userId: OTHER_ID }, userId: VALID_ID }),
+    response
+  );
+
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, { message: 'Database not connected' });
+});
+
+test('toggleFollow returns 404 when the target user does not exist', async () => {
+  setReadyState(1);
+  setUsersCollection(null);
+  const response = createResponse();
+
+  await toggleFollow(
+    createRequest({ body: { userId: OTHER_ID }, userId: VALID_ID }),
+    response
+  );
+
+  assert.equal(response.statusCode, 404);
+  assert.deepEqual(response.body, { message: 'User not found' });
+});
+
+test('toggleFollow returns 500 when an unexpected error is thrown', async () => {
+  setReadyState(1);
+  setUsersCollection({ _id: OTHER_ID });
+  (Follow as unknown as { findOne: () => Promise<never> }).findOne =
+    async () => {
+      throw new Error('boom');
+    };
+  const response = createResponse();
+
+  await toggleFollow(
+    createRequest({ body: { userId: OTHER_ID }, userId: VALID_ID }),
+    response
+  );
+
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, { message: 'Internal server error' });
+});
+
+test('getProfile returns 500 when an unexpected error is thrown', async () => {
+  setReadyState(1);
+  setUsersCollection({ _id: VALID_ID, name: 'Ada', image: 'ada.png' });
+  (
+    Post as unknown as { countDocuments: () => Promise<number> }
+  ).countDocuments = async () => {
+    throw new Error('boom');
+  };
+  const response = createResponse();
+
+  await getProfile(createRequest({ params: { id: VALID_ID } }), response);
+
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, { message: 'Internal Server Error' });
+});
+
+test('getUserNameByID returns the user name when found', async () => {
+  setUsersCollection({ _id: VALID_ID, name: 'Ada' });
+
+  const name = await getUserNameByID(VALID_ID);
+
+  assert.equal(name, 'Ada');
+});
+
+test('getUserNameByID throws when there is no database connection', async () => {
+  Object.defineProperty(mongoose.connection, 'db', {
+    configurable: true,
+    get: () => undefined,
+  });
+
+  await assert.rejects(
+    () => getUserNameByID(VALID_ID),
+    /No database connection/
+  );
+});
+
+test('getUserNameByID throws when the user does not exist', async () => {
+  setUsersCollection(null);
+
+  await assert.rejects(() => getUserNameByID(VALID_ID), /User not found/);
 });
