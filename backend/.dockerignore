@@ -2,3 +2,12 @@ node_modules
 npm-debug.log
 .env
 .env.example
+dist
+.git
+*.test.ts
+coverage
+nodemon.json
+README*
+.vscode
+.idea
+.DS_Store
