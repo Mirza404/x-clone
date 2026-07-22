@@ -4,7 +4,7 @@ import Comment from '../models/Comment';
 import { Request, Response } from 'express';
 import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
-import { LeanComment } from 'src/types/LeanComment';
+import { LeanComment } from '../types/LeanComment';
 import { hasObjectId, toObjectId } from '../utils/object-id';
 import { collectCommentThreadIds } from '../utils/comment-tree';
 import { getUsersCollection } from '../db/connection';
