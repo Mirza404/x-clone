@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import MessagesPage from './page';
 import { useConversations } from '@/app/hooks/useConversations';
 import { useMessages } from '@/app/hooks/useMessages';
+import { useTyping } from '@/app/hooks/useTyping';
 
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
@@ -16,6 +17,10 @@ jest.mock('@/app/hooks/useMessages', () => ({
   useMessages: jest.fn(),
 }));
 
+jest.mock('@/app/hooks/useTyping', () => ({
+  useTyping: jest.fn(),
+}));
+
 jest.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: jest.fn(), inView: false }),
 }));
@@ -23,6 +28,7 @@ jest.mock('react-intersection-observer', () => ({
 const mockedUseSession = useSession as jest.Mock;
 const mockedUseConversations = useConversations as jest.Mock;
 const mockedUseMessages = useMessages as jest.Mock;
+const mockedUseTyping = useTyping as jest.Mock;
 
 describe('MessagesPage', () => {
   beforeAll(() => {
@@ -37,6 +43,11 @@ describe('MessagesPage', () => {
       hasNextPage: false,
       isFetchingNextPage: false,
       sendMessage: jest.fn(),
+    });
+    mockedUseTyping.mockReturnValue({
+      isPeerTyping: false,
+      notifyTyping: jest.fn(),
+      stopTypingNow: jest.fn(),
     });
   });
 

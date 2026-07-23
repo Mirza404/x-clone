@@ -8,7 +8,9 @@ import Avatar from '../ui/Avatar';
 import LoadCircle from '../ui/LoadCircle';
 import MessageBubble from './MessageBubble';
 import MessageComposer from './MessageComposer';
+import TypingIndicator from './TypingIndicator';
 import { useMessages } from '@/app/hooks/useMessages';
+import { useTyping } from '@/app/hooks/useTyping';
 import type { ConversationParticipant } from '@/app/types/Conversation';
 
 interface MessageThreadProps {
@@ -32,6 +34,8 @@ export default function MessageThread({
     isFetchingNextPage,
     sendMessage,
   } = useMessages(conversationId);
+  const { isPeerTyping, notifyTyping, stopTypingNow } =
+    useTyping(conversationId);
   const { ref: topSentinelRef, inView: topInView } = useInView();
   const bottomRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
@@ -55,6 +59,11 @@ export default function MessageThread({
   const lastMineId = [...messages]
     .reverse()
     .find((message) => message.sender === currentUserId)?._id;
+
+  const handleSend = (content: string) => {
+    stopTypingNow();
+    sendMessage(content);
+  };
 
   return (
     <div className="flex h-[75vh] min-h-[400px] flex-col">
@@ -101,7 +110,8 @@ export default function MessageThread({
       </div>
 
       <div className="flex-shrink-0">
-        <MessageComposer onSend={sendMessage} />
+        {isPeerTyping && <TypingIndicator name={participant?.name} />}
+        <MessageComposer onSend={handleSend} onTyping={notifyTyping} />
       </div>
     </div>
   );

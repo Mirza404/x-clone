@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import MessageThread from './MessageThread';
 import { useMessages } from '@/app/hooks/useMessages';
+import { useTyping } from '@/app/hooks/useTyping';
 
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
@@ -11,12 +12,17 @@ jest.mock('@/app/hooks/useMessages', () => ({
   useMessages: jest.fn(),
 }));
 
+jest.mock('@/app/hooks/useTyping', () => ({
+  useTyping: jest.fn(),
+}));
+
 jest.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: jest.fn(), inView: false }),
 }));
 
 const mockedUseSession = useSession as jest.Mock;
 const mockedUseMessages = useMessages as jest.Mock;
+const mockedUseTyping = useTyping as jest.Mock;
 
 function mockMessages(overrides: Partial<ReturnType<typeof useMessages>>) {
   mockedUseMessages.mockReturnValue({
@@ -30,6 +36,15 @@ function mockMessages(overrides: Partial<ReturnType<typeof useMessages>>) {
   });
 }
 
+function mockTyping(overrides: Partial<ReturnType<typeof useTyping>> = {}) {
+  mockedUseTyping.mockReturnValue({
+    isPeerTyping: false,
+    notifyTyping: jest.fn(),
+    stopTypingNow: jest.fn(),
+    ...overrides,
+  });
+}
+
 describe('MessageThread', () => {
   beforeAll(() => {
     Element.prototype.scrollIntoView = jest.fn();
@@ -37,6 +52,7 @@ describe('MessageThread', () => {
 
   beforeEach(() => {
     mockedUseSession.mockReturnValue({ data: { user: { id: 'me' } } });
+    mockTyping();
   });
 
   afterEach(() => {
@@ -98,6 +114,75 @@ describe('MessageThread', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
     expect(sendMessage).toHaveBeenCalledWith('hi there');
+  });
+
+  it('calls stopTypingNow before sendMessage when the composer submits', () => {
+    const sendMessage = jest.fn();
+    const stopTypingNow = jest.fn();
+    mockMessages({ sendMessage });
+    mockTyping({ stopTypingNow });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Start a new message'), {
+      target: { value: 'hi there' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    expect(stopTypingNow).toHaveBeenCalled();
+    expect(sendMessage).toHaveBeenCalledWith('hi there');
+  });
+
+  it('calls notifyTyping when the composer input changes', () => {
+    const notifyTyping = jest.fn();
+    mockMessages({});
+    mockTyping({ notifyTyping });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Start a new message'), {
+      target: { value: 'h' },
+    });
+
+    expect(notifyTyping).toHaveBeenCalled();
+  });
+
+  it('shows a typing indicator when the peer is typing', () => {
+    mockMessages({});
+    mockTyping({ isPeerTyping: true });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    expect(screen.getByText('Ada is typing')).toBeInTheDocument();
+  });
+
+  it('hides the typing indicator when the peer is not typing', () => {
+    mockMessages({});
+    mockTyping({ isPeerTyping: false });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    expect(screen.queryByText('Ada is typing')).not.toBeInTheDocument();
   });
 
   it('shows "Read" on the last own message once the peer has seen it', () => {

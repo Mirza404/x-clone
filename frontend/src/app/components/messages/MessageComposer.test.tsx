@@ -51,4 +51,24 @@ describe('MessageComposer', () => {
 
     expect(onSend).not.toHaveBeenCalled();
   });
+
+  it('calls onTyping on every input change', () => {
+    const onTyping = jest.fn();
+    render(<MessageComposer onSend={jest.fn()} onTyping={onTyping} />);
+
+    const textarea = screen.getByPlaceholderText('Start a new message');
+    fireEvent.change(textarea, { target: { value: 'h' } });
+    fireEvent.change(textarea, { target: { value: 'hi' } });
+
+    expect(onTyping).toHaveBeenCalledTimes(2);
+  });
+
+  it('works without an onTyping prop', () => {
+    render(<MessageComposer onSend={jest.fn()} />);
+
+    const textarea = screen.getByPlaceholderText('Start a new message');
+    expect(() =>
+      fireEvent.change(textarea, { target: { value: 'hi' } })
+    ).not.toThrow();
+  });
 });

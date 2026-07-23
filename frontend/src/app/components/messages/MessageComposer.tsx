@@ -7,9 +7,13 @@ const MAX_LENGTH = 2000;
 
 interface MessageComposerProps {
   onSend: (content: string) => void;
+  onTyping?: () => void;
 }
 
-export default function MessageComposer({ onSend }: MessageComposerProps) {
+export default function MessageComposer({
+  onSend,
+  onTyping,
+}: MessageComposerProps) {
   const [content, setContent] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -40,7 +44,10 @@ export default function MessageComposer({ onSend }: MessageComposerProps) {
         placeholder="Start a new message"
         maxLength={MAX_LENGTH}
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={(e) => {
+          setContent(e.target.value);
+          onTyping?.();
+        }}
         onInput={(e) => {
           const target = e.target as HTMLTextAreaElement;
           target.style.height = '24px';
