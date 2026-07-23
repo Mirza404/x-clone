@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import type { Server as HttpServer } from 'http';
 import { socketAuthMiddleware } from './auth';
 import { registerMessageHandlers } from './handlers';
+import { registerTypingHandlers } from './typing';
 
 function initSocket(server: HttpServer): Server {
   const io = new Server(server, {
@@ -14,6 +15,7 @@ function initSocket(server: HttpServer): Server {
     const userId = socket.data.userId as string;
     socket.join(`user:${userId}`);
     registerMessageHandlers(io, socket);
+    registerTypingHandlers(io, socket);
   });
 
   return io;
