@@ -15,10 +15,13 @@ type MessageSendAck = {
 
 type Emission = { room: string; event: string; payload: unknown };
 
+type MessageReadAck = { ok: boolean; error?: string };
+
 const originalConversationFindById = Conversation.findById;
 const originalConversationFindOne = Conversation.findOne;
 const originalConversationCreate = Conversation.create;
 const originalMessageCreate = Message.create;
+const originalMessageUpdateMany = Message.updateMany;
 
 afterEach(() => {
   (
@@ -32,6 +35,9 @@ afterEach(() => {
   ).create = originalConversationCreate;
   (Message as unknown as { create: typeof originalMessageCreate }).create =
     originalMessageCreate;
+  (
+    Message as unknown as { updateMany: typeof originalMessageUpdateMany }
+  ).updateMany = originalMessageUpdateMany;
 });
 
 function createIo(): { io: Server; emissions: Emission[] } {
@@ -50,7 +56,11 @@ function createIo(): { io: Server; emissions: Emission[] } {
 
 function createSocket(userId: string): {
   socket: Socket;
-  emit: (event: string, payload: unknown) => Promise<MessageSendAck>;
+  emit: <TAck = MessageSendAck>(
+    event: string,
+    payload: unknown
+  ) => Promise<TAck>;
+  emitWithoutAck: (event: string, payload: unknown) => void;
 } {
   const handlers = new Map<string, (...args: unknown[]) => void>();
   const socket = {
@@ -60,14 +70,20 @@ function createSocket(userId: string): {
     },
   } as unknown as Socket;
 
-  const emit = (event: string, payload: unknown) =>
-    new Promise<MessageSendAck>((resolve) => {
+  const emit = <TAck = MessageSendAck>(event: string, payload: unknown) =>
+    new Promise<TAck>((resolve) => {
       const handler = handlers.get(event);
       assert.ok(handler, `no handler registered for ${event}`);
       handler(payload, resolve);
     });
 
-  return { socket, emit };
+  const emitWithoutAck = (event: string, payload: unknown) => {
+    const handler = handlers.get(event);
+    assert.ok(handler, `no handler registered for ${event}`);
+    handler(payload);
+  };
+
+  return { socket, emit, emitWithoutAck };
 }
 
 type FakeConversation = {
@@ -239,4 +255,168 @@ test('message:send get-or-creates a conversation via recipientId', async () => {
 
   assert.equal(ack.ok, true);
   assert.ok(createArgs);
+});
+
+test('message:read rejects an invalid conversationId', async () => {
+  const { io } = createIo();
+  const { socket, emit } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit<MessageReadAck>('message:read', {
+    conversationId: 'not-an-id',
+  });
+
+  assert.equal(ack.ok, false);
+});
+
+test('message:read rejects a conversation the user is not a participant of', async () => {
+  const { io } = createIo();
+  const conversation = fakeConversation({
+    participants: [
+      new mongoose.Types.ObjectId(),
+      new mongoose.Types.ObjectId(),
+    ],
+  });
+
+  (Conversation as unknown as { findById: () => unknown }).findById = () =>
+    conversation;
+
+  const { socket, emit } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit<MessageReadAck>('message:read', {
+    conversationId: conversation._id.toString(),
+  });
+
+  assert.equal(ack.ok, false);
+  assert.match(ack.error ?? '', /not a participant/);
+});
+
+test('message:read resets unread, marks messages read, and notifies the other participant', async () => {
+  const { io, emissions } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+  const recipientId = new mongoose.Types.ObjectId();
+  const conversation = fakeConversation({
+    participants: [userId, recipientId],
+    unread: [
+      { user: userId, count: 3 },
+      { user: recipientId, count: 0 },
+    ],
+  });
+
+  (Conversation as unknown as { findById: () => unknown }).findById = () =>
+    conversation;
+
+  let updateManyFilter: unknown;
+  (
+    Message as unknown as {
+      updateMany: (filter: unknown, update: unknown) => Promise<unknown>;
+    }
+  ).updateMany = async (filter) => {
+    updateManyFilter = filter;
+    return { acknowledged: true };
+  };
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit<MessageReadAck>('message:read', {
+    conversationId: conversation._id.toString(),
+  });
+
+  assert.equal(ack.ok, true);
+
+  const unreadEntry = conversation.unread.find(
+    (entry) => entry.user === userId
+  );
+  assert.equal(unreadEntry?.count, 0);
+  assert.ok(updateManyFilter);
+
+  assert.equal(emissions.length, 1);
+  assert.equal(emissions[0].room, `user:${recipientId}`);
+  assert.equal(emissions[0].event, 'message:read');
+  assert.deepEqual(emissions[0].payload, {
+    conversationId: conversation._id.toString(),
+    userId: userId.toString(),
+    readAt: (emissions[0].payload as { readAt: string }).readAt,
+  });
+});
+
+test('message:read rejects a missing conversationId without touching the database', async () => {
+  const { io } = createIo();
+  const { socket, emit } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
+  registerMessageHandlers(io, socket);
+
+  let findByIdCalled = false;
+  (Conversation as unknown as { findById: () => unknown }).findById = () => {
+    findByIdCalled = true;
+    return null;
+  };
+
+  const ack = await emit<MessageReadAck>('message:read', {});
+
+  assert.equal(ack.ok, false);
+  assert.equal(findByIdCalled, false);
+});
+
+test('message:read acks an error when the conversation is not found', async () => {
+  const { io } = createIo();
+  (Conversation as unknown as { findById: () => unknown }).findById = () =>
+    null;
+
+  const { socket, emit } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit<MessageReadAck>('message:read', {
+    conversationId: new mongoose.Types.ObjectId().toString(),
+  });
+
+  assert.equal(ack.ok, false);
+  assert.equal(ack.error, 'Conversation not found');
+});
+
+test('message:read works without an ack callback', async () => {
+  const { io } = createIo();
+  const { socket, emitWithoutAck } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
+  registerMessageHandlers(io, socket);
+
+  assert.doesNotThrow(() => {
+    emitWithoutAck('message:read', { conversationId: 'not-an-id' });
+  });
+});
+
+test('message:read acks an internal error when persistence throws', async () => {
+  const { io } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+  const conversation = fakeConversation({
+    participants: [userId, new mongoose.Types.ObjectId()],
+    unread: [{ user: userId, count: 2 }],
+  });
+
+  (Conversation as unknown as { findById: () => unknown }).findById = () =>
+    conversation;
+  (Message as unknown as { updateMany: () => Promise<unknown> }).updateMany =
+    async () => {
+      throw new Error('db unavailable');
+    };
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit<MessageReadAck>('message:read', {
+    conversationId: conversation._id.toString(),
+  });
+
+  assert.equal(ack.ok, false);
+  assert.equal(ack.error, 'Internal server error');
 });
