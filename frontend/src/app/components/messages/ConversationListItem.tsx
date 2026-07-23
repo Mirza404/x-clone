@@ -1,6 +1,8 @@
 import Avatar from '../ui/Avatar';
+import PresenceDot from './PresenceDot';
 import { relativeTime } from '@/app/utils/relativeTime';
 import { toHandle } from '@/app/utils/handle';
+import { useSocketContext } from '@/app/utils/SocketProvider';
 import type { ConversationSummary } from '@/app/types/Conversation';
 
 interface ConversationListItemProps {
@@ -15,6 +17,7 @@ export default function ConversationListItem({
   onSelect,
 }: ConversationListItemProps) {
   const { participant, lastMessage, lastMessageAt, unreadCount } = conversation;
+  const { onlineUsers } = useSocketContext();
   const name = participant?.name ?? 'Unknown user';
   const hasUnread = unreadCount > 0;
 
@@ -26,7 +29,12 @@ export default function ConversationListItem({
         isActive ? 'bg-hover' : ''
       }`}
     >
-      <Avatar src={participant?.image} alt={`${name}'s profile`} size="lg" />
+      <span className="relative flex-shrink-0">
+        <Avatar src={participant?.image} alt={`${name}'s profile`} size="lg" />
+        <PresenceDot
+          online={Boolean(participant && onlineUsers[participant.id])}
+        />
+      </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1 text-[15px]">
           <span className="truncate font-bold text-content">{name}</span>

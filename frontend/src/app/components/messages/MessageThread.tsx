@@ -9,8 +9,10 @@ import LoadCircle from '../ui/LoadCircle';
 import MessageBubble from './MessageBubble';
 import MessageComposer from './MessageComposer';
 import TypingIndicator from './TypingIndicator';
+import PresenceDot from './PresenceDot';
 import { useMessages } from '@/app/hooks/useMessages';
 import { useTyping } from '@/app/hooks/useTyping';
+import { useSocketContext } from '@/app/utils/SocketProvider';
 import type { ConversationParticipant } from '@/app/types/Conversation';
 
 interface MessageThreadProps {
@@ -36,6 +38,7 @@ export default function MessageThread({
   } = useMessages(conversationId);
   const { isPeerTyping, notifyTyping, stopTypingNow } =
     useTyping(conversationId);
+  const { onlineUsers } = useSocketContext();
   const { ref: topSentinelRef, inView: topInView } = useInView();
   const bottomRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
@@ -56,6 +59,9 @@ export default function MessageThread({
   }, [messages.length]);
 
   const name = participant?.name ?? 'Unknown user';
+  const isParticipantOnline = Boolean(
+    participant && onlineUsers[participant.id]
+  );
   const lastMineId = [...messages]
     .reverse()
     .find((message) => message.sender === currentUserId)?._id;
@@ -78,8 +84,20 @@ export default function MessageThread({
             <ArrowLeft className="h-5 w-5 text-content" />
           </button>
         )}
-        <Avatar src={participant?.image} alt={`${name}'s profile`} size="md" />
-        <span className="font-bold text-content">{name}</span>
+        <span className="relative flex-shrink-0">
+          <Avatar
+            src={participant?.image}
+            alt={`${name}'s profile`}
+            size="md"
+          />
+          <PresenceDot online={isParticipantOnline} />
+        </span>
+        <div className="flex flex-col">
+          <span className="font-bold text-content">{name}</span>
+          {isParticipantOnline && (
+            <span className="text-xs text-muted">Active now</span>
+          )}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import MessageThread from './MessageThread';
 import { useMessages } from '@/app/hooks/useMessages';
 import { useTyping } from '@/app/hooks/useTyping';
+import { useSocketContext } from '@/app/utils/SocketProvider';
 
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
@@ -16,6 +17,10 @@ jest.mock('@/app/hooks/useTyping', () => ({
   useTyping: jest.fn(),
 }));
 
+jest.mock('@/app/utils/SocketProvider', () => ({
+  useSocketContext: jest.fn(),
+}));
+
 jest.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: jest.fn(), inView: false }),
 }));
@@ -23,6 +28,7 @@ jest.mock('react-intersection-observer', () => ({
 const mockedUseSession = useSession as jest.Mock;
 const mockedUseMessages = useMessages as jest.Mock;
 const mockedUseTyping = useTyping as jest.Mock;
+const mockedUseSocketContext = useSocketContext as jest.Mock;
 
 function mockMessages(overrides: Partial<ReturnType<typeof useMessages>>) {
   mockedUseMessages.mockReturnValue({
@@ -53,6 +59,7 @@ describe('MessageThread', () => {
   beforeEach(() => {
     mockedUseSession.mockReturnValue({ data: { user: { id: 'me' } } });
     mockTyping();
+    mockedUseSocketContext.mockReturnValue({ onlineUsers: {} });
   });
 
   afterEach(() => {
@@ -183,6 +190,36 @@ describe('MessageThread', () => {
     );
 
     expect(screen.queryByText('Ada is typing')).not.toBeInTheDocument();
+  });
+
+  it('shows presence when the participant is online', () => {
+    mockMessages({});
+    mockedUseSocketContext.mockReturnValue({ onlineUsers: { 'user-2': true } });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    expect(screen.getByLabelText('Online')).toBeInTheDocument();
+    expect(screen.getByText('Active now')).toBeInTheDocument();
+  });
+
+  it('hides presence when the participant is offline', () => {
+    mockMessages({});
+    mockedUseSocketContext.mockReturnValue({ onlineUsers: {} });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    expect(screen.queryByLabelText('Online')).not.toBeInTheDocument();
+    expect(screen.queryByText('Active now')).not.toBeInTheDocument();
   });
 
   it('shows "Read" on the last own message once the peer has seen it', () => {

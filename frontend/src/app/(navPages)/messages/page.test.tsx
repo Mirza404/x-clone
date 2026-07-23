@@ -4,6 +4,7 @@ import MessagesPage from './page';
 import { useConversations } from '@/app/hooks/useConversations';
 import { useMessages } from '@/app/hooks/useMessages';
 import { useTyping } from '@/app/hooks/useTyping';
+import { useSocketContext } from '@/app/utils/SocketProvider';
 
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
@@ -21,6 +22,10 @@ jest.mock('@/app/hooks/useTyping', () => ({
   useTyping: jest.fn(),
 }));
 
+jest.mock('@/app/utils/SocketProvider', () => ({
+  useSocketContext: jest.fn(),
+}));
+
 jest.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: jest.fn(), inView: false }),
 }));
@@ -29,6 +34,7 @@ const mockedUseSession = useSession as jest.Mock;
 const mockedUseConversations = useConversations as jest.Mock;
 const mockedUseMessages = useMessages as jest.Mock;
 const mockedUseTyping = useTyping as jest.Mock;
+const mockedUseSocketContext = useSocketContext as jest.Mock;
 
 describe('MessagesPage', () => {
   beforeAll(() => {
@@ -49,6 +55,7 @@ describe('MessagesPage', () => {
       notifyTyping: jest.fn(),
       stopTypingNow: jest.fn(),
     });
+    mockedUseSocketContext.mockReturnValue({ onlineUsers: {} });
   });
 
   afterEach(() => {

@@ -1,6 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import ConversationList from './ConversationList';
+import { useSocketContext } from '@/app/utils/SocketProvider';
 import type { ConversationSummary } from '@/app/types/Conversation';
+
+jest.mock('@/app/utils/SocketProvider', () => ({
+  useSocketContext: jest.fn(),
+}));
+
+const mockedUseSocketContext = useSocketContext as jest.Mock;
 
 function makeConversation(id: string): ConversationSummary {
   return {
@@ -13,6 +20,14 @@ function makeConversation(id: string): ConversationSummary {
 }
 
 describe('ConversationList', () => {
+  beforeEach(() => {
+    mockedUseSocketContext.mockReturnValue({ onlineUsers: {} });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('shows a loading indicator while loading', () => {
     render(
       <ConversationList

@@ -1,6 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import ConversationListItem from './ConversationListItem';
+import { useSocketContext } from '@/app/utils/SocketProvider';
 import type { ConversationSummary } from '@/app/types/Conversation';
+
+jest.mock('@/app/utils/SocketProvider', () => ({
+  useSocketContext: jest.fn(),
+}));
+
+const mockedUseSocketContext = useSocketContext as jest.Mock;
 
 function makeConversation(
   overrides: Partial<ConversationSummary> = {}
@@ -16,6 +23,14 @@ function makeConversation(
 }
 
 describe('ConversationListItem', () => {
+  beforeEach(() => {
+    mockedUseSocketContext.mockReturnValue({ onlineUsers: {} });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('renders the participant name and last message preview', () => {
     render(
       <ConversationListItem
@@ -75,5 +90,33 @@ describe('ConversationListItem', () => {
 
     fireEvent.click(screen.getByRole('button'));
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a presence dot when the participant is online', () => {
+    mockedUseSocketContext.mockReturnValue({ onlineUsers: { 'user-2': true } });
+
+    render(
+      <ConversationListItem
+        conversation={makeConversation()}
+        isActive={false}
+        onSelect={jest.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText('Online')).toBeInTheDocument();
+  });
+
+  it('hides the presence dot when the participant is offline', () => {
+    mockedUseSocketContext.mockReturnValue({ onlineUsers: {} });
+
+    render(
+      <ConversationListItem
+        conversation={makeConversation()}
+        isActive={false}
+        onSelect={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByLabelText('Online')).not.toBeInTheDocument();
   });
 });
