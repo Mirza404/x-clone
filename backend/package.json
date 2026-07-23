@@ -14,7 +14,8 @@
     "test": "node scripts/run-tests.js",
     "test:coverage": "c8 node scripts/run-tests.js",
     "test:ci": "npm run typecheck && npm run test:coverage",
-    "seed": "ts-node scripts/seed.ts"
+    "seed": "ts-node scripts/seed.ts",
+    "seed:my-follows": "ts-node scripts/seed-my-follows.ts"
   },
   "keywords": [],
   "author": "",
