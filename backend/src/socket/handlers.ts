@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Conversation, { participantsKey } from '../models/Conversation';
 import Message from '../models/Message';
 import { hasObjectId, toObjectId } from '../utils/object-id';
+import { allow } from './rate-limit';
 
 interface MessageSendPayload {
   conversationId?: string;
@@ -200,6 +201,12 @@ function registerMessageHandlers(io: Server, socket: Socket): void {
     (raw: unknown, ack?: (response: MessageSendAck) => void) => {
       const respond = typeof ack === 'function' ? ack : () => {};
       const userId = socket.data.userId as string;
+
+      if (!allow(`message:send:${socket.id}`)) {
+        respond({ ok: false, error: 'Too many messages, slow down' });
+        return;
+      }
+
       const payload = isMessageSendPayload(raw) ? raw : {};
       const content =
         typeof payload.content === 'string' ? payload.content.trim() : '';

@@ -5,6 +5,7 @@ import { Server, Socket } from 'socket.io';
 import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { registerMessageHandlers } from './handlers';
+import { MAX_EVENTS, reset as resetRateLimit } from './rate-limit';
 
 type MessageSendAck = {
   ok: boolean;
@@ -54,6 +55,8 @@ function createIo(): { io: Server; emissions: Emission[] } {
   return { io, emissions };
 }
 
+let nextSocketId = 0;
+
 function createSocket(userId: string): {
   socket: Socket;
   emit: <TAck = MessageSendAck>(
@@ -63,7 +66,9 @@ function createSocket(userId: string): {
   emitWithoutAck: (event: string, payload: unknown) => void;
 } {
   const handlers = new Map<string, (...args: unknown[]) => void>();
+  nextSocketId += 1;
   const socket = {
+    id: `test-socket-${nextSocketId}`,
     data: { userId },
     on(event: string, handler: (...args: unknown[]) => void) {
       handlers.set(event, handler);
@@ -129,6 +134,25 @@ test('message:send rejects empty content without touching the database', async (
 
   assert.equal(ack.ok, false);
   assert.equal(findByIdCalled, false);
+});
+
+test('message:send rejects once the per-socket rate limit is exceeded', async () => {
+  const { io } = createIo();
+  const { socket, emit } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
+  registerMessageHandlers(io, socket);
+  resetRateLimit(`message:send:${socket.id}`);
+
+  for (let i = 0; i < MAX_EVENTS; i += 1) {
+    const ack = await emit('message:send', { content: '   ' });
+    assert.equal(ack.ok, false);
+    assert.notEqual(ack.error, 'Too many messages, slow down');
+  }
+
+  const limited = await emit('message:send', { content: '   ' });
+  assert.equal(limited.ok, false);
+  assert.equal(limited.error, 'Too many messages, slow down');
 });
 
 test('message:send rejects content over 2000 characters', async () => {
