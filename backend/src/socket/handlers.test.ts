@@ -218,6 +218,88 @@ test('message:send persists, bumps recipient unread, emits to both rooms, and ac
   assert.ok(emissions.every((e) => e.event === 'message:new'));
 });
 
+test('message:send acks an error when the conversation cannot be resolved', async () => {
+  const { io } = createIo();
+  const { socket, emit } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit('message:send', { content: 'hello' });
+
+  assert.equal(ack.ok, false);
+  assert.match(ack.error ?? '', /not found or recipient invalid/);
+});
+
+test('message:send acks an internal error when persistence throws', async () => {
+  const { io } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+  const conversation = fakeConversation({
+    participants: [userId, new mongoose.Types.ObjectId()],
+  });
+
+  (Conversation as unknown as { findById: () => unknown }).findById = () =>
+    conversation;
+  (Message as unknown as { create: () => Promise<unknown> }).create =
+    async () => {
+      throw new Error('db unavailable');
+    };
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit('message:send', {
+    conversationId: conversation._id.toString(),
+    content: 'hello',
+  });
+
+  assert.equal(ack.ok, false);
+  assert.equal(ack.error, 'Internal server error');
+});
+
+test('message:send works without an ack callback', async () => {
+  const { io } = createIo();
+  const { socket, emitWithoutAck } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
+  registerMessageHandlers(io, socket);
+
+  assert.doesNotThrow(() => {
+    emitWithoutAck('message:send', { content: 'no ack here' });
+  });
+});
+
+test('message:send reuses an existing conversation found via recipientId', async () => {
+  const { io } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+  const recipientId = new mongoose.Types.ObjectId();
+  const existing = fakeConversation({ participants: [userId, recipientId] });
+
+  (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
+    async () => existing;
+
+  const createdMessage = {
+    _id: new mongoose.Types.ObjectId(),
+    conversation: existing._id,
+    sender: userId,
+    content: 'hi',
+    createdAt: new Date(),
+  };
+  (Message as unknown as { create: () => Promise<unknown> }).create =
+    async () => createdMessage;
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit('message:send', {
+    recipientId: recipientId.toString(),
+    content: 'hi',
+  });
+
+  assert.equal(ack.ok, true);
+  assert.equal(ack.conversation, existing);
+});
+
 test('message:send get-or-creates a conversation via recipientId', async () => {
   const { io } = createIo();
   const userId = new mongoose.Types.ObjectId();
