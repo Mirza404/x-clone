@@ -3,11 +3,12 @@ import {
   getConversations,
   getOrCreateConversation,
   getConversationMessages,
+  markConversationRead,
 } from './messageApi';
 
 jest.mock('./apiClient', () => ({
   __esModule: true,
-  default: { get: jest.fn(), post: jest.fn() },
+  default: { get: jest.fn(), post: jest.fn(), patch: jest.fn() },
 }));
 
 const mockedApi = api as jest.Mocked<typeof api>;
@@ -96,5 +97,24 @@ describe('messageApi', () => {
       previousPage: undefined,
       messages: [],
     });
+  });
+
+  it('markConversationRead patches the read endpoint and returns true', async () => {
+    mockedApi.patch.mockResolvedValueOnce({ data: {} });
+
+    const result = await markConversationRead('conv-1');
+
+    expect(mockedApi.patch).toHaveBeenCalledWith(
+      '/api/message/conversations/conv-1/read'
+    );
+    expect(result).toBe(true);
+  });
+
+  it('markConversationRead returns false on error', async () => {
+    mockedApi.patch.mockRejectedValueOnce(new Error('network error'));
+
+    const result = await markConversationRead('conv-1');
+
+    expect(result).toBe(false);
   });
 });

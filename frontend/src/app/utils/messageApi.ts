@@ -16,6 +16,21 @@ export async function getConversations(): Promise<ConversationSummary[]> {
   }
 }
 
+export async function markConversationRead(
+  conversationId: string
+): Promise<boolean> {
+  try {
+    await api.patch(`/api/message/conversations/${conversationId}/read`);
+    return true;
+  } catch (error) {
+    console.error(
+      'Error marking conversation as read:',
+      getApiErrorMessage(error, 'Error')
+    );
+    return false;
+  }
+}
+
 export async function getOrCreateConversation(
   recipientId: string
 ): Promise<string | null> {
