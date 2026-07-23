@@ -21,6 +21,7 @@ import { Fragment } from 'react';
 import ProfileTab from './ProfileTab';
 import ThemeToggle from './ThemeToggle';
 import { usePostModal } from '@/app/utils/PostModalProvider';
+import { useConversations } from '@/app/hooks/useConversations';
 
 interface NavLinkItem {
   href: string;
@@ -46,7 +47,8 @@ function NavItem({
   label,
   icon: Icon,
   isActive,
-}: NavLinkItem & { isActive: boolean }) {
+  badgeCount,
+}: NavLinkItem & { isActive: boolean; badgeCount?: number }) {
   return (
     <li>
       <Link
@@ -55,10 +57,20 @@ function NavItem({
           isActive ? 'font-bold' : 'font-normal'
         }`}
       >
-        <Icon
-          className="h-[26px] w-[26px] flex-shrink-0"
-          strokeWidth={isActive ? 2.5 : 2}
-        />
+        <span className="relative flex-shrink-0">
+          <Icon
+            className="h-[26px] w-[26px]"
+            strokeWidth={isActive ? 2.5 : 2}
+          />
+          {Boolean(badgeCount) && (
+            <span
+              aria-label={`${badgeCount} unread messages`}
+              className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white"
+            >
+              {badgeCount && badgeCount > 9 ? '9+' : badgeCount}
+            </span>
+          )}
+        </span>
         <span className="text-xl">{label}</span>
       </Link>
     </li>
@@ -70,6 +82,9 @@ export default function NavMenu() {
   const router = useRouter();
   const { data: session } = useSession();
   const { openPostModal } = usePostModal();
+  const { data: conversations } = useConversations();
+  const unreadMessagesCount =
+    conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
 
   const handlePostClick = () => {
     if (!session) {
@@ -104,6 +119,9 @@ export default function NavMenu() {
               key={item.href}
               {...item}
               isActive={pathname === item.href}
+              badgeCount={
+                item.href === '/messages' ? unreadMessagesCount : undefined
+              }
             />
           ))}
           <li>
