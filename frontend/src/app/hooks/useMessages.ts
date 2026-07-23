@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   useInfiniteQuery,
   useQueryClient,
@@ -167,6 +167,14 @@ function useMessages(conversationId: string | null) {
     }
     markAsRead(conversationId);
   }, [conversationId, query.isSuccess, markAsRead]);
+
+  const wasConnected = useRef(connected);
+  useEffect(() => {
+    if (connected && !wasConnected.current && conversationId) {
+      void query.refetch();
+    }
+    wasConnected.current = connected;
+  }, [connected, conversationId, query]);
 
   useEffect(() => {
     if (!conversationId) {

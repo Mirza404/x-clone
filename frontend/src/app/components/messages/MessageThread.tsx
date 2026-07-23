@@ -38,7 +38,7 @@ export default function MessageThread({
   } = useMessages(conversationId);
   const { isPeerTyping, notifyTyping, stopTypingNow } =
     useTyping(conversationId);
-  const { onlineUsers } = useSocketContext();
+  const { onlineUsers, connected } = useSocketContext();
   const { ref: topSentinelRef, inView: topInView } = useInView();
   const bottomRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
@@ -99,6 +99,12 @@ export default function MessageThread({
           )}
         </div>
       </div>
+
+      {!connected && (
+        <div className="flex-shrink-0 bg-yellow-500/10 px-4 py-1.5 text-center text-xs text-yellow-600">
+          Reconnecting…
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (

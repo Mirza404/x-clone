@@ -386,6 +386,44 @@ describe('useMessages', () => {
     );
   });
 
+  it('refetches on reconnect to backfill any gap, but not on the initial connect', async () => {
+    mockedGetConversationMessages.mockResolvedValue({
+      nextPage: undefined,
+      previousPage: undefined,
+      messages: [makeMessage({ _id: 'm1' })],
+    });
+
+    const { rerender } = renderWithClient('conv-1');
+    await waitFor(() =>
+      expect(mockedGetConversationMessages).toHaveBeenCalledTimes(1)
+    );
+
+    mockedUseSocketContext.mockReturnValue({
+      emit,
+      connected: false,
+      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
+        handlers.set(event, handler);
+        return () => handlers.delete(event);
+      }),
+    });
+    rerender();
+    expect(mockedGetConversationMessages).toHaveBeenCalledTimes(1);
+
+    mockedUseSocketContext.mockReturnValue({
+      emit,
+      connected: true,
+      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
+        handlers.set(event, handler);
+        return () => handlers.delete(event);
+      }),
+    });
+    rerender();
+
+    await waitFor(() =>
+      expect(mockedGetConversationMessages).toHaveBeenCalledTimes(2)
+    );
+  });
+
   it('does nothing for blank content', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
