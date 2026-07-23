@@ -6,6 +6,7 @@ import './globals.css';
 import NavMenu from './components/ui/NavMenu';
 import SideBar from './components/ui/SideBar';
 import SessionProvider from './utils/SessionProvider';
+import SocketProvider from './utils/SocketProvider';
 import QueryProvider from '@/query-client-provider';
 import CustomToaster from './components/ui/CustomToaster';
 import MobilePostButton from './components/mobile/MobilePostButton';
@@ -51,43 +52,45 @@ export default async function RootLayout({
         <ThemeProvider>
           <QueryProvider>
             <SessionProvider>
-              <PostModalProvider>
-                {/* Mobile Header - Only visible on mobile */}
-                <MobileHeader />
+              <SocketProvider>
+                <PostModalProvider>
+                  {/* Mobile Header - Only visible on mobile */}
+                  <MobileHeader />
 
-                <div className="flex justify-center min-h-screen pb-14 md:pb-0">
-                  {/* Main content layout */}
-                  <div className="flex w-full max-w-[1265px] mx-auto">
-                    {/* Left navigation - Hidden on mobile */}
-                    <div className="hidden md:block w-[275px] flex-shrink-0">
-                      <NavMenu />
-                    </div>
+                  <div className="flex justify-center min-h-screen pb-14 md:pb-0">
+                    {/* Main content layout */}
+                    <div className="flex w-full max-w-[1265px] mx-auto">
+                      {/* Left navigation - Hidden on mobile */}
+                      <div className="hidden md:block w-[275px] flex-shrink-0">
+                        <NavMenu />
+                      </div>
 
-                    {/* Center content */}
-                    <main className="w-full md:w-[600px] min-h-screen border-x border-border">
-                      {/* Mobile Tabs - Only visible on mobile */}
-                      <MobileTabs />
+                      {/* Center content */}
+                      <main className="w-full md:w-[600px] min-h-screen border-x border-border">
+                        {/* Mobile Tabs - Only visible on mobile */}
+                        <MobileTabs />
 
-                      {children}
-                      {/* Page Content */}
+                        {children}
+                        {/* Page Content */}
 
-                      {/* Mobile Post Button - Only visible on mobile */}
-                      <MobilePostButton />
-                    </main>
+                        {/* Mobile Post Button - Only visible on mobile */}
+                        <MobilePostButton />
+                      </main>
 
-                    {/* Right sidebar - Hidden on mobile */}
-                    <div className="hidden md:block w-[350px] ml-2">
-                      <SideBar />
+                      {/* Right sidebar - Hidden on mobile */}
+                      <div className="hidden md:block w-[350px] ml-2">
+                        <SideBar />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Mobile Navigation Bar - Only visible on mobile */}
-                <MobileNavBar />
+                  {/* Mobile Navigation Bar - Only visible on mobile */}
+                  <MobileNavBar />
 
-                {/* Floating action buttons - desktop only */}
-                <FloatingActions />
-              </PostModalProvider>
+                  {/* Floating action buttons - desktop only */}
+                  <FloatingActions />
+                </PostModalProvider>
+              </SocketProvider>
             </SessionProvider>
           </QueryProvider>
         </ThemeProvider>
