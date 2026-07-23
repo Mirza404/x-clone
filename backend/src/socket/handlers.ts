@@ -21,7 +21,10 @@ function isMessageSendPayload(value: unknown): value is MessageSendPayload {
   return typeof value === 'object' && value !== null;
 }
 
-async function resolveConversation(payload: MessageSendPayload, userId: string) {
+async function resolveConversation(
+  payload: MessageSendPayload,
+  userId: string
+) {
   if (
     payload.conversationId &&
     mongoose.Types.ObjectId.isValid(payload.conversationId)

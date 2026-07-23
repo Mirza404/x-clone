@@ -95,7 +95,9 @@ function fakeConversation(
 
 test('message:send rejects empty content without touching the database', async () => {
   const { io } = createIo();
-  const { socket, emit } = createSocket(new mongoose.Types.ObjectId().toString());
+  const { socket, emit } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
   registerMessageHandlers(io, socket);
 
   let findByIdCalled = false;
@@ -104,7 +106,10 @@ test('message:send rejects empty content without touching the database', async (
     return null;
   };
 
-  const ack = await emit('message:send', { conversationId: 'irrelevant', content: '   ' });
+  const ack = await emit('message:send', {
+    conversationId: 'irrelevant',
+    content: '   ',
+  });
 
   assert.equal(ack.ok, false);
   assert.equal(findByIdCalled, false);
@@ -112,7 +117,9 @@ test('message:send rejects empty content without touching the database', async (
 
 test('message:send rejects content over 2000 characters', async () => {
   const { io } = createIo();
-  const { socket, emit } = createSocket(new mongoose.Types.ObjectId().toString());
+  const { socket, emit } = createSocket(
+    new mongoose.Types.ObjectId().toString()
+  );
   registerMessageHandlers(io, socket);
 
   const ack = await emit('message:send', {
@@ -127,7 +134,10 @@ test('message:send rejects a conversationId the sender is not a participant of',
   const { io } = createIo();
   const userId = new mongoose.Types.ObjectId().toString();
   const conversation = fakeConversation({
-    participants: [new mongoose.Types.ObjectId(), new mongoose.Types.ObjectId()],
+    participants: [
+      new mongoose.Types.ObjectId(),
+      new mongoose.Types.ObjectId(),
+    ],
   });
 
   (Conversation as unknown as { findById: () => unknown }).findById = () =>
@@ -202,11 +212,12 @@ test('message:send get-or-creates a conversation via recipientId', async () => {
 
   let createArgs: unknown;
   const created = fakeConversation({ participants: [userId, recipientId] });
-  (Conversation as unknown as { create: (args: unknown) => Promise<unknown> }).create =
-    async (args) => {
-      createArgs = args;
-      return created;
-    };
+  (
+    Conversation as unknown as { create: (args: unknown) => Promise<unknown> }
+  ).create = async (args) => {
+    createArgs = args;
+    return created;
+  };
 
   const createdMessage = {
     _id: new mongoose.Types.ObjectId(),
