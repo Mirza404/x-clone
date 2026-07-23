@@ -124,6 +124,60 @@ describe('useSocket', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
+  it('tracks a presence event in onlineUsers', () => {
+    const fakeSocket = createFakeSocket();
+    mockedGetSocket.mockReturnValue(fakeSocket);
+    mockedUseSession.mockReturnValue({ status: 'authenticated' });
+
+    const { result } = renderHook(() => useSocket());
+
+    expect(result.current.onlineUsers).toEqual({});
+
+    act(() => {
+      fakeSocket.trigger('presence', { userId: 'user-2', online: true });
+    });
+
+    expect(result.current.onlineUsers).toEqual({ 'user-2': true });
+
+    act(() => {
+      fakeSocket.trigger('presence', { userId: 'user-2', online: false });
+    });
+
+    expect(result.current.onlineUsers).toEqual({ 'user-2': false });
+  });
+
+  it('tracks multiple users independently in onlineUsers', () => {
+    const fakeSocket = createFakeSocket();
+    mockedGetSocket.mockReturnValue(fakeSocket);
+    mockedUseSession.mockReturnValue({ status: 'authenticated' });
+
+    const { result } = renderHook(() => useSocket());
+
+    act(() => {
+      fakeSocket.trigger('presence', { userId: 'user-2', online: true });
+      fakeSocket.trigger('presence', { userId: 'user-3', online: true });
+    });
+
+    expect(result.current.onlineUsers).toEqual({
+      'user-2': true,
+      'user-3': true,
+    });
+  });
+
+  it('ignores a malformed presence event', () => {
+    const fakeSocket = createFakeSocket();
+    mockedGetSocket.mockReturnValue(fakeSocket);
+    mockedUseSession.mockReturnValue({ status: 'authenticated' });
+
+    const { result } = renderHook(() => useSocket());
+
+    act(() => {
+      fakeSocket.trigger('presence', { userId: 'user-2' });
+    });
+
+    expect(result.current.onlineUsers).toEqual({});
+  });
+
   it('disconnects on unmount', () => {
     const fakeSocket = createFakeSocket();
     mockedGetSocket.mockReturnValue(fakeSocket);

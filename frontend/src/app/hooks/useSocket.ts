@@ -8,6 +8,7 @@ import { getSocket } from '../lib/socket';
 interface UseSocketResult {
   socket: Socket;
   connected: boolean;
+  onlineUsers: Record<string, boolean>;
   emit: <TPayload, TAck = unknown>(
     event: string,
     payload: TPayload,
@@ -19,10 +20,25 @@ interface UseSocketResult {
   ) => () => void;
 }
 
+interface PresenceEvent {
+  userId: string;
+  online: boolean;
+}
+
+function isPresenceEvent(value: unknown): value is PresenceEvent {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { userId?: unknown }).userId === 'string' &&
+    typeof (value as { online?: unknown }).online === 'boolean'
+  );
+}
+
 function useSocket(): UseSocketResult {
   const { status } = useSession();
   const socket = getSocket();
   const [connected, setConnected] = useState(socket.connected);
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const handleConnect = () => setConnected(true);
@@ -34,6 +50,20 @@ function useSocket(): UseSocketResult {
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    const handlePresence = (raw: unknown) => {
+      if (!isPresenceEvent(raw)) {
+        return;
+      }
+      setOnlineUsers((prev) => ({ ...prev, [raw.userId]: raw.online }));
+    };
+
+    socket.on('presence', handlePresence);
+    return () => {
+      socket.off('presence', handlePresence);
     };
   }, [socket]);
 
@@ -72,7 +102,7 @@ function useSocket(): UseSocketResult {
     [socket]
   );
 
-  return { socket, connected, emit, subscribe };
+  return { socket, connected, onlineUsers, emit, subscribe };
 }
 
 export { useSocket };
