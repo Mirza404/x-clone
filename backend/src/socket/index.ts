@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import type { Server as HttpServer } from 'http';
 import { socketAuthMiddleware } from './auth';
+import { registerMessageHandlers } from './handlers';
 
 function initSocket(server: HttpServer): Server {
   const io = new Server(server, {
@@ -12,6 +13,7 @@ function initSocket(server: HttpServer): Server {
   io.on('connection', (socket) => {
     const userId = socket.data.userId as string;
     socket.join(`user:${userId}`);
+    registerMessageHandlers(io, socket);
   });
 
   return io;
