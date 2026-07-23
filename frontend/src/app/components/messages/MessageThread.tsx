@@ -52,6 +52,9 @@ export default function MessageThread({
   }, [messages.length]);
 
   const name = participant?.name ?? 'Unknown user';
+  const lastMineId = [...messages]
+    .reverse()
+    .find((message) => message.sender === currentUserId)?._id;
 
   return (
     <div className="flex h-[75vh] min-h-[400px] flex-col">
@@ -84,6 +87,11 @@ export default function MessageThread({
                   key={message._id}
                   message={message}
                   isMine={message.sender === currentUserId}
+                  seenByPeer={
+                    message._id === lastMineId &&
+                    Boolean(participant) &&
+                    message.readBy.includes(participant?.id as string)
+                  }
                 />
               ))}
             </div>

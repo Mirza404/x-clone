@@ -100,6 +100,74 @@ describe('MessageThread', () => {
     expect(sendMessage).toHaveBeenCalledWith('hi there');
   });
 
+  it('shows "Read" on the last own message once the peer has seen it', () => {
+    mockMessages({
+      messages: [
+        {
+          _id: 'm1',
+          conversation: 'conv-1',
+          sender: 'me',
+          content: 'hi',
+          readBy: [],
+          deliveredTo: [],
+          createdAt: new Date(0).toISOString(),
+        },
+        {
+          _id: 'm2',
+          conversation: 'conv-1',
+          sender: 'me',
+          content: 'you there?',
+          readBy: ['user-2'],
+          deliveredTo: [],
+          createdAt: new Date(1).toISOString(),
+        },
+      ],
+    });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    expect(screen.getByText('Read')).toBeInTheDocument();
+  });
+
+  it('does not show "Read" on an earlier own message even if it was read', () => {
+    mockMessages({
+      messages: [
+        {
+          _id: 'm1',
+          conversation: 'conv-1',
+          sender: 'me',
+          content: 'hi',
+          readBy: ['user-2'],
+          deliveredTo: [],
+          createdAt: new Date(0).toISOString(),
+        },
+        {
+          _id: 'm2',
+          conversation: 'conv-1',
+          sender: 'me',
+          content: 'you there?',
+          readBy: [],
+          deliveredTo: [],
+          createdAt: new Date(1).toISOString(),
+        },
+      ],
+    });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    expect(screen.queryByText('Read')).not.toBeInTheDocument();
+  });
+
   it('renders a back button that calls onBack when provided', () => {
     mockMessages({});
     const onBack = jest.fn();

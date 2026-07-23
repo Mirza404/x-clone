@@ -4,9 +4,14 @@ import type { Message } from '@/app/types/Message';
 interface MessageBubbleProps {
   message: Message;
   isMine: boolean;
+  seenByPeer?: boolean;
 }
 
-export default function MessageBubble({ message, isMine }: MessageBubbleProps) {
+export default function MessageBubble({
+  message,
+  isMine,
+  seenByPeer,
+}: MessageBubbleProps) {
   return (
     <div
       className={`flex w-full px-4 py-1 ${isMine ? 'justify-end' : 'justify-start'}`}
@@ -24,7 +29,8 @@ export default function MessageBubble({ message, isMine }: MessageBubbleProps) {
         >
           {message.status === 'sending' && 'Sending…'}
           {message.status === 'failed' && 'Failed to send'}
-          {!message.status && relativeTime(message.createdAt)}
+          {!message.status &&
+            (seenByPeer ? 'Read' : relativeTime(message.createdAt))}
         </span>
       </div>
     </div>

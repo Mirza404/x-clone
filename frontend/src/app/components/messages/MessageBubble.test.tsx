@@ -40,4 +40,18 @@ describe('MessageBubble', () => {
     );
     expect(screen.getByText('Failed to send')).toBeInTheDocument();
   });
+
+  it('shows "Read" when seenByPeer is true', () => {
+    render(
+      <MessageBubble message={makeMessage()} isMine={true} seenByPeer={true} />
+    );
+    expect(screen.getByText('Read')).toBeInTheDocument();
+  });
+
+  it('shows the relative time when not seen', () => {
+    render(
+      <MessageBubble message={makeMessage()} isMine={true} seenByPeer={false} />
+    );
+    expect(screen.queryByText('Read')).not.toBeInTheDocument();
+  });
 });
