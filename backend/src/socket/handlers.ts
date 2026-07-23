@@ -17,7 +17,20 @@ interface MessageSendAck {
   error?: string;
 }
 
+interface MessageReadPayload {
+  conversationId?: string;
+}
+
+interface MessageReadAck {
+  ok: boolean;
+  error?: string;
+}
+
 function isMessageSendPayload(value: unknown): value is MessageSendPayload {
+  return typeof value === 'object' && value !== null;
+}
+
+function isMessageReadPayload(value: unknown): value is MessageReadPayload {
   return typeof value === 'object' && value !== null;
 }
 
@@ -122,6 +135,65 @@ async function handleMessageSend(
   }
 }
 
+async function handleMessageRead(
+  io: Server,
+  userId: string,
+  conversationId: string,
+  respond: (response: MessageReadAck) => void
+): Promise<void> {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+      respond({ ok: false, error: 'Valid conversationId is required' });
+      return;
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      respond({ ok: false, error: 'Conversation not found' });
+      return;
+    }
+
+    if (!hasObjectId(conversation.participants, userId)) {
+      respond({
+        ok: false,
+        error: 'You are not a participant of this conversation',
+      });
+      return;
+    }
+
+    const unreadEntry = conversation.unread.find(
+      (entry) => entry.user.toString() === userId
+    );
+    if (unreadEntry) {
+      unreadEntry.count = 0;
+      await conversation.save();
+    }
+
+    await Message.updateMany(
+      { conversation: conversationId, readBy: { $ne: toObjectId(userId) } },
+      { $addToSet: { readBy: toObjectId(userId) } }
+    );
+
+    const recipient = conversation.participants.find(
+      (participant) => participant.toString() !== userId
+    );
+
+    if (recipient) {
+      io.to(`user:${recipient.toString()}`).emit('message:read', {
+        conversationId,
+        userId,
+        readAt: new Date().toISOString(),
+      });
+    }
+
+    respond({ ok: true });
+  } catch (e) {
+    console.error('Error handling message:read:', e);
+    respond({ ok: false, error: 'Internal server error' });
+  }
+}
+
 function registerMessageHandlers(io: Server, socket: Socket): void {
   socket.on(
     'message:send',
@@ -141,6 +213,22 @@ function registerMessageHandlers(io: Server, socket: Socket): void {
       }
 
       void handleMessageSend(io, userId, payload, content, respond);
+    }
+  );
+
+  socket.on(
+    'message:read',
+    (raw: unknown, ack?: (response: MessageReadAck) => void) => {
+      const respond = typeof ack === 'function' ? ack : () => {};
+      const userId = socket.data.userId as string;
+      const payload = isMessageReadPayload(raw) ? raw : {};
+
+      if (typeof payload.conversationId !== 'string') {
+        respond({ ok: false, error: 'Valid conversationId is required' });
+        return;
+      }
+
+      void handleMessageRead(io, userId, payload.conversationId, respond);
     }
   );
 }
