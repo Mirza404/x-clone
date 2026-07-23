@@ -3,11 +3,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { getConversations } from '../utils/messageApi';
 
+const CONVERSATIONS_QUERY_KEY = ['conversations'] as const;
+
 function useConversations() {
   return useQuery({
-    queryKey: ['conversations'],
+    queryKey: CONVERSATIONS_QUERY_KEY,
     queryFn: getConversations,
   });
 }
 
-export { useConversations };
+export { useConversations, CONVERSATIONS_QUERY_KEY };

@@ -7,9 +7,14 @@ import {
   InfiniteData,
 } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { getConversationMessages } from '../utils/messageApi';
+import {
+  getConversationMessages,
+  markConversationRead,
+} from '../utils/messageApi';
 import { useSocketContext } from '../utils/SocketProvider';
+import { CONVERSATIONS_QUERY_KEY } from './useConversations';
 import type { Message } from '../types/Message';
+import type { ConversationSummary } from '../types/Conversation';
 
 type MessagesPage = Awaited<ReturnType<typeof getConversationMessages>>;
 type MessagesData = InfiniteData<MessagesPage, number>;
@@ -91,9 +96,9 @@ function markFailed(pages: MessagesPage[], tempId: string): MessagesPage[] {
 }
 
 function useMessages(conversationId: string | null) {
+  const { emit, subscribe, connected } = useSocketContext();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
-  const { emit, subscribe } = useSocketContext();
   const currentUserId = session?.user?.id ?? '';
   const queryKey = useMemo(
     () => ['messages', conversationId] as const,
@@ -108,6 +113,34 @@ function useMessages(conversationId: string | null) {
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: Boolean(conversationId),
   });
+
+  const markAsRead = useCallback(
+    (id: string) => {
+      if (connected) {
+        emit('message:read', { conversationId: id });
+      } else {
+        void markConversationRead(id);
+      }
+
+      queryClient.setQueryData<ConversationSummary[]>(
+        CONVERSATIONS_QUERY_KEY,
+        (current) =>
+          current?.map((conversation) =>
+            conversation.id === id
+              ? { ...conversation, unreadCount: 0 }
+              : conversation
+          )
+      );
+    },
+    [connected, emit, queryClient]
+  );
+
+  useEffect(() => {
+    if (!conversationId || !query.isSuccess) {
+      return;
+    }
+    markAsRead(conversationId);
+  }, [conversationId, query.isSuccess, markAsRead]);
 
   useEffect(() => {
     if (!conversationId) {
@@ -131,8 +164,19 @@ function useMessages(conversationId: string | null) {
           pages: upsertMessage(current.pages, raw.message, currentUserId),
         };
       });
+
+      if (raw.message.sender !== currentUserId) {
+        markAsRead(conversationId);
+      }
     });
-  }, [conversationId, subscribe, queryClient, currentUserId, queryKey]);
+  }, [
+    conversationId,
+    subscribe,
+    queryClient,
+    currentUserId,
+    queryKey,
+    markAsRead,
+  ]);
 
   const messages = (query.data?.pages ?? [])
     .slice()

@@ -2,7 +2,10 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
-import { getConversationMessages } from '../utils/messageApi';
+import {
+  getConversationMessages,
+  markConversationRead,
+} from '../utils/messageApi';
 import { useSocketContext } from '../utils/SocketProvider';
 import { useMessages } from './useMessages';
 import type { Message } from '../types/Message';
@@ -13,6 +16,7 @@ jest.mock('next-auth/react', () => ({
 
 jest.mock('../utils/messageApi', () => ({
   getConversationMessages: jest.fn(),
+  markConversationRead: jest.fn(),
 }));
 
 jest.mock('../utils/SocketProvider', () => ({
@@ -21,6 +25,7 @@ jest.mock('../utils/SocketProvider', () => ({
 
 const mockedUseSession = useSession as jest.Mock;
 const mockedGetConversationMessages = getConversationMessages as jest.Mock;
+const mockedMarkConversationRead = markConversationRead as jest.Mock;
 const mockedUseSocketContext = useSocketContext as jest.Mock;
 
 function makeMessage(overrides: Partial<Message> = {}): Message {
@@ -36,14 +41,19 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
   };
 }
 
-function renderWithClient(conversationId: string | null) {
-  const queryClient = new QueryClient({
+function renderWithClient(
+  conversationId: string | null,
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
+  })
+) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return renderHook(() => useMessages(conversationId), { wrapper });
+  return {
+    ...renderHook(() => useMessages(conversationId), { wrapper }),
+    queryClient,
+  };
 }
 
 describe('useMessages', () => {
@@ -54,8 +64,10 @@ describe('useMessages', () => {
     mockedUseSession.mockReturnValue({ data: { user: { id: 'me' } } });
     handlers = new Map();
     emit = jest.fn();
+    mockedMarkConversationRead.mockResolvedValue(true);
     mockedUseSocketContext.mockReturnValue({
       emit,
+      connected: true,
       subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
         handlers.set(event, handler);
         return () => handlers.delete(event);
@@ -136,6 +148,140 @@ describe('useMessages', () => {
     expect(result.current.messages).toHaveLength(1);
   });
 
+  it('zeroes the cached unreadCount for this conversation once marked read', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(
+      ['conversations'],
+      [
+        { id: 'conv-1', unreadCount: 3 },
+        { id: 'conv-2', unreadCount: 5 },
+      ]
+    );
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      previousPage: undefined,
+      messages: [makeMessage({ _id: 'm1' })],
+    });
+
+    renderWithClient('conv-1', queryClient);
+
+    await waitFor(() =>
+      expect(
+        (
+          queryClient.getQueryData(['conversations']) as Array<{
+            id: string;
+            unreadCount: number;
+          }>
+        ).find((c) => c.id === 'conv-1')?.unreadCount
+      ).toBe(0)
+    );
+    expect(
+      (
+        queryClient.getQueryData(['conversations']) as Array<{
+          id: string;
+          unreadCount: number;
+        }>
+      ).find((c) => c.id === 'conv-2')?.unreadCount
+    ).toBe(5);
+  });
+
+  it('marks the conversation read over the socket once loaded', async () => {
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      previousPage: undefined,
+      messages: [makeMessage({ _id: 'm1' })],
+    });
+
+    renderWithClient('conv-1');
+
+    await waitFor(() =>
+      expect(emit).toHaveBeenCalledWith('message:read', {
+        conversationId: 'conv-1',
+      })
+    );
+    expect(mockedMarkConversationRead).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the REST endpoint to mark read when the socket is disconnected', async () => {
+    mockedUseSocketContext.mockReturnValue({
+      emit,
+      connected: false,
+      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
+        handlers.set(event, handler);
+        return () => handlers.delete(event);
+      }),
+    });
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      previousPage: undefined,
+      messages: [makeMessage({ _id: 'm1' })],
+    });
+
+    renderWithClient('conv-1');
+
+    await waitFor(() =>
+      expect(mockedMarkConversationRead).toHaveBeenCalledWith('conv-1')
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('marks the conversation read again when a live message arrives from the other user', async () => {
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      previousPage: undefined,
+      messages: [makeMessage({ _id: 'm1' })],
+    });
+
+    renderWithClient('conv-1');
+    await waitFor(() =>
+      expect(emit).toHaveBeenCalledWith('message:read', {
+        conversationId: 'conv-1',
+      })
+    );
+    emit.mockClear();
+
+    act(() => {
+      handlers.get('message:new')?.({
+        message: makeMessage({ _id: 'm2', sender: 'other-user' }),
+      });
+    });
+
+    await waitFor(() =>
+      expect(emit).toHaveBeenCalledWith('message:read', {
+        conversationId: 'conv-1',
+      })
+    );
+  });
+
+  it('does not re-mark read for a live message the current user sent', async () => {
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      previousPage: undefined,
+      messages: [makeMessage({ _id: 'm1' })],
+    });
+
+    renderWithClient('conv-1');
+    await waitFor(() =>
+      expect(emit).toHaveBeenCalledWith('message:read', {
+        conversationId: 'conv-1',
+      })
+    );
+    emit.mockClear();
+
+    act(() => {
+      handlers.get('message:new')?.({
+        message: makeMessage({ _id: 'm2', sender: 'me' }),
+      });
+    });
+
+    expect(emit).not.toHaveBeenCalled();
+  });
+
   it('sendMessage optimistically appends then reconciles with the ack', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
@@ -153,7 +299,10 @@ describe('useMessages', () => {
     await waitFor(() => expect(result.current.messages).toHaveLength(1));
     expect(result.current.messages[0].status).toBe('sending');
 
-    const [, , ack] = emit.mock.calls[0];
+    const sendCall = emit.mock.calls.find(
+      ([event]) => event === 'message:send'
+    );
+    const [, , ack] = sendCall as [string, unknown, (ack: unknown) => void];
     act(() => {
       ack({
         ok: true,
@@ -182,7 +331,10 @@ describe('useMessages', () => {
 
     await waitFor(() => expect(result.current.messages).toHaveLength(1));
 
-    const [, , ack] = emit.mock.calls[0];
+    const sendCall = emit.mock.calls.find(
+      ([event]) => event === 'message:send'
+    );
+    const [, , ack] = sendCall as [string, unknown, (ack: unknown) => void];
     act(() => {
       ack({ ok: false, error: 'nope' });
     });
@@ -201,12 +353,21 @@ describe('useMessages', () => {
 
     const { result } = renderWithClient('conv-1');
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() =>
+      expect(emit).toHaveBeenCalledWith('message:read', {
+        conversationId: 'conv-1',
+      })
+    );
 
     act(() => {
       result.current.sendMessage('   ');
     });
 
-    expect(emit).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalledWith(
+      'message:send',
+      expect.anything(),
+      expect.anything()
+    );
     expect(result.current.messages).toHaveLength(0);
   });
 });
