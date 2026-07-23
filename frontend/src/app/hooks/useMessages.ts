@@ -37,12 +37,38 @@ interface NewMessageEvent {
   message: Message;
 }
 
+interface MessageReadEvent {
+  conversationId: string;
+  userId: string;
+}
+
 function isNewMessageEvent(value: unknown): value is NewMessageEvent {
   return (
     typeof value === 'object' &&
     value !== null &&
     typeof (value as { message?: unknown }).message === 'object'
   );
+}
+
+function isMessageReadEvent(value: unknown): value is MessageReadEvent {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { conversationId?: unknown }).conversationId ===
+      'string' &&
+    typeof (value as { userId?: unknown }).userId === 'string'
+  );
+}
+
+function markAllRead(pages: MessagesPage[], readerId: string): MessagesPage[] {
+  return pages.map((page) => ({
+    ...page,
+    messages: page.messages.map((m) =>
+      m.readBy.includes(readerId)
+        ? m
+        : { ...m, readBy: [...m.readBy, readerId] }
+    ),
+  }));
 }
 
 function upsertMessage(
@@ -177,6 +203,28 @@ function useMessages(conversationId: string | null) {
     queryKey,
     markAsRead,
   ]);
+
+  useEffect(() => {
+    if (!conversationId) {
+      return;
+    }
+
+    return subscribe('message:read', (raw: unknown) => {
+      if (!isMessageReadEvent(raw) || raw.conversationId !== conversationId) {
+        return;
+      }
+
+      queryClient.setQueryData<MessagesData>(queryKey, (current) => {
+        if (!current) {
+          return current;
+        }
+        return {
+          ...current,
+          pages: markAllRead(current.pages, raw.userId),
+        };
+      });
+    });
+  }, [conversationId, subscribe, queryClient, queryKey]);
 
   const messages = (query.data?.pages ?? [])
     .slice()

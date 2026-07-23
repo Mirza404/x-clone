@@ -282,6 +282,48 @@ describe('useMessages', () => {
     expect(emit).not.toHaveBeenCalled();
   });
 
+  it('applies a message:read event by adding the reader to readBy', async () => {
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      previousPage: undefined,
+      messages: [makeMessage({ _id: 'm1', sender: 'me', readBy: [] })],
+    });
+
+    const { result } = renderWithClient('conv-1');
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+
+    act(() => {
+      handlers.get('message:read')?.({
+        conversationId: 'conv-1',
+        userId: 'other-user',
+      });
+    });
+
+    await waitFor(() =>
+      expect(result.current.messages[0].readBy).toContain('other-user')
+    );
+  });
+
+  it('ignores a message:read event for a different conversation', async () => {
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      previousPage: undefined,
+      messages: [makeMessage({ _id: 'm1', sender: 'me', readBy: [] })],
+    });
+
+    const { result } = renderWithClient('conv-1');
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+
+    act(() => {
+      handlers.get('message:read')?.({
+        conversationId: 'conv-other',
+        userId: 'other-user',
+      });
+    });
+
+    expect(result.current.messages[0].readBy).toEqual([]);
+  });
+
   it('sendMessage optimistically appends then reconciles with the ack', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
