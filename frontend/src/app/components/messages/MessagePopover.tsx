@@ -52,7 +52,6 @@ export default function MessagePopover({ onClose }: MessagePopoverProps) {
           <MessageThread
             conversationId={selected.id}
             participant={selected.participant}
-            compact
           />
         ) : (
           <ConversationList
