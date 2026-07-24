@@ -44,9 +44,7 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      <div
-        className={`flex-1 md:block ${selectedId ? 'block' : 'hidden'}`}
-      >
+      <div className={`flex-1 md:block ${selectedId ? 'block' : 'hidden'}`}>
         {selected ? (
           <MessageThread
             conversationId={selected.id}
