@@ -13,29 +13,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  format:
-    name: Format
+  checks:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Format
+            script: format:check
+          - name: Lint
+            script: lint
+          - name: Typecheck
+            script: typecheck
+          - name: Dependency Audit
+            script: deps:check
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install-deps
-      - run: npm run format:check
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-deps
-      - run: npm run lint
-
-  typecheck:
-    name: Typecheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-deps
-      - run: npm run typecheck
+      - run: npm run ${{ matrix.script }}
 
   test:
     name: Test
@@ -83,14 +79,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install-deps
       - run: npm run build
-
-  dependency-audit:
-    name: Dependency Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-deps
-      - run: npm run deps:check
 
   secret-scan:
     name: Secret Scan
