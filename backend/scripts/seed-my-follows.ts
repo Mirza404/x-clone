@@ -78,7 +78,8 @@ async function seedConversation(
 
   const inserted = await Message.insertMany(messages);
   const lastMessage = inserted[inserted.length - 1];
-  const lastMessageIsUnreadForMe = lastMessage.sender.toString() !== myId.toString();
+  const lastMessageIsUnreadForMe =
+    lastMessage.sender.toString() !== myId.toString();
 
   await Conversation.updateOne(
     { _id: conversation._id },
@@ -140,12 +141,24 @@ async function main() {
 
     await Follow.updateOne(
       { follower: myId, following: otherId },
-      { $setOnInsert: { follower: myId, following: otherId, createdAt: new Date() } },
+      {
+        $setOnInsert: {
+          follower: myId,
+          following: otherId,
+          createdAt: new Date(),
+        },
+      },
       { upsert: true }
     );
     await Follow.updateOne(
       { follower: otherId, following: myId },
-      { $setOnInsert: { follower: otherId, following: myId, createdAt: new Date() } },
+      {
+        $setOnInsert: {
+          follower: otherId,
+          following: myId,
+          createdAt: new Date(),
+        },
+      },
       { upsert: true }
     );
 

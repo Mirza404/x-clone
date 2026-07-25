@@ -12,7 +12,7 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "types": ["jest"], // Add this line
+    "types": ["jest"],
     "baseUrl": ".",
     "plugins": [
       {

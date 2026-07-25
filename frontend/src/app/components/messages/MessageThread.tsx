@@ -19,14 +19,12 @@ interface MessageThreadProps {
   conversationId: string;
   participant: ConversationParticipant | null;
   onBack?: () => void;
-  compact?: boolean;
 }
 
 export default function MessageThread({
   conversationId,
   participant,
   onBack,
-  compact = false,
 }: MessageThreadProps) {
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? '';
@@ -74,9 +72,7 @@ export default function MessageThread({
   };
 
   return (
-    <div
-      className={`flex flex-col ${compact ? 'h-full' : 'h-[75vh] min-h-[400px]'}`}
-    >
+    <div className="flex h-full flex-col">
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-border p-4">
         {onBack && (
           <button
