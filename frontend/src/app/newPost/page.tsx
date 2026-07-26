@@ -7,7 +7,6 @@ import toast from 'react-hot-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { Smile, Calendar, MapPin, ListOrdered } from 'lucide-react';
-import CustomToaster from '../components/ui/CustomToaster';
 import LoadingBar from '../components/ui/CustomLoadBar';
 import FileUpload from '../utils/FileUpload';
 import IconButton from '../components/ui/IconButton';
@@ -230,6 +229,7 @@ const NewPostPage = () => {
                           loading || content.trim() === '',
                       }
                     )}
+                    type="button"
                     onClick={() => newPostMutation.mutate()}
                     disabled={loading || content.trim() === ''}
                   >
@@ -241,7 +241,6 @@ const NewPostPage = () => {
           </div>
         </div>
       </div>
-      <CustomToaster />
     </>
   );
 };

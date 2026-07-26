@@ -30,26 +30,31 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
   };
 
   const handleSubmit = () => {
-    if (content.trim()) {
-      setLoading(true);
-      newReplyMutation.mutate(
-        {
-          postId: postId, // This will be handled by the mutation hook
-          parentCommentId,
-          content,
-        },
-        {
-          onSuccess: () => {
-            setContent('');
-            setLoading(false);
-          },
-          onError: () => {
-            toast.error('Failed to post reply. Please try again.');
-            setLoading(false);
-          },
-        }
-      );
+    if (!content.trim()) return;
+
+    if (!session?.user) {
+      toast('Sign in to reply');
+      return;
     }
+
+    setLoading(true);
+    newReplyMutation.mutate(
+      {
+        postId: postId, // This will be handled by the mutation hook
+        parentCommentId,
+        content,
+      },
+      {
+        onSuccess: () => {
+          setContent('');
+          setLoading(false);
+        },
+        onError: () => {
+          toast.error('Failed to post reply. Please try again.');
+          setLoading(false);
+        },
+      }
+    );
   };
 
   return (
@@ -115,6 +120,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
                           loading || content.trim() === '',
                       }
                     )}
+                    type="button"
                     onClick={handleSubmit}
                     disabled={loading || content.trim() === ''}
                   >
