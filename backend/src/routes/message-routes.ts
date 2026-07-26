@@ -6,11 +6,17 @@ import {
   markConversationRead,
 } from '../controllers/message-controller';
 import { requireAuth } from '../middleware/require-auth';
+import { writeLimiter } from '../middleware/rate-limit';
 
 const messageRoutes = Router();
 
 messageRoutes.get('/conversations', requireAuth, listConversations);
-messageRoutes.post('/conversations', requireAuth, createConversation);
+messageRoutes.post(
+  '/conversations',
+  requireAuth,
+  writeLimiter,
+  createConversation
+);
 messageRoutes.get(
   '/conversations/:id/messages',
   requireAuth,

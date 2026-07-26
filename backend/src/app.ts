@@ -4,6 +4,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import appRouter from './routes';
 import { connectToDatabase } from './db/connection';
+import { apiLimiter } from './middleware/rate-limit';
 
 const app = express();
 config();
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 connectToMongo();
 
+app.use('/api', apiLimiter);
 app.use('/api', appRouter);
 
 export default app;

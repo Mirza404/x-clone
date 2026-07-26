@@ -25,6 +25,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.1",
+    "express-rate-limit": "^8.6.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^5.9.2",
     "mongoose": "^8.24.1",
