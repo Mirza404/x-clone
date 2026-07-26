@@ -61,7 +61,7 @@ export default async function RootLayout({
                     {/* Main content layout */}
                     <div className="flex w-full max-w-[1265px] mx-auto">
                       {/* Left navigation - Hidden on mobile */}
-                      <div className="hidden md:block w-[275px] flex-shrink-0">
+                      <div className="hidden md:block w-[275px] flex-shrink-0 mr-2">
                         <NavMenu />
                       </div>
 
