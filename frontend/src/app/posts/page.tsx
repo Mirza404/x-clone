@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import NewPostPage from '../newPost/page';
 import PostListInfinite from '../components/posts/PostListInfinite';
-import CustomToaster from '../components/ui/CustomToaster';
 import FeedTabs from '../components/feed/FeedTabs';
 import EmptyState from '../components/ui/EmptyState';
 
@@ -24,7 +23,6 @@ export default function PostsPage() {
           subtitle="Posts from accounts you follow will appear here."
         />
       )}
-      <CustomToaster />
     </div>
   );
 }

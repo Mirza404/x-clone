@@ -7,7 +7,6 @@ import CommentItem from '@/app/components/comments/CommentItem';
 import ReplyItem from '@/app/components/comments/ReplyItem';
 import { useCommentMutations } from '@/app/utils/commentMutations';
 import { getCommentById } from '@/app/utils/fetchInfo';
-import CustomToaster from '@/app/components/ui/CustomToaster';
 import LoadCircle from '@/app/components/ui/LoadCircle';
 import NewReply from '@/app/components/comments/NewReply';
 import type { Comment } from '@/app/types/Comment';
@@ -83,7 +82,6 @@ const CommentThreadPage = () => {
           </>
         )}
       </div>
-      <CustomToaster />
     </div>
   );
 };

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import LoadingBar from '../ui/CustomLoadBar';
 import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
-import CustomToaster from '../ui/CustomToaster';
+import toast from 'react-hot-toast';
 import Avatar from '../ui/Avatar';
 import { useParams } from 'next/navigation';
 import { useCommentMutations } from '../../utils/commentMutations';
@@ -12,6 +12,7 @@ const NewComment = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const progress = 0;
   const [loading, setLoading] = useState(true);
+  const { status } = useSession();
   const { data: session } = useSession();
   const [content, setContent] = useState('');
   const { id } = useParams<{ id: string }>();
@@ -23,21 +24,26 @@ const NewComment = () => {
   };
 
   const handleSubmit = () => {
-    if (content.trim()) {
-      setLoading(true);
-      newCommentMutation.mutate(
-        { postId: id, content },
-        {
-          onSuccess: () => {
-            setContent('');
-            setLoading(false);
-          },
-          onError: () => {
-            setLoading(false);
-          },
-        }
-      );
+    if (!content.trim()) return;
+
+    if (status !== 'authenticated') {
+      toast('Sign in to comment');
+      return;
     }
+
+    setLoading(true);
+    newCommentMutation.mutate(
+      { postId: id, content },
+      {
+        onSuccess: () => {
+          setContent('');
+          setLoading(false);
+        },
+        onError: () => {
+          setLoading(false);
+        },
+      }
+    );
   };
 
   return (
@@ -63,8 +69,7 @@ const NewComment = () => {
                 e.preventDefault();
                 if (loading || content.trim() === '') return;
 
-                newCommentMutation.mutate({ postId: id, content });
-                setContent('');
+                handleSubmit();
               }}
             >
               <textarea
@@ -109,10 +114,8 @@ const NewComment = () => {
                           loading || content.trim() === '',
                       }
                     )}
-                    onClick={() => {
-                      newCommentMutation.mutate({ postId: id, content });
-                      setContent('');
-                    }}
+                    type="button"
+                    onClick={handleSubmit}
                     disabled={loading || content.trim() === ''}
                   >
                     Post
@@ -130,7 +133,6 @@ const NewComment = () => {
           </div>
         </div>
       </div>
-      <CustomToaster />
     </>
   );
 };

@@ -5,7 +5,6 @@ import Avatar from '@/app/components/ui/Avatar';
 import FollowButton from '@/app/components/ui/FollowButton';
 import ProfilePostList from '@/app/components/posts/ProfilePostList';
 import EmptyState from '@/app/components/ui/EmptyState';
-import CustomToaster from '@/app/components/ui/CustomToaster';
 import { toHandle } from '@/app/utils/handle';
 import { useProfileMutations } from '@/app/utils/profileMutations';
 
@@ -68,7 +67,6 @@ export default function ProfilePage() {
         </div>
       </div>
       <ProfilePostList authorId={profile.id} />
-      <CustomToaster />
     </div>
   );
 }
