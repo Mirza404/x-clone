@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import toast from 'react-hot-toast';
 import api from '../../utils/apiClient';
 
 interface LikeButtonProps {
@@ -24,6 +26,7 @@ export default function LikeButton({
   const [prevAuthorId, setPrevAuthorId] = useState(authorId);
   const queryClient = useQueryClient();
   const params = useParams();
+  const { status } = useSession();
 
   if (initialLikes !== prevInitialLikes || authorId !== prevAuthorId) {
     setPrevInitialLikes(initialLikes);
@@ -62,8 +65,16 @@ export default function LikeButton({
 
   return (
     <button
-      onClick={() => likeMutation.mutate()}
-      className="interactive-element group flex items-center gap-0.5"
+      onClick={() => {
+        if (status !== 'authenticated') {
+          toast('Sign in to like posts');
+          return;
+        }
+        if (likeMutation.isPending) return;
+        likeMutation.mutate();
+      }}
+      disabled={likeMutation.isPending}
+      className="interactive-element group flex items-center gap-0.5 disabled:cursor-not-allowed disabled:opacity-70"
       aria-label={isLiked ? 'Unlike post' : 'Like post'}
     >
       <span
