@@ -23,7 +23,7 @@ services:
     plan: free
     envVars:
       - key: NEXTAUTH_URL
-        value: https://x-clone-backend-vcsa.onrender.com
+        value: https://x-clone-frontend-voi9.onrender.com
       - key: NEXTAUTH_SECRET
         sync: false
       - key: GOOGLE_CLIENT_ID
@@ -33,7 +33,7 @@ services:
       - key: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
         sync: false
       - key: NEXT_PUBLIC_SERVER_URL
-        value: https://x-clone-backend.onrender.com
+        value: https://x-clone-backend-vcsa.onrender.com
       - key: MONGODB_URL
         sync: false
       - key: BACKEND_JWT_SECRET
