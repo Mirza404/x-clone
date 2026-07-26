@@ -4,14 +4,14 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export default function Page() {
-  const { data: session } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (session) {
+    if (status !== 'loading') {
       router.replace('/posts');
     }
-  }, [session, router]);
+  }, [status, router]);
 
   return (
     <div className="flex justify-center p-4 min-w-[600px] min-h-[200px]">
