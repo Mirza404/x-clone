@@ -6,6 +6,7 @@ import {
 } from '../src/db/connection';
 import Post from '../src/models/Post';
 import Follow from '../src/models/Follow';
+import Comment from '../src/models/Comment';
 
 // Seed users are tagged with this email suffix so `--wipe` can find and
 // remove exactly the accounts (and only the accounts) this script created,
@@ -101,6 +102,23 @@ const POST_SNIPPETS = [
   'Weekend project: building something small and useless.',
 ];
 
+const COMMENT_SNIPPETS = [
+  'This is so real.',
+  'Same energy.',
+  'Wait, explain more?',
+  'Big if true.',
+  'Been there.',
+  'Underrated take.',
+  'Ouuuu shiii',
+  'Not me reading this at 2am like-',
+  'Facts.',
+  'Following for updates.',
+  'This aged well.',
+  'Say it louder for the people in back.',
+  'YURRR',
+  'who else high asl rn?!'
+];
+
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -151,6 +169,13 @@ async function wipeSeedData(): Promise<void> {
   }
 
   const ids = existing.map((user) => user._id);
+  const seededPosts = await Post.find(
+    { author: { $in: ids } },
+    { _id: 1 }
+  ).lean();
+  await Comment.deleteMany({
+    postId: { $in: seededPosts.map((post) => post._id) },
+  });
   await Post.deleteMany({ author: { $in: ids } });
   await Follow.deleteMany({
     $or: [{ follower: { $in: ids } }, { following: { $in: ids } }],
@@ -169,7 +194,12 @@ async function seedUsers(count: number): Promise<SeedUser[]> {
   return users;
 }
 
-async function seedPosts(users: SeedUser[]): Promise<void> {
+interface SeedPost {
+  _id: mongoose.Types.ObjectId;
+  author: mongoose.Types.ObjectId;
+}
+
+async function seedPosts(users: SeedUser[]): Promise<SeedPost[]> {
   const posts = users.flatMap((user) => {
     const postCount = randomInt(1, 4);
     return Array.from({ length: postCount }, () => {
@@ -192,8 +222,95 @@ async function seedPosts(users: SeedUser[]): Promise<void> {
     });
   });
 
-  await Post.insertMany(posts);
-  console.info(`Inserted ${posts.length} seed posts.`);
+  const inserted = await Post.insertMany(posts);
+  console.info(`Inserted ${inserted.length} seed posts.`);
+  return inserted.map((post) => ({ _id: post._id, author: post.author }));
+}
+
+interface SeedComment {
+  _id: mongoose.Types.ObjectId;
+  content: string;
+  author: mongoose.Types.ObjectId;
+  name: string;
+  postId: mongoose.Types.ObjectId;
+  parentComment: mongoose.Types.ObjectId | null;
+  replies: mongoose.Types.ObjectId[];
+  createdAt: Date;
+  likes: mongoose.Types.ObjectId[];
+}
+
+async function seedComments(
+  users: SeedUser[],
+  posts: SeedPost[]
+): Promise<void> {
+  const commentDocs: SeedComment[] = [];
+  const postCommentIds = new Map<string, mongoose.Types.ObjectId[]>();
+
+  for (const post of posts) {
+    const commentCount = randomInt(0, 4);
+    const topLevelIds: mongoose.Types.ObjectId[] = [];
+
+    for (let i = 0; i < commentCount; i++) {
+      const commenter = pick(users);
+      const commentId = new mongoose.Types.ObjectId();
+      const daysAgo = randomInt(0, 30);
+      const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+      const replyCount = randomInt(0, 3);
+      const replyIds: mongoose.Types.ObjectId[] = [];
+
+      for (let j = 0; j < replyCount; j++) {
+        const replier = pick(users);
+        const replyId = new mongoose.Types.ObjectId();
+        replyIds.push(replyId);
+        commentDocs.push({
+          _id: replyId,
+          content: pick(COMMENT_SNIPPETS),
+          author: replier._id,
+          name: replier.name,
+          postId: post._id,
+          parentComment: commentId,
+          replies: [],
+          createdAt,
+          likes: pickMany(users, randomInt(0, 3)).map((liker) => liker._id),
+        });
+      }
+
+      commentDocs.push({
+        _id: commentId,
+        content: pick(COMMENT_SNIPPETS),
+        author: commenter._id,
+        name: commenter.name,
+        postId: post._id,
+        parentComment: null,
+        replies: replyIds,
+        createdAt,
+        likes: pickMany(users, randomInt(0, 4)).map((liker) => liker._id),
+      });
+      topLevelIds.push(commentId);
+    }
+
+    if (topLevelIds.length > 0) {
+      postCommentIds.set(post._id.toString(), topLevelIds);
+    }
+  }
+
+  if (commentDocs.length === 0) {
+    console.info('Inserted 0 seed comments.');
+    return;
+  }
+
+  await Comment.insertMany(commentDocs);
+
+  const bulkOps = Array.from(postCommentIds.entries()).map(
+    ([postId, ids]) => ({
+      updateOne: {
+        filter: { _id: postId },
+        update: { $set: { comments: ids } },
+      },
+    })
+  );
+  await Post.bulkWrite(bulkOps);
+  console.info(`Inserted ${commentDocs.length} seed comments/replies.`);
 }
 
 async function seedFollows(users: SeedUser[]): Promise<void> {
@@ -237,7 +354,8 @@ async function main() {
   }
 
   const users = await seedUsers(count);
-  await seedPosts(users);
+  const posts = await seedPosts(users);
+  await seedComments(users, posts);
   await seedFollows(users);
 
   await disconnectFromDatabase();
