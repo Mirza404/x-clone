@@ -112,7 +112,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
                 <div className="flex gap-2">
                   <button
                     className={classNames(
-                      'flex h-8 items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
+                      'flex h-8 w-[76px] items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
                       {
                         'bg-btn text-btn-fg hover:bg-btn-hover':
                           !loading && content.trim() !== '',
@@ -124,7 +124,15 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
                     onClick={handleSubmit}
                     disabled={loading || content.trim() === ''}
                   >
-                    Reply
+                    {loading ? (
+                      <span
+                        role="status"
+                        aria-label="Posting"
+                        className="h-4 w-4 animate-spin rounded-full border-2 border-btn-fg/40 border-t-btn-fg"
+                      />
+                    ) : (
+                      'Reply'
+                    )}
                   </button>
                 </div>
                 <p
