@@ -1,6 +1,16 @@
-# WebSocket-Powered Messaging — Implementation Plan
+# WebSocket-Powered Messaging — As-Built Design Record
 
-Scope-and-design document. **No code is implemented here** — this is the blueprint for adding real-time direct messaging (DMs) to x-clone.
+> **Status: implemented and shipped.** This began as a pre-implementation blueprint; sections 1–7 and 10–12 now describe code that exists. It is kept as the **design-rationale record** for the messaging system — the _why_ behind the architecture, which the code itself doesn't explain (see especially §4 on socket auth, and §3 on the transport choice).
+>
+> **This file is not a to-do list.** [IDEAS.md](IDEAS.md) is the single source of truth for outstanding work. The items from this document that were _not_ built are tracked there, not here:
+>
+> - **§8 graceful shutdown (`SIGTERM` → `io.close()`) was never implemented** — tracked as `P2.9` in IDEAS.md.
+> - **§9 horizontal scaling (Redis adapter)** — remains deliberate future work, tracked in IDEAS.md.
+> - **§13 open questions** — still unconfirmed; tracked in IDEAS.md.
+>
+> Everything else in §12's implementation order shipped, with tests (`backend/src/socket/{auth,handlers,presence,rate-limit,typing}.ts` and the frontend `components/messages/*` + `hooks/use{Socket,Messages,Conversations}.ts`).
+
+Original scope-and-design document follows, unchanged.
 
 ---
 

@@ -4,6 +4,18 @@ A playground/portfolio backlog. Two tracks: **product correctness/features** and
 
 **Status legend:** `[ ]` not started · `[~]` partially done · `[x]` done
 
+## Related documents — read this first
+
+**This file is the single source of truth for outstanding work.** Two sibling documents exist; neither is a to-do list, and they must not be treated as one:
+
+| Document                                                   | What it is                                                                              | Authoritative for                                                                 |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **IDEAS.md** (this file)                                   | The backlog — _what_ to do, in _what order_, and _why_                                  | Everything outstanding                                                            |
+| [GAPS_PLAN.md](GAPS_PLAN.md)                               | Implementation blueprint for **D1.1–D1.4** only. Still pending — nothing in it is built | The _how_ of those four items: exact config, acceptance criteria, risks           |
+| [WEBSOCKET_MESSAGING_PLAN.md](WEBSOCKET_MESSAGING_PLAN.md) | **As-built record.** The messaging system it describes is shipped                       | The _why_ behind the messaging architecture (socket auth model, transport choice) |
+
+If a sibling document disagrees with this file about what remains to be done, **this file wins** — the leftovers from the messaging plan have been pulled into P2.9 and F5 here.
+
 ---
 
 ## Reality check — what actually exists today
@@ -194,6 +206,14 @@ Two bare unstyled returns that ignore the theme entirely:
 
 Both `return <div>Something went wrong loading the comment.</div>`. There's an `EmptyState` component already — use it, or add an `ErrorState` sibling.
 
+### P2.9 No graceful shutdown — sockets and Mongo are killed abruptly `[ ]`
+
+`WEBSOCKET_MESSAGING_PLAN.md` §8 specified "on `SIGTERM`, `io.close()` before `server.close()`". It was never implemented — there is **no `SIGTERM` or `SIGINT` handler anywhere in the backend**, and no `io.close()` call.
+
+This matters more than it looks, because **the app is deployed on Render, which sends `SIGTERM` on every deploy.** Right now each redeploy severs live WebSocket connections mid-frame and drops the Mongo connection without closing it, instead of draining. Users in a conversation see a hard disconnect rather than Socket.IO's normal reconnect path.
+
+**Fix:** add a shutdown handler in `backend/src/index.ts` — `io.close()`, then `server.close()`, then `mongoose.connection.close()`, with a timeout so a hung connection can't block the exit past the platform's kill deadline.
+
 ### Clean — checked and found no problems
 
 Recording these so the next sweep doesn't redo them:
@@ -332,6 +352,19 @@ Local `kind`/minikube manifests or a Helm chart for the two services + Mongo. Ov
 5. **Thread / conversation summarizer** — "summarize this comment tree / this DM thread".
 6. **Notification / digest agent** — weekly agent summarizing your activity, drafting candidate posts.
 
+### F5. Messaging follow-ups carried over from the as-built record `[ ]`
+
+Inherited from `WEBSOCKET_MESSAGING_PLAN.md`, which is now a design-rationale record rather than a to-do list. These are the parts of it that never shipped.
+
+**Unresolved product decisions** (the plan's §13 — all still on v1 assumptions, never confirmed):
+
+1. **Who can DM whom?** `createConversation` currently guards only `recipientId !== userId`, so **anyone can DM anyone**. If that's not wanted, the guard belongs in `message-controller.ts`'s get-or-create. On a public portfolio site this is also the spam surface.
+2. **Message length cap** — 2000 chars, assumed and shipped. Confirm or change.
+3. **Presence scope** — currently broadcast to conversation partners only, not followers. Confirm.
+4. **Media in messages** — deferred; `Message` has no `images` field. Note this is the _same_ gap as F3 for comments; if you do one, do both, and share the upload path.
+
+**Deferred infrastructure** (the plan's §9): horizontal scaling needs `@socket.io/redis-adapter` + Redis, presence moved out of the in-memory `Map` into Redis, and sticky sessions at the load balancer. Single-instance is correct for now — this is only worth doing if the app ever runs more than one backend instance. Depends on nothing; blocks nothing.
+
 ### AI2. Local Ollama echo-bot for WebSocket testing `[ ]`
 
 There's currently no easy way to manually verify the messaging WebSocket round-trip end to end (`useSocket.ts`, `MessageThread.tsx`) — it needs two accounts in two browser sessions. Instead, run a tiny local model as a second "user."
@@ -363,13 +396,15 @@ Dependencies are real; the ordering below respects them.
 
 **Phase 1b — data and API correctness.** No visible symptom today, all cheap.
 
-> P2.3 (Comment indexes) → P2.5 (`maxLength: 20`) → P2.4 (duplicate fetchers / dead prefetch) → P1.4 + P1.5 (seed wipe + flag ergonomics) → P2.6 (delete dead `allComments`) → P2.7 (rate-limit policy)
+> P2.3 (Comment indexes) → P2.5 (`maxLength: 20`) → P2.4 (duplicate fetchers / dead prefetch) → P2.9 (graceful shutdown) → P1.4 + P1.5 (seed wipe + flag ergonomics) → P2.6 (delete dead `allComments`) → P2.7 (rate-limit policy)
+
+`P2.9` sits here rather than in phase 3 because it's a ~15-line fix that improves every deploy from now on, including the ones this plan's later phases will trigger.
 
 **Parallelizable.** Phase 1a and 1b share no files. If you're dispatching agents, these are two independent workstreams — but keep P1.1/P2.1 (three separate page migrations) on one agent, since they're the same refactor applied three times and consistency matters more than speed.
 
 **Phase 2 — the layout refactor.** One structural commit, then features on top.
 
-> F1 (messages as its own view) → F2 (search, posts then messages) → F4 (placeholder pages) → F3 (comment/post parity)
+> F1 (messages as its own view) → F2 (search, posts then messages) → F4 (placeholder pages) → F3 + F5.4 (image support on comments _and_ messages — same upload path, do together) → rest of F5
 
 F1 is the riskiest item in this plan — it touches the root layout and therefore every route. Do it alone, verify each route renders, then build on it.
 

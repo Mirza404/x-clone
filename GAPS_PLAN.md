@@ -1,6 +1,8 @@
 # Current Gaps — Implementation Plan
 
-Scope-and-design document for the four "A0" quick wins from [IDEAS.md](IDEAS.md). **No code implemented here** — this is the blueprint. Everything else in IDEAS.md is deferred.
+Scope-and-design document for the four **D1** quick wins in [IDEAS.md](IDEAS.md) ("Gaps in what exists today"). **No code implemented here** — this is the blueprint; IDEAS.md stays the source of truth for _what_ to do and in what order, this file is the _how_ for these four items only.
+
+> Renumbering note: these were labelled `A0.1`–`A0.4` before IDEAS.md was restructured. They are now `D1.1`–`D1.4`. Gap 1 → D1.1, Gap 2 → D1.2, Gap 3 → D1.3, Gap 4 → D1.4.
 
 The four gaps:
 
