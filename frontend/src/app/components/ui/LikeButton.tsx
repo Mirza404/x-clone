@@ -55,7 +55,14 @@ export default function LikeButton({
       setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      if (type === 'post') {
+        queryClient.invalidateQueries({ queryKey: ['posts'] });
+        queryClient.invalidateQueries({ queryKey: ['infinitePosts'] });
+      } else {
+        const postId = params.id as string;
+        queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
+        queryClient.invalidateQueries({ queryKey: ['comment-thread', postId] });
+      }
     },
     onError: () => {
       setIsLiked(!isLiked);
