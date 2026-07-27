@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import LoadingBar from '../ui/CustomLoadBar';
 import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
 import toast from 'react-hot-toast';
@@ -10,13 +9,12 @@ import { useEnterSubmit } from '@/app/utils/formSubmit';
 
 const NewComment = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const progress = 0;
-  const [loading, setLoading] = useState(true);
   const { status } = useSession();
   const { data: session } = useSession();
   const [content, setContent] = useState('');
   const { id } = useParams<{ id: string }>();
   const { newCommentMutation } = useCommentMutations();
+  const loading = newCommentMutation.isPending;
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = '28px';
@@ -31,16 +29,11 @@ const NewComment = () => {
       return;
     }
 
-    setLoading(true);
     newCommentMutation.mutate(
       { postId: id, content },
       {
         onSuccess: () => {
           setContent('');
-          setLoading(false);
-        },
-        onError: () => {
-          setLoading(false);
         },
       }
     );
@@ -52,15 +45,12 @@ const NewComment = () => {
         Comments
       </h2>
       <div className="flex w-full min-h-[116px] items-center justify-center">
-        <LoadingBar progress={progress} />
         <div className="mx-auto flex w-full flex-row border-b border-border px-4 pt-2">
           <div className="mr-2 w-10 min-w-[40px] flex-shrink-0 pt-2">
             <Avatar
               src={session?.user?.image}
               alt={session?.user?.name ?? 'Profile'}
               size="md"
-              onLoad={() => setLoading(false)}
-              onError={() => setLoading(false)}
             />
           </div>
           <div className="flex min-w-0 flex-1 flex-col py-3">
@@ -106,7 +96,7 @@ const NewComment = () => {
                 <div className="flex h-full w-full flex-row items-center justify-between">
                   <button
                     className={classNames(
-                      'flex h-8 items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
+                      'flex h-8 w-[68px] items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
                       {
                         'bg-btn text-btn-fg hover:bg-btn-hover':
                           !loading && content.trim() !== '',
@@ -118,7 +108,15 @@ const NewComment = () => {
                     onClick={handleSubmit}
                     disabled={loading || content.trim() === ''}
                   >
-                    Post
+                    {loading ? (
+                      <span
+                        role="status"
+                        aria-label="Posting"
+                        className="h-4 w-4 animate-spin rounded-full border-2 border-btn-fg/40 border-t-btn-fg"
+                      />
+                    ) : (
+                      'Post'
+                    )}
                   </button>
                   <p
                     className={`mt-1 text-right text-xs ${
