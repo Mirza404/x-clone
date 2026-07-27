@@ -24,7 +24,8 @@ Verified against the repo, not assumed. Earlier versions of this file were stale
 
 - **CI** (`.github/workflows/ci.yml`): format, lint, typecheck, test, build, dependency-audit, gitleaks secret-scan, concurrency + `cancel-in-progress`, composite `install-deps` action.
 - **Deployment: already live.** Frontend serving at `https://x-clone-frontend-voi9.onrender.com`. This invalidates the old "A1 gives you a live URL — top priority" framing; the live URL exists. What's missing is the _automated, gated_ path to it (see D2).
-- **Dockerfiles** for backend + frontend, plus `docker-compose.yml`.
+- **Dockerfiles are already hardened** — backend is multi-stage running compiled `dist/` as `USER node`; frontend uses Next `output: 'standalone'`. This is D1.1/D1.2, previously listed as outstanding. See D1 for the one line still missing.
+- **Backend is deployed too** — `render.yaml` defines both services (`x-clone-backend`, `x-clone-frontend`), both on Render's **free** plan. Free instances sleep after inactivity; see the socket caveat in F5.
 - Two npm projects (`backend/` Express+Mongoose, `frontend/` Next.js App Router), no workspaces.
 - **Messaging is built** — `Conversation`/`Message` models, `message-controller.ts`, `useSocket.ts`, `useMessages.ts`, `useConversations.ts`, `MessageThread.tsx`. Working, but see P1.4 and F1.
 - **Seeding exists** — `backend/scripts/seed.ts` (users/posts/comments/follows) and `seed-my-follows.ts` (follows + DM history for your own account).
@@ -74,7 +75,9 @@ The directory is missing entirely.
 - `Avatar.tsx` L27 falls back to `src={src || '/Logo.png'}` → 404 → the browser's broken-image icon plus alt text. **This is the "Unknown" text in the messages list** — it's not a text bug, it's a broken `<img>` rendering its alt.
 - `layout.tsx` L44 `<link rel="icon" href="/favicon.ico" />` → also 404.
 
-**Fix:** create `frontend/public/` with a real `favicon.ico` and a default avatar. Consider making the Avatar fallback an inline SVG component instead of a network request, so it can never 404 again. Verify the Dockerfile copies `public/` into the runtime image.
+**Fix:** create `frontend/public/` with a real `favicon.ico` and a default avatar. Consider making the Avatar fallback an inline SVG component instead of a network request, so it can never 404 again.
+
+> ⚠️ **Creating `frontend/public/` is not sufficient — it will still 404 in production.** `frontend/Dockerfile` copies `.next/standalone` and `.next/static` into the runner but has **no `COPY --from=builder /app/public ./public`** line. Next.js serves `public/` automatically in `npm run dev`, so this fix will look correct locally, pass review, deploy, and _still_ 404 on Render. Add the `COPY` line in the same commit. (This is the sole remaining piece of D1.2.)
 
 ### P1.4 Conversations show "Unknown user" — orphaned by the seed wipe `[ ]`
 
@@ -278,12 +281,16 @@ Comments currently support text + likes + one level of replies. Posts support im
 
 ## Part D — DevOps / CI-CD
 
-### D1. Gaps in what exists today `[ ]`
+### D1. Gaps in what exists today `[~]`
 
-1. **Harden the backend Dockerfile.** Currently runs `ts-node` in prod, no build step, single stage, root user, no `.dockerignore`. Add a `tsc` build stage, run compiled JS (`node dist/index.js`), go multi-stage (`deps` → `build` → slim `runner`), add `USER node` and a `.dockerignore`. Story: "cut image size X→Y, removed the dev toolchain from the runtime."
-2. **Frontend runtime image.** Add `output: 'standalone'` to `next.config.mjs`, copy only `.next/standalone` + `.next/static` + `public/` into the runner. Much smaller image. (Pairs with P1.3 — make sure `public/` exists _and_ gets copied.)
-3. **Real MongoDB in CI.** The `test` job has no DB service. **Caveat the old plan missed:** the backend tests are currently unit-style, so adding a `mongo` service container is only worth it _together with_ writing integration tests that actually use it. Don't add the service in isolation — that's infrastructure with no consumer.
-4. **Coverage gate.** Collect coverage (backend runner + frontend Jest), enforce a threshold, upload as an artifact and/or comment on the PR.
+> **Corrected 2026-07-27.** D1.1 and D1.2 were listed as outstanding in every prior version of this file. **Both are already built** — the claim was inherited from an older draft and never re-verified against the repo. Verified now, file by file.
+
+1. **Harden the backend Dockerfile.** `[x]` **Done.** `backend/Dockerfile` is multi-stage (`deps` → `build` → `runner`), builds via `tsconfig.build.json`, runs `node dist/index.js`, and sets `USER node`. `package.json` has `"build": "tsc -p tsconfig.build.json"` and `"start": "node dist/index.js"`. `.dockerignore` covers `dist`, `.git`, `*.test.ts`, `coverage`, `nodemon.json`, `README*`, editor cruft. Nothing left here.
+2. **Frontend runtime image.** `[~]` **Nearly done.** `next.config.mjs` has `output: 'standalone'`; the Dockerfile copies `.next/standalone` + `.next/static` and sets `USER node`. **One line missing:** there is no `COPY --from=builder /app/public ./public`, because `frontend/public/` doesn't exist yet. **This is a trap for P1.3** — see the warning there. That's the only remaining work in this item.
+3. **Real MongoDB in CI.** `[ ]` The `test` job has no DB service. **Caveat the old plan missed:** the backend tests are currently unit-style, so adding a `mongo` service container is only worth it _together with_ writing integration tests that actually use it. Don't add the service in isolation — that's infrastructure with no consumer.
+4. **Coverage gate.** `[ ]` Collect coverage (backend runner + frontend Jest), enforce a threshold, upload as an artifact and/or comment on the PR. `frontend/jest.config.ts` already sets `coverageProvider: 'v8'`, so the frontend half is close to free.
+
+**Process note:** items 1 and 2 were done in the repo while this file still listed them as pending. Before starting any D-item, verify its "current state" claim against the code — this file has been wrong about that before.
 
 ### D2. Automate the deploy that already exists `[~]`
 
@@ -292,7 +299,7 @@ The site is live on Render, but reframe the goal: the win here is no longer "get
 - On merge to `main`: build backend + frontend images, push to **GHCR** (`ghcr.io/<user>/x-clone-*`).
 - Deploy job **gated on `test` + `build` passing** — the interesting part, and the part a reviewer looks for.
 - Document the rollback path. A deploy story without a rollback story is half a story.
-- Depends on D1.1/D1.2 (you want to be shipping the hardened images, not the current ones).
+- **No longer blocked:** the old note said this depends on D1.1/D1.2 landing first. Both are built, so the hardened images already exist — this can start immediately.
 
 ### D3. Preview environments per pull request `[ ]`
 
@@ -352,6 +359,29 @@ Local `kind`/minikube manifests or a Helm chart for the two services + Mongo. Ov
 5. **Thread / conversation summarizer** — "summarize this comment tree / this DM thread".
 6. **Notification / digest agent** — weekly agent summarizing your activity, drafting candidate posts.
 
+### F6. "Backend is waking up" state for cold starts `[ ]`
+
+Both Render services are on `plan: free`, so the backend sleeps after inactivity and cold-starts in roughly 30–60s. Today that failure mode is invisible and looks like the app is broken:
+
+- **Messages:** the socket can't connect. `useSocket` retries silently; the thread just sits there.
+- **Feed:** `getPostsPaginated` (and every other `fetchInfo` call) is a plain axios request with **no timeout**, so React Query stays `isLoading` for the whole cold start. The user watches a spinner for 30+ seconds with no explanation.
+
+So this is **not a messages-only problem** — a blocker on `/messages` alone would leave the more-visited page equally broken, just less obviously.
+
+**Two traps that make the naive version worse than nothing:**
+
+1. **Don't render the waking state immediately.** `connected` is `false` for the first moments on a _warm_ backend too, and REST calls are briefly `isLoading` on every navigation. Gating purely on "not connected" would flash a scary banner on every single page load. **Only show it after a grace period of continuous failure — ~2s — and never on the first tick.**
+2. **Don't make it a permanent modal.** If the backend is genuinely down (not asleep), a blocking screen with no escape traps the user. After ~60s, switch from "waking up" to "can't reach the server" with a manual retry, and let them navigate away.
+
+**Suggested shape:**
+
+- A small shared hook — `useBackendWaking()` — that reports `'ok' | 'waking' | 'unreachable'`. Derive it from `useSocket().connected` plus elapsed time; a disconnected socket while `status === 'authenticated'` is the cleanest single signal, since the socket reconnects far more aggressively than a one-shot REST call.
+- **Messages:** a blocking state is appropriate — the view is genuinely useless without a socket. Reuse `EmptyState` with a spinner: _"Waking the server up… free hosting sleeps after inactivity, this takes up to a minute."_ Being explicit about _why_ turns a bug report into a shrug.
+- **Feed and elsewhere:** a dismissible top banner, **not** a blocker. The feed can still render cached posts from the Query cache while the backend wakes.
+- Add a `timeout` to the axios instance in `apiClient.ts` so REST calls fail loudly instead of hanging forever — currently there is none.
+
+**Cheap alternative worth pricing first:** an uptime pinger (cron-job.org, UptimeRobot, or a scheduled GitHub Action) hitting the backend every ~10 minutes keeps the free instance awake and makes this whole problem mostly disappear. That's ~10 minutes of setup versus a few hours of UI work. **Do the pinger first**, then decide whether the UI state is still worth building — it still is for genuine outages and for the very first request after a deploy, but it stops being urgent. Pairs naturally with D8's `/healthz` endpoint, which gives the pinger something cheap to hit.
+
 ### F5. Messaging follow-ups carried over from the as-built record `[ ]`
 
 Inherited from `WEBSOCKET_MESSAGING_PLAN.md`, which is now a design-rationale record rather than a to-do list. These are the parts of it that never shipped.
@@ -364,6 +394,16 @@ Inherited from `WEBSOCKET_MESSAGING_PLAN.md`, which is now a design-rationale re
 4. **Media in messages** — deferred; `Message` has no `images` field. Note this is the _same_ gap as F3 for comments; if you do one, do both, and share the upload path.
 
 **Deferred infrastructure** (the plan's §9): horizontal scaling needs `@socket.io/redis-adapter` + Redis, presence moved out of the in-memory `Map` into Redis, and sticky sessions at the load balancer. Single-instance is correct for now — this is only worth doing if the app ever runs more than one backend instance. Depends on nothing; blocks nothing.
+
+**Free-tier caveat when testing messaging on the live site.** `render.yaml` puts the backend on `plan: free`, which sleeps after inactivity and cold-starts on the next request (tens of seconds). Consequences when manually verifying sockets in production:
+
+- The first socket connection after idle will fail or hang while the backend wakes. Socket.IO retries, so it recovers — but "it looked broken for 30 seconds" is expected, not a bug.
+- Presence is an in-memory `Map` (`socket/presence.ts`), so a sleep wipes all online state.
+- P2.9 (graceful shutdown) makes the sleep/wake cycle noticeably cleaner, which is a second reason to do it early.
+
+If messaging ever looks broken in production, **check whether the backend is awake before debugging the socket code.** This is the most likely explanation and costs nothing to rule out.
+
+**F6 addresses the user-facing half of this** (telling people the server is waking rather than showing a dead spinner), and proposes an uptime pinger that removes most of the problem outright.
 
 ### AI2. Local Ollama echo-bot for WebSocket testing `[ ]`
 
@@ -404,7 +444,9 @@ Dependencies are real; the ordering below respects them.
 
 **Phase 2 — the layout refactor.** One structural commit, then features on top.
 
-> F1 (messages as its own view) → F2 (search, posts then messages) → F4 (placeholder pages) → F3 + F5.4 (image support on comments _and_ messages — same upload path, do together) → rest of F5
+> F6's uptime pinger (do this first — ~10 min, removes most of the cold-start problem) → F1 (messages as its own view) → F2 (search, posts then messages) → F6's UI states → F4 (placeholder pages) → F3 + F5.4 (image support on comments _and_ messages — same upload path, do together) → rest of F5
+
+F6 is deliberately split: the **pinger** is a 10-minute config change with an outsized payoff, so it goes first. The **UI states** land after F1, since where the messages blocker renders depends on the layout F1 creates.
 
 F1 is the riskiest item in this plan — it touches the root layout and therefore every route. Do it alone, verify each route renders, then build on it.
 

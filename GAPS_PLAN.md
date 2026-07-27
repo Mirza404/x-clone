@@ -1,19 +1,38 @@
 # Current Gaps — Implementation Plan
 
-Scope-and-design document for the four **D1** quick wins in [IDEAS.md](IDEAS.md) ("Gaps in what exists today"). **No code implemented here** — this is the blueprint; IDEAS.md stays the source of truth for _what_ to do and in what order, this file is the _how_ for these four items only.
+Scope-and-design document for the four **D1** quick wins in [IDEAS.md](IDEAS.md) ("Gaps in what exists today"). This file is the _how_ for those four items only; IDEAS.md stays the source of truth for _what_ to do and in what order.
+
+**Gaps 1 and 2 have since been implemented** (this file was written before that happened) — the blueprint text for them is now a record of what was built, not work to do. Gaps 3 and 4 remain unstarted blueprints. See the status note below.
 
 > Renumbering note: these were labelled `A0.1`–`A0.4` before IDEAS.md was restructured. They are now `D1.1`–`D1.4`. Gap 1 → D1.1, Gap 2 → D1.2, Gap 3 → D1.3, Gap 4 → D1.4.
 
 The four gaps:
 
-1. Harden the backend Dockerfile (multi-stage, compiled JS, non-root).
-2. Frontend runtime image via Next.js `standalone` output.
-3. Real MongoDB service container in CI.
-4. Coverage collection + threshold gate.
+1. ~~Harden the backend Dockerfile (multi-stage, compiled JS, non-root).~~ **DONE — see status note below.**
+2. ~~Frontend runtime image via Next.js `standalone` output.~~ **DONE except one line — see status note below.**
+3. Real MongoDB service container in CI. `[ ]`
+4. Coverage collection + threshold gate. `[ ]`
+
+## ⚠️ Status note (verified 2026-07-27) — Gaps 1 and 2 are built
+
+**The "Current State" table below is out of date and describes the repo as it was before Gaps 1 and 2 were implemented.** It is kept for historical context; do not trust it. Verified against the code today:
+
+| Claim in the table below                      | Actual state now                                                                                  |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| "Backend: no build step, `start` = `ts-node`" | **False.** `"build": "tsc -p tsconfig.build.json"`, `"start": "node dist/index.js"`               |
+| "Backend Dockerfile: single stage, root"      | **False.** Multi-stage `deps`→`build`→`runner`, `USER node`, `CMD ["node","dist/index.js"]`       |
+| "`.dockerignore` thin"                        | **False.** Covers `dist`, `.git`, `*.test.ts`, `coverage`, `nodemon.json`, `README*`, editor dirs |
+| "Frontend not using `standalone`"             | **False.** `next.config.mjs` sets `output: 'standalone'`; Dockerfile copies it, `USER node` set   |
+
+`tsconfig.build.json` exists, as recommended in Gap 1 step 1.
+
+**The one thing Gap 2 still needs:** `frontend/Dockerfile` has **no `COPY --from=builder /app/public ./public`** line. Gap 2 step 2 and its Risks section both flagged this ("Missing `public/` copy → 404 on static assets. Verify the dir."). The directory doesn't exist yet — it gets created by **P1.3 in IDEAS.md**, and that `COPY` line must land in the same commit or the assets will work in `npm run dev` and 404 in production.
+
+**Gaps 3 and 4 remain fully unstarted.** Their sections below are accurate.
 
 ---
 
-## 0. Current State (verified)
+## 0. Current State (as of the original writing — SUPERSEDED, see status note above)
 
 | Thing                      | Today                                                                                                                                              |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
