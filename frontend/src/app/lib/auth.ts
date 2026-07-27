@@ -11,6 +11,9 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   adapter: MongoDBAdapter(client),
+  pages: {
+    signIn: '/signin',
+  },
   callbacks: {
     async session({ session, token }) {
       if (session.user && token.sub) {
