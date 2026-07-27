@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import api from '../../utils/apiClient';
+import { useSession } from 'next-auth/react';
 import LikeButton from './LikeButton';
 
 jest.mock('../../utils/apiClient', () => ({
@@ -10,8 +11,12 @@ jest.mock('../../utils/apiClient', () => ({
 jest.mock('next/navigation', () => ({
   useParams: () => ({ id: 'post-1' }),
 }));
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(),
+}));
 
 const mockedApi = api as jest.Mocked<typeof api>;
+const mockedUseSession = useSession as jest.Mock;
 
 function renderWithClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -23,6 +28,10 @@ function renderWithClient(ui: React.ReactElement) {
 }
 
 describe('LikeButton', () => {
+  beforeEach(() => {
+    mockedUseSession.mockReturnValue({ status: 'authenticated' });
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });
