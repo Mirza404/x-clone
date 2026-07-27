@@ -60,7 +60,9 @@ export default function LikeButton({
         queryClient.invalidateQueries({ queryKey: ['infinitePosts'] });
       } else {
         const postId = params.id as string;
-        queryClient.invalidateQueries({ queryKey: ['infiniteComments', postId] });
+        queryClient.invalidateQueries({
+          queryKey: ['infiniteComments', postId],
+        });
         queryClient.invalidateQueries({ queryKey: ['comment-thread', postId] });
       }
     },
