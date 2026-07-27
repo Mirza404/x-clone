@@ -13,7 +13,7 @@ export default function AuthWall() {
           People on X are the first to know. Sign in to keep reading.
         </p>
         <div className="flex w-full max-w-[280px] flex-col gap-3">
-          <Link href="/api/auth/signin" className="w-full">
+          <Link href="/signin" className="w-full">
             <Button variant="primary-black" size="lg" className="w-full">
               Sign in
             </Button>
