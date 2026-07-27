@@ -116,7 +116,7 @@ const COMMENT_SNIPPETS = [
   'This aged well.',
   'Say it louder for the people in back.',
   'YURRR',
-  'who else high asl rn?!'
+  'who else high asl rn?!',
 ];
 
 function randomInt(min: number, max: number): number {
@@ -301,14 +301,12 @@ async function seedComments(
 
   await Comment.insertMany(commentDocs);
 
-  const bulkOps = Array.from(postCommentIds.entries()).map(
-    ([postId, ids]) => ({
-      updateOne: {
-        filter: { _id: postId },
-        update: { $set: { comments: ids } },
-      },
-    })
-  );
+  const bulkOps = Array.from(postCommentIds.entries()).map(([postId, ids]) => ({
+    updateOne: {
+      filter: { _id: postId },
+      update: { $set: { comments: ids } },
+    },
+  }));
   await Post.bulkWrite(bulkOps);
   console.info(`Inserted ${commentDocs.length} seed comments/replies.`);
 }
