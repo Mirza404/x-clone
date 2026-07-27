@@ -89,8 +89,8 @@ export default function SignInPage() {
           </div>
 
           <p className="mt-6 text-[13px] leading-5 text-muted">
-            By signing in, you agree to the Terms of Service and Privacy
-            Policy, for the purposes of this demo project.
+            By signing in, you agree to the Terms of Service and Privacy Policy,
+            for the purposes of this demo project.
           </p>
         </div>
       </div>
