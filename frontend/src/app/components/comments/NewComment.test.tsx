@@ -31,6 +31,7 @@ describe('NewComment composer', () => {
   beforeEach(() => {
     mockedUseSession.mockReturnValue({
       data: { user: { email: 'ada@example.com', name: 'Ada' } },
+      status: 'authenticated',
     });
   });
 
@@ -40,14 +41,12 @@ describe('NewComment composer', () => {
 
   it('disables the Post button while the composer is empty', () => {
     renderWithClient(<NewComment />);
-    fireEvent.error(screen.getByAltText('Ada'));
 
     expect(screen.getByRole('button', { name: 'Post' })).toBeDisabled();
   });
 
   it('enables the Post button once content is typed', () => {
     renderWithClient(<NewComment />);
-    fireEvent.error(screen.getByAltText('Ada'));
 
     const textarea = screen.getByPlaceholderText("What's up?");
     fireEvent.change(textarea, { target: { value: 'Hello world' } });
@@ -59,7 +58,6 @@ describe('NewComment composer', () => {
     mockedApi.post.mockResolvedValueOnce({ data: {} });
 
     renderWithClient(<NewComment />);
-    fireEvent.error(screen.getByAltText('Ada'));
 
     const textarea = screen.getByPlaceholderText("What's up?");
     fireEvent.change(textarea, { target: { value: 'Hello world' } });
@@ -80,7 +78,6 @@ describe('NewComment composer', () => {
     mockedApi.post.mockResolvedValueOnce({ data: {} });
 
     renderWithClient(<NewComment />);
-    fireEvent.error(screen.getByAltText('Ada'));
 
     const textarea = screen.getByPlaceholderText(
       "What's up?"
