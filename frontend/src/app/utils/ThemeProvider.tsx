@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -36,19 +30,10 @@ export default function ThemeProvider({
     setThemeState(next);
   }, []);
 
-  useEffect(() => {
-    if (localStorage.getItem('theme')) return;
-
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (event: MediaQueryListEvent) => {
-      if (localStorage.getItem('theme')) return;
-      const next: Theme = event.matches ? 'dark' : 'light';
-      document.documentElement.classList.toggle('dark', next === 'dark');
-      setThemeState(next);
-    };
-    media.addEventListener('change', handleChange);
-    return () => media.removeEventListener('change', handleChange);
-  }, []);
+  // No live `prefers-color-scheme` listener on purpose. The inline theme-init
+  // script in layout.tsx persists the system preference as a one-time default;
+  // tracking it live meant Windows' automatic night mode flipped the app
+  // mid-session. Reintroduce only behind an explicit "follow system" opt-in.
 
   const toggleTheme = useCallback(() => {
     applyTheme(theme === 'dark' ? 'light' : 'dark');
