@@ -43,15 +43,25 @@ export async function getPostsPaginated(page: number) {
   }
 }
 
+// The single fetcher for one comment (plus its replies). There used to be a
+// second one, `getCommentById`, hitting the exact same endpoint but read under
+// a different cache key — so the prefetch in CommentItem never served the
+// thread page and every navigation refetched from scratch. Unwrapped return
+// shape, rethrows so React Query can surface an error state.
 export async function getComment(
   postId: string,
   commentId: string
 ): Promise<Comment | null> {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const response = await axios.get(
-    `${serverUrl}/api/post/${postId}/comment/${commentId}`
-  );
-  return (response.data as Comment[])[0] ?? null;
+  try {
+    const response = await axios.get(
+      `${serverUrl}/api/post/${postId}/comment/${commentId}`
+    );
+    return (response.data as Comment[])[0] ?? null;
+  } catch (error) {
+    console.error('Failed to fetch comment:', error);
+    throw error;
+  }
 }
 
 export async function getCommentsPaginated(postId: string, page: number) {
@@ -108,21 +118,5 @@ export async function getPostsByAuthorPaginated(
       previousPage: undefined,
       posts: [],
     };
-  }
-}
-
-export async function getCommentById(
-  postId: string,
-  commentId: string
-): Promise<Comment[]> {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  try {
-    const response = await axios.get(
-      `${serverUrl}/api/post/${postId}/comment/${commentId}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Failed to fetch comment:', error);
-    throw error;
   }
 }
