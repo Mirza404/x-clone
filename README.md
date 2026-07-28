@@ -24,6 +24,12 @@ Getting started (dev)
    - `npm run dev`
    - open http://localhost:3000
 
+Seed development data
+
+- From `backend/`, run `npm run seed` to append a new seed batch.
+- Run `npm run seed:wipe` to delete existing seed users and their related posts, comments, follows, conversations, and messages before creating a fresh batch.
+- Both commands print `APPEND` or `WIPE` on their first output line. Check the mode before allowing a seed run to continue.
+
 React Query — what I used and why
 
 - Central provider: [`QueryProvider`](frontend/src/query-client-provider/index.tsx) creates a global QueryClient for caching and devtools.
