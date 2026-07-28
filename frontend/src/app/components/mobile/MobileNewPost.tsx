@@ -9,6 +9,7 @@ import FileUpload from '../../utils/FileUpload';
 import LoadingBar from '../ui/CustomLoadBar';
 import { X } from 'lucide-react';
 import api from '../../utils/apiClient';
+import Avatar from '../ui/Avatar';
 
 export default function MobileNewPost({ onClose }: { onClose: () => void }) {
   const [content, setContent] = useState('');
@@ -82,11 +83,10 @@ export default function MobileNewPost({ onClose }: { onClose: () => void }) {
       {/* Content */}
       <div className="flex flex-1 p-4">
         <div className="mr-3 flex-shrink-0">
-          <img
-            className="h-10 w-10 rounded-full"
-            src={session?.user?.image ?? '/Logo.png'}
-            referrerPolicy="no-referrer"
-            alt="Profile"
+          <Avatar
+            src={session?.user?.image}
+            alt={session?.user?.name ?? 'Profile'}
+            size="md"
           />
         </div>
         <div className="flex-1">
