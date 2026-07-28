@@ -11,6 +11,8 @@ import FileUpload from '@/app/utils/FileUpload';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 import { getApiErrorMessage } from '@/app/utils/apiError';
 import api from '@/app/utils/apiClient';
+import Avatar from '@/app/components/ui/Avatar';
+import Button from '@/app/components/ui/Button';
 
 const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = use(params);
@@ -88,20 +90,19 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <>
-      <div className="flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm min-h-[116px]">
+      <div className="flex min-h-[116px] items-center justify-center">
         <LoadingBar progress={progress} />
-        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
-          <div className="pt-2 mr-2">
-            <img
-              className="flex w-10 h-10 rounded-full"
-              src={session?.user?.image ?? '/Logo.png'}
-              referrerPolicy="no-referrer"
+        <div className="mx-auto mt-0 flex w-full flex-row border-b border-border px-4 pt-2">
+          <div className="mr-2 pt-2">
+            <Avatar
+              src={session?.user?.image}
               alt={session?.user?.name ?? 'Profile'}
+              size="md"
             />
           </div>
-          <div className="flex flex-col py-3 flex-1">
-            <div className="mb-2 mx-2">
-              <span className="text-gray-400 text-sm">Editing post</span>
+          <div className="flex min-w-0 flex-1 flex-col py-3">
+            <div className="mx-2 mb-2">
+              <span className="text-sm text-muted">Editing post</span>
             </div>
             <form
               onSubmit={(e) => {
@@ -114,7 +115,7 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
             >
               <textarea
                 ref={textareaRef}
-                className="w-full min-h-[28px] py-0.5 mx-2 text-white bg-black rounded-lg focus:outline-none text-xl resize-none"
+                className="mx-2 min-h-[28px] w-full resize-none rounded-lg bg-transparent py-0.5 text-xl text-content placeholder-muted focus:outline-none"
                 onKeyDown={useEnterSubmit({
                   loading,
                   content,
@@ -140,7 +141,7 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
                       />
                       <button
                         onClick={() => removeImage(index, true)}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-black bg-opacity-75 text-gray-400 hover:text-white transition-colors"
+                        className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white transition-colors hover:bg-black/90"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -171,7 +172,7 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
                       />
                       <button
                         onClick={() => removeImage(index, false)}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-black bg-opacity-75 text-gray-400 hover:text-white transition-colors"
+                        className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white transition-colors hover:bg-black/90"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -191,25 +192,27 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
                 </div>
               )}
               <FileUpload onImagesUploaded={handleImagesUploaded} />
-              <div className="flex justify-between mt-4 ml-2 pt-2 border-t border-gray-700">
-                <span className="text-gray-500 text-sm items-center justify-center pt-2 mr-0">
+              <div className="ml-2 mt-4 flex justify-between border-t border-border pt-2">
+                <span
+                  className={`pt-2 text-sm ${content.length > 380 ? 'text-like' : 'text-muted'}`}
+                >
                   {content.length}/380 characters
                 </span>
-                <div className="flex justify-right gap-2">
-                  <button
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary-outline"
                     onClick={handleCancel}
                     disabled={loading}
-                    className="px-4 py-2  bg-black text-white  border border-gray-700 rounded-full hover:bg-gray-300 hover:text-black hover:border-black  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="primary-black"
                     onClick={() => updatePostMutation.mutate()}
                     disabled={loading}
-                    className="px-4 py-2 bg-white font-bold text-black rounded-full hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Saving...' : 'Save Changes'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>
