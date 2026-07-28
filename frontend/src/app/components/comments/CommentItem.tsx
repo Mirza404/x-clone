@@ -41,8 +41,10 @@ const CommentItem = ({
   );
 
   useEffect(() => {
+    // Must match the key the thread page reads, or this prefetch costs a
+    // request per rendered comment and is never served to anyone.
     queryClient.prefetchQuery({
-      queryKey: ['comment', comment.id],
+      queryKey: ['comment-thread', postId, comment.id],
       queryFn: () => getComment(postId, comment.id),
     });
   }, [postId, comment.id, queryClient]);
