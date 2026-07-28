@@ -15,7 +15,7 @@ const CommentSchema = new mongoose.Schema({
   name: {
     type: String,
     minLength: 1,
-    maxLength: 20,
+    maxLength: 100,
     required: true,
   },
   postId: {
@@ -45,5 +45,8 @@ const CommentSchema = new mongoose.Schema({
     default: [],
   },
 });
+
+CommentSchema.index({ postId: 1, createdAt: -1 });
+CommentSchema.index({ parentComment: 1 });
 
 export default mongoose.model('Comment', CommentSchema);
