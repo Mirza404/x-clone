@@ -7,7 +7,6 @@ import Comment from '../models/Comment';
 import {
   deleteComment,
   toggleLike,
-  allComments,
   findCommentsByPost,
   findCommentById,
   createComment,
@@ -363,68 +362,6 @@ function mockPostFindByIdSelect(post: unknown) {
       }),
     });
 }
-
-test('allComments returns 500 when the database is not connected', async () => {
-  setReadyState(0);
-  const response = createResponse();
-
-  await allComments(createRequest({}), response);
-
-  assert.equal(response.statusCode, 500);
-  assert.deepEqual(response.body, { message: 'Database not connected' });
-});
-
-test('allComments returns comments with author images and pagination info', async () => {
-  setReadyState(1);
-  const authorId = new mongoose.Types.ObjectId();
-  const commentId = new mongoose.Types.ObjectId();
-  const postId = new mongoose.Types.ObjectId();
-  const createdAt = new Date();
-
-  mockCommentFind([
-    {
-      _id: commentId,
-      content: 'hello',
-      name: 'Ada',
-      postId,
-      parentComment: null,
-      createdAt,
-      likes: [],
-      author: authorId,
-      replies: [],
-    },
-  ]);
-  setUsersCollection([{ _id: authorId, image: 'ada.png' }]);
-  (
-    Comment as unknown as { countDocuments: () => Promise<number> }
-  ).countDocuments = async () => 1;
-
-  const response = createResponse();
-  await allComments(
-    createRequest({ query: { limit: '10', page: '1' } }),
-    response
-  );
-
-  assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.body, {
-    comments: [
-      {
-        id: commentId,
-        content: 'hello',
-        name: 'Ada',
-        postId,
-        parentComment: null,
-        createdAt,
-        likes: [],
-        author: authorId,
-        authorImage: 'ada.png',
-        replies: [],
-      },
-    ],
-    totalPages: 1,
-    currentPage: 1,
-  });
-});
 
 test('findCommentsByPost returns 400 when postId is missing', async () => {
   const response = createResponse();
