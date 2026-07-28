@@ -22,6 +22,9 @@ ENV NODE_ENV=production
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+# `standalone` does not bundle public/ — without this, favicon.ico and every
+# other static asset 404s in the container while working fine in `next dev`.
+COPY --from=builder /app/public ./public
 
 USER node
 EXPOSE 3000
