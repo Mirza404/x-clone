@@ -7,11 +7,14 @@ import LoadCircle from '@/app/components/ui/LoadCircle';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useParams } from 'next/navigation';
-import { getCommentById } from '@/app/utils/fetchInfo';
+import { getComment } from '@/app/utils/fetchInfo';
 import { useQuery } from '@tanstack/react-query';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 import { getApiErrorMessage } from '@/app/utils/apiError';
 import api from '@/app/utils/apiClient';
+import Avatar from '@/app/components/ui/Avatar';
+import Button from '@/app/components/ui/Button';
+import EmptyState from '@/app/components/ui/EmptyState';
 
 const EditCommentPage = () => {
   const params = useParams();
@@ -26,18 +29,14 @@ const EditCommentPage = () => {
   const queryClient = useQueryClient();
 
   const {
-    data: commentData,
+    data: comment,
     isLoading,
     isError,
   } = useQuery({
     queryKey: ['comment-thread', postId, commentId],
-    queryFn: async () => {
-      const res = await getCommentById(postId, commentId);
-      return res;
-    },
+    queryFn: () => getComment(postId, commentId),
     enabled: !!postId && !!commentId,
   });
-  const comment = commentData?.[0];
   const [prevComment, setPrevComment] = useState(comment);
 
   if (comment !== prevComment) {
@@ -122,28 +121,32 @@ const EditCommentPage = () => {
     );
   }
 
-  if (isError || !commentData || commentData.length === 0) {
-    return <div>Something went wrong loading the comment.</div>;
+  if (isError || !comment) {
+    return (
+      <EmptyState
+        title="Something went wrong"
+        subtitle="We couldn't load this comment. It may have been deleted."
+      />
+    );
   }
 
   return (
     <>
-      <div className="flex justify-center bg-black bg-opacity-50 backdrop-blur-sm max-h-100">
+      <div className="flex justify-center">
         <CustomLoadBar progress={progress} />
 
-        <div className="flex flex-row bg-black bg-opacity-50 backdrop-blur-sm mt-0 w-[598px] mx-auto px-4 pt-2 border border-gray-700 shadow-lg">
-          <div className="pt-2 mr-2">
-            <img
-              className="flex w-10 h-10 rounded-full object-cover"
-              src={session?.user?.image ?? '/Logo.png'}
-              alt="User avatar"
-              referrerPolicy="no-referrer"
+        <div className="mx-auto mt-0 flex w-full flex-row border-b border-border px-4 pt-2">
+          <div className="mr-2 pt-2">
+            <Avatar
+              src={session?.user?.image}
+              alt={session?.user?.name ?? 'Profile'}
+              size="md"
             />
           </div>
 
-          <div className="flex flex-col py-3 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col py-3">
             <div className="mb-2">
-              <span className="text-gray-400 text-sm">Editing comment</span>
+              <span className="text-sm text-muted">Editing comment</span>
             </div>
             <form
               onSubmit={(e) => {
@@ -156,7 +159,7 @@ const EditCommentPage = () => {
             >
               <textarea
                 ref={textareaRef}
-                className="w-full min-h-[28px] py-0.5 text-white bg-transparent border-none focus:outline-none text-xl resize-none"
+                className="min-h-[28px] w-full resize-none border-none bg-transparent py-0.5 text-xl text-content placeholder-muted focus:outline-none"
                 onKeyDown={handleEnterSubmit}
                 maxLength={380}
                 value={content}
@@ -164,29 +167,29 @@ const EditCommentPage = () => {
                 disabled={loading}
               />
 
-              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-700">
-                <div className="flex items-center space-x-2">
-                  <span className="text-gray-500 text-sm">
-                    {content.length}/380 characters
-                  </span>
-                </div>
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-2">
+                <span
+                  className={`text-sm ${content.length > 380 ? 'text-like' : 'text-muted'}`}
+                >
+                  {content.length}/380 characters
+                </span>
 
-                <div className="flex space-x-2">
-                  <button
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary-outline"
                     onClick={handleCancel}
                     disabled={loading}
-                    className="px-4 py-2 bg-black text-white  border border-gray-700 rounded-full hover:bg-gray-300 hover:text-black hover:border-black  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="primary-black"
                     onClick={handleSave}
                     disabled={loading || !content.trim()}
-                    className="px-4 py-2 bg-white font-bold text-black rounded-full hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Saving...' : 'Save Changes'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>
