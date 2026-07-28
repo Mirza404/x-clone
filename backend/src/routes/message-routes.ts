@@ -25,6 +25,7 @@ messageRoutes.get(
 messageRoutes.patch(
   '/conversations/:id/read',
   requireAuth,
+  writeLimiter,
   markConversationRead
 );
 
