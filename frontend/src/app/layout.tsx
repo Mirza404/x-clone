@@ -42,8 +42,12 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
+        {/* Resolves the theme before paint. The system preference is only an
+            initial default: it is persisted immediately on first resolve, so
+            the choice is stable for the rest of the session and every session
+            after (an OS night-mode switch must not flip the app mid-visit). */}
         <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.classList.toggle('dark',t==='dark');}catch(e){}})();`}
+          {`(function(){var t;try{t=localStorage.getItem('theme');}catch(e){}if(t!=='dark'&&t!=='light'){try{t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}catch(e){t='light';}try{localStorage.setItem('theme',t);}catch(e){}}document.documentElement.classList.toggle('dark',t==='dark');})();`}
         </Script>
       </head>
       <body
