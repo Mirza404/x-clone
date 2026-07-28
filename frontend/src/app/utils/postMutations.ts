@@ -9,11 +9,12 @@ import { fetchPosts, getPostsPaginated } from './fetchInfo';
 import toast from 'react-hot-toast';
 import { getCommentsPaginated } from './fetchInfo';
 import { useMemo } from 'react';
-import { usePathname, useParams } from 'next/navigation';
+import { usePathname, useParams, useRouter } from 'next/navigation';
 import { getApiErrorMessage } from './apiError';
 
 export const usePostMutations = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const postId = useParams().id as string;
   const isCurrentPage = useMemo(
     () => pathname === `/posts/${postId}`,
@@ -61,14 +62,15 @@ export const usePostMutations = () => {
         queryClient.invalidateQueries({ queryKey: ['infinitePosts'] });
         if (isCurrentPage) {
           queryClient.removeQueries({ queryKey: ['posts', id] });
-        }
-        if (isCurrentPage) {
-          window.location.href = '/posts';
+          // `replace`, not `push` — the post no longer exists, so leaving it
+          // in the history stack would send Back to a dead page.
+          router.replace('/posts');
         }
       },
       onError: (error: unknown) => {
+        // Deliberately no navigation here: a failed delete must leave the
+        // user where they were, not yank them off the page they were on.
         toast.error(getApiErrorMessage(error, 'Failed to delete the post'));
-        window.location.href = '/posts';
       },
     });
   }
