@@ -79,7 +79,7 @@ The directory is missing entirely.
 
 > ⚠️ **Creating `frontend/public/` is not sufficient — it will still 404 in production.** `frontend/Dockerfile` copies `.next/standalone` and `.next/static` into the runner but has **no `COPY --from=builder /app/public ./public`** line. Next.js serves `public/` automatically in `npm run dev`, so this fix will look correct locally, pass review, deploy, and _still_ 404 on Render. Add the `COPY` line in the same commit. (This is the sole remaining piece of D1.2.)
 
-### P1.4 Conversations show "Unknown user" — orphaned by the seed wipe `[ ]`
+### P1.4 Conversations show "Unknown user" — orphaned by the seed wipe `[x]`
 
 `ConversationListItem.tsx` L21 renders `participant?.name ?? 'Unknown user'`. The backend (`message-controller.ts` L61–69) returns `name: otherUser?.name ?? null` when its lookup into the users collection misses.
 
@@ -90,7 +90,7 @@ The directory is missing entirely.
 - `wipeSeedData()` must also delete `Message` documents and `Conversation` documents whose `participants` include a wiped user ID.
 - Independently, the frontend should degrade gracefully rather than showing a broken row — but the real fix is the wipe, since these rows are unrecoverable garbage.
 
-### P1.5 Seed flag ergonomics — `--wipe` keeps getting swallowed `[ ]`
+### P1.5 Seed flag ergonomics — `--wipe` keeps getting swallowed `[x]`
 
 `npm run seed -- --wipe` under Windows PowerShell has repeatedly failed to forward the flag (npm warns `Unknown cli config "--wipe"`), silently producing a _duplicate_ seed batch instead of a reset. This has already caused several thousand redundant documents in the dev database.
 
@@ -139,7 +139,7 @@ Each one throws away the entire React Query cache, the socket connection, and al
 
 **Fix:** use `router.push`/`router.replace` throughout; delete the `onError` navigation entirely.
 
-### P2.3 `Comment` is the only model with no indexes `[ ]`
+### P2.3 `Comment` is the only model with no indexes `[x]`
 
 Every other model got indexed; `Comment` was overlooked:
 
@@ -171,7 +171,7 @@ So the prefetch on every rendered comment costs a network request per comment an
 
 **Fix:** collapse to one fetcher and one key shape. Pick `getCommentById`'s error behaviour (rethrow, so React Query can show an error state) and `getComment`'s return shape (unwrapped).
 
-### P2.5 `name: maxLength: 20` will reject real Google display names `[ ]`
+### P2.5 `name: maxLength: 20` will reject real Google display names `[x]`
 
 `Post.ts` L21–25 and `Comment.ts` L15–18 both cap the denormalized author `name` at 20 characters. Names come from Google OAuth profiles, which routinely exceed that — "Christopher Alexander Smith" is 27. When they do, `newComment.save()` / post creation throws a Mongoose `ValidationError` and the user gets a 500 with no useful message.
 
@@ -179,13 +179,15 @@ Nobody has hit it yet because every account so far (yours + seeded "First Last" 
 
 **Fix:** raise the cap to something realistic (50+), or drop the denormalized `name` entirely and always resolve it from the users collection — which is what the controllers already do for `authorImage`. The second option is cleaner and kills a whole class of stale-name bugs, but it's a bigger change.
 
-### P2.6 `allComments` is dead code — with tests `[ ]`
+**Follow-up:** remove the denormalized `name` in a frontend-coordinated change so renamed accounts cannot leave stale names on posts and comments.
+
+### P2.6 `allComments` is dead code — with tests `[x]`
 
 `comment-controller.ts` L12–93 defines and L515 exports `allComments`, and `comment-controller.test.ts` L367–403 tests it. **It is not wired to any route** — `comment-routes.ts` never references it.
 
 Doubly bad: it inflates apparent test coverage with tests for code that can't run in production. Delete the handler and its tests, or route it if there's a use for a global comment feed.
 
-### P2.7 `writeLimiter` applied inconsistently `[ ]`
+### P2.7 `writeLimiter` applied inconsistently `[x]`
 
 Rate limiting is on some write paths and not others:
 
@@ -200,6 +202,8 @@ Rate limiting is on some write paths and not others:
 
 Comment creation and the like toggle are the easiest endpoints to hammer on a public site. Decide the policy deliberately and apply it uniformly, rather than leaving the current pattern, which looks like whichever routes happened to be written after the limiter existed.
 
+**Implemented policy:** every authenticated HTTP mutation in `backend/src/routes` uses the 60-per-15-minute `writeLimiter`, including create, edit, delete, like/follow, conversation creation, and read-state writes.
+
 ### P2.8 Unstyled error states `[ ]`
 
 Two bare unstyled returns that ignore the theme entirely:
@@ -209,7 +213,7 @@ Two bare unstyled returns that ignore the theme entirely:
 
 Both `return <div>Something went wrong loading the comment.</div>`. There's an `EmptyState` component already — use it, or add an `ErrorState` sibling.
 
-### P2.9 No graceful shutdown — sockets and Mongo are killed abruptly `[ ]`
+### P2.9 No graceful shutdown — sockets and Mongo are killed abruptly `[x]`
 
 `WEBSOCKET_MESSAGING_PLAN.md` §8 specified "on `SIGTERM`, `io.close()` before `server.close()`". It was never implemented — there is **no `SIGTERM` or `SIGINT` handler anywhere in the backend**, and no `io.close()` call.
 
