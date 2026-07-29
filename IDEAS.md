@@ -139,7 +139,7 @@ Each one throws away the entire React Query cache, the socket connection, and al
 
 **Fix:** use `router.push`/`router.replace` throughout; delete the `onError` navigation entirely.
 
-### P2.3 `Comment` is the only model with no indexes `[ ]`
+### P2.3 `Comment` is the only model with no indexes `[x]`
 
 Every other model got indexed; `Comment` was overlooked:
 
@@ -171,7 +171,7 @@ So the prefetch on every rendered comment costs a network request per comment an
 
 **Fix:** collapse to one fetcher and one key shape. Pick `getCommentById`'s error behaviour (rethrow, so React Query can show an error state) and `getComment`'s return shape (unwrapped).
 
-### P2.5 `name: maxLength: 20` will reject real Google display names `[ ]`
+### P2.5 `name: maxLength: 20` will reject real Google display names `[x]`
 
 `Post.ts` L21-25 and `Comment.ts` L15-18 both cap the denormalized author `name` at 20 characters. Names come from Google OAuth profiles, which routinely exceed that: "Christopher Alexander Smith" is 27. When they do, `newComment.save()` / post creation throws a Mongoose `ValidationError` and the user gets a 500 with no useful message.
 
@@ -185,7 +185,7 @@ Nobody has hit it yet because every account so far (yours + seeded "First Last" 
 
 Doubly bad: it inflates apparent test coverage with tests for code that can't run in production. Delete the handler and its tests, or route it if there's a use for a global comment feed.
 
-### P2.7 `writeLimiter` applied inconsistently `[ ]`
+### P2.7 `writeLimiter` applied inconsistently `[x]`
 
 Rate limiting is on some write paths and not others:
 
@@ -199,6 +199,8 @@ Rate limiting is on some write paths and not others:
 | `POST /post/like`, `POST /comment/like` | **no**   |
 
 Comment creation and the like toggle are the easiest endpoints to hammer on a public site. Decide the policy deliberately and apply it uniformly, rather than leaving the current pattern, which looks like whichever routes happened to be written after the limiter existed.
+
+**Implemented policy:** every authenticated HTTP mutation in `backend/src/routes` uses the 60-per-15-minute `writeLimiter`, including create, edit, delete, like/follow, conversation creation, and read-state writes.
 
 ### P2.8 Unstyled error states `[ ]`
 

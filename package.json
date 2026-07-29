@@ -10,7 +10,8 @@
     "typecheck": "npm run typecheck --prefix backend && npm run typecheck --prefix frontend",
     "build": "npm run build --prefix frontend",
     "test": "npm run test:ci --prefix backend && npm run test:ci --prefix frontend",
-    "deps:check": "npm audit --audit-level=high && npm audit --prefix backend --audit-level=high && npm audit --prefix frontend --audit-level=high",
+    "deps:check": "npm audit --omit=dev --audit-level=high && npm audit --prefix backend --omit=dev --audit-level=high && npm audit --prefix frontend --omit=dev --audit-level=high",
+    "deps:check:all": "npm audit --audit-level=high && npm audit --prefix backend --audit-level=high && npm audit --prefix frontend --audit-level=high",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm test"
   },
   "repository": {

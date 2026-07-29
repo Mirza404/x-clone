@@ -7,6 +7,8 @@ import {
 import Post from '../src/models/Post';
 import Follow from '../src/models/Follow';
 import Comment from '../src/models/Comment';
+import Conversation from '../src/models/Conversation';
+import Message from '../src/models/Message';
 
 // Seed users are tagged with this email suffix so `--wipe` can find and
 // remove exactly the accounts (and only the accounts) this script created,
@@ -169,6 +171,19 @@ async function wipeSeedData(): Promise<void> {
   }
 
   const ids = existing.map((user) => user._id);
+  const seededConversations = await Conversation.find(
+    { participants: { $in: ids } },
+    { _id: 1 }
+  ).lean();
+  const conversationIds = seededConversations.map(
+    (conversation) => conversation._id
+  );
+  const deletedMessages = await Message.deleteMany({
+    conversation: { $in: conversationIds },
+  });
+  const deletedConversations = await Conversation.deleteMany({
+    _id: { $in: conversationIds },
+  });
   const seededPosts = await Post.find(
     { author: { $in: ids } },
     { _id: 1 }
@@ -182,7 +197,9 @@ async function wipeSeedData(): Promise<void> {
   });
   await usersCollection.deleteMany({ _id: { $in: ids } });
   console.info(
-    `Wiped ${ids.length} previously seeded users (and their posts/follows).`
+    `Wiped ${ids.length} previously seeded users and their posts, follows, ` +
+      `${deletedConversations.deletedCount} conversations, and ` +
+      `${deletedMessages.deletedCount} messages.`
   );
 }
 
@@ -345,6 +362,11 @@ async function main() {
   const countArg = args.find((arg) => arg.startsWith('--users='));
   const count = countArg ? parseInt(countArg.split('=')[1], 10) : 30;
 
+  console.info(
+    wipe
+      ? 'Seed mode: WIPE existing seed data, then create a fresh batch.'
+      : 'Seed mode: APPEND a new seed batch without deleting existing data.'
+  );
   await connectToDatabase();
 
   if (wipe) {

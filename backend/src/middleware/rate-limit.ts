@@ -8,7 +8,7 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Tighter cap on writes that hit Cloudinary/Mongo (post + message creation).
+// Tighter cap on every authenticated HTTP mutation that writes to storage.
 export const writeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 60,

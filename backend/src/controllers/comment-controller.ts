@@ -9,89 +9,6 @@ import { hasObjectId, toObjectId } from '../utils/object-id';
 import { collectCommentThreadIds } from '../utils/comment-tree';
 import { getUsersCollection } from '../db/connection';
 
-async function allComments(req: Request, res: Response): Promise<void> {
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      res.status(500).json({ message: 'Database not connected' });
-      return;
-    }
-
-    const limit = parseInt(req.query.limit as string) || 10;
-    const page = parseInt(req.query.page as string) || 1;
-    const skip = (page - 1) * limit;
-
-    const comments = (await Comment.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('replies') // only populate replies, not author
-      .lean()) as LeanComment[];
-
-    const authorIds = new Set<string>();
-    for (const comment of comments) {
-      authorIds.add(comment.author.toString());
-      for (const reply of comment.replies ?? []) {
-        authorIds.add(reply.author.toString());
-      }
-    }
-
-    const users = await getUsersCollection()
-      .find({
-        _id: {
-          $in: Array.from(authorIds).map(
-            (id) => new mongoose.Types.ObjectId(id)
-          ),
-        },
-      })
-      .project({ _id: 1, image: 1 })
-      .toArray();
-
-    const userImageMap = new Map(
-      users.map((user) => [user._id.toString(), user.image])
-    );
-
-    // Fetch author images separately from the users collection
-    const commentsWithUserData = comments.map((comment) => ({
-      id: comment._id,
-      content: comment.content,
-      name: comment.name,
-      postId: comment.postId,
-      parentComment: comment.parentComment,
-      createdAt: comment.createdAt,
-      likes: comment.likes,
-      author: comment.author,
-      authorImage: userImageMap.get(comment.author.toString()) || null,
-      replies: (comment.replies ?? []).map((reply) => ({
-        id: reply._id,
-        content: reply.content,
-        name: reply.name,
-        postId: reply.postId,
-        parentComment: reply.parentComment,
-        createdAt: reply.createdAt,
-        likes: reply.likes,
-        author: reply.author,
-        authorImage: userImageMap.get(reply.author.toString()) || null,
-        replies: reply.replies, // (should usually be empty since this is a 2-level system)
-      })),
-    }));
-
-    // Total number of comments
-    const totalComments = await Comment.countDocuments();
-    const totalPages = Math.ceil(totalComments / limit);
-
-    res.status(200).json({
-      comments: commentsWithUserData,
-      totalPages,
-      currentPage: page,
-    });
-  } catch (e) {
-    console.error('Error getting comments:', e);
-    if (!res.headersSent) {
-      res.status(500).json({ message: 'Internal Server Error' });
-    }
-  }
-}
-
 async function findCommentsByPost(req: Request, res: Response): Promise<void> {
   try {
     const { postId } = req.params;
@@ -512,7 +429,6 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
 }
 
 export {
-  allComments,
   findCommentsByPost,
   findCommentById,
   createComment,
