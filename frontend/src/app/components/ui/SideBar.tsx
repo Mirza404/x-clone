@@ -1,10 +1,35 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useDebouncedCallback } from 'use-debounce';
 import { Search } from 'lucide-react';
 import Card from './Card';
 import TodaysNews from '../rail/TodaysNews';
 import WhatsHappening from '../rail/WhatsHappening';
 
 const SideBar = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [typedQuery, setTypedQuery] = useState<string | null>(null);
+  // While the user is actively typing, the input reflects local state;
+  // otherwise it mirrors the URL's `q` param (e.g. after navigating back),
+  // without a state-syncing effect (see react-hooks/set-state-in-effect).
+  const query =
+    typedQuery !== null
+      ? typedQuery
+      : pathname === '/explore'
+        ? (searchParams.get('q') ?? '')
+        : '';
+
+  const navigate = useDebouncedCallback((value: string) => {
+    if (value.trim()) {
+      router.push(`/explore?q=${encodeURIComponent(value.trim())}`);
+    }
+  }, 400);
+
   return (
     <div className="sticky top-0 flex h-screen flex-col gap-4 overflow-y-auto py-1">
       {/* Search Box */}
@@ -13,6 +38,17 @@ const SideBar = () => {
         <input
           type="text"
           placeholder="Search"
+          value={query}
+          onChange={(e) => {
+            setTypedQuery(e.target.value);
+            navigate(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && query.trim()) {
+              navigate.cancel();
+              router.push(`/explore?q=${encodeURIComponent(query.trim())}`);
+            }
+          }}
           className="w-full rounded-full border border-transparent bg-input py-3 pl-12 pr-4 text-content placeholder-muted outline-none focus:border-border-strong focus:bg-bg"
         />
       </div>
