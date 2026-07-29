@@ -84,7 +84,7 @@ const POST_SNIPPETS = [
   'Coffee first, code second.',
   'Anyone else debugging in production right now?',
   'Refactored a whole module today, no regrets.',
-  'Hot take: tabs vs spaces doesn’t matter, consistency does.',
+  "Hot take: tabs vs spaces doesn't matter, consistency does.",
   'Reading through an old codebase, learning a lot.',
   'Deploys on a Friday, living dangerously.',
   'Finally fixed that flaky test.',

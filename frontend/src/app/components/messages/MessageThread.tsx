@@ -102,7 +102,7 @@ export default function MessageThread({
 
       {!connected && (
         <div className="flex-shrink-0 bg-yellow-500/10 px-4 py-1.5 text-center text-xs text-yellow-600">
-          Reconnecting…
+          Reconnecting...
         </div>
       )}
 

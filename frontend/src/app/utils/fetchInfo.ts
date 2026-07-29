@@ -45,7 +45,7 @@ export async function getPostsPaginated(page: number) {
 
 // The single fetcher for one comment (plus its replies). There used to be a
 // second one, `getCommentById`, hitting the exact same endpoint but read under
-// a different cache key — so the prefetch in CommentItem never served the
+// a different cache key, so the prefetch in CommentItem never served the
 // thread page and every navigation refetched from scratch. Unwrapped return
 // shape, rethrows so React Query can surface an error state.
 export async function getComment(

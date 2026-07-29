@@ -330,7 +330,7 @@ async function createComment(req: Request, res: Response): Promise<void> {
         $push: { replies: newComment._id },
       });
     } else {
-      // It's a top-level comment → push to the post's comments
+      // It's a top-level comment, push to the post's comments
       await Post.findByIdAndUpdate(postId, {
         $push: { comments: newComment._id },
       });

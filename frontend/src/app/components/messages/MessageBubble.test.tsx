@@ -28,7 +28,7 @@ describe('MessageBubble', () => {
         isMine={true}
       />
     );
-    expect(screen.getByText('Sending…')).toBeInTheDocument();
+    expect(screen.getByText('Sending...')).toBeInTheDocument();
   });
 
   it('shows a failed indicator when the send failed', () => {

@@ -62,7 +62,7 @@ export const usePostMutations = () => {
         queryClient.invalidateQueries({ queryKey: ['infinitePosts'] });
         if (isCurrentPage) {
           queryClient.removeQueries({ queryKey: ['posts', id] });
-          // `replace`, not `push` — the post no longer exists, so leaving it
+          // `replace`, not `push`: the post no longer exists, so leaving it
           // in the history stack would send Back to a dead page.
           router.replace('/posts');
         }
