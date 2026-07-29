@@ -5,7 +5,11 @@ import {
   useInfiniteQuery,
 } from '@tanstack/react-query';
 import api from './apiClient';
-import { fetchPosts, getPostsPaginated } from './fetchInfo';
+import {
+  fetchPosts,
+  getPostsPaginated,
+  getSearchResultsPaginated,
+} from './fetchInfo';
 import toast from 'react-hot-toast';
 import { getCommentsPaginated } from './fetchInfo';
 import { useMemo } from 'react';
@@ -43,6 +47,17 @@ export const usePostMutations = () => {
       queryFn: ({ pageParam = 1 }) => getPostsPaginated(pageParam),
       initialPageParam: 1,
       getNextPageParam: (lastPage) => lastPage.nextPage,
+    });
+  }
+
+  function useFetchInfiniteSearchResults(query: string) {
+    return useInfiniteQuery({
+      queryKey: ['infiniteSearch', query],
+      queryFn: ({ pageParam = 1 }) =>
+        getSearchResultsPaginated(query, pageParam),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) => lastPage.nextPage,
+      enabled: query.trim().length > 0,
     });
   }
 
@@ -112,6 +127,7 @@ export const usePostMutations = () => {
     useFetchPosts,
     useFetchInfinitePosts,
     useFetchInfiniteComments,
+    useFetchInfiniteSearchResults,
     useDeletePost,
     useUpdatePost,
   };
