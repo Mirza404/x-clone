@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
 import NewPostPage from '../newPost/page';
-import PostListInfinite from '../components/posts/PostListInfinite';
-import FeedTabs from '../components/feed/FeedTabs';
-import EmptyState from '../components/ui/EmptyState';
+import PostListInfinite from '@/app/components/posts/PostListInfinite';
+import FeedTabs from '@/app/components/feed/FeedTabs';
+import EmptyState from '@/app/components/ui/EmptyState';
 
 export default function PostsPage() {
   const [activeTab, setActiveTab] = useState<'for-you' | 'following'>(
