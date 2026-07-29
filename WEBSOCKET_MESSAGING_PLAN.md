@@ -2,11 +2,10 @@
 
 > **Status: implemented and shipped.** This began as a pre-implementation blueprint; sections 1-7 and 10-12 now describe code that exists. It is kept as the **design-rationale record** for the messaging system: the _why_ behind the architecture, which the code itself doesn't explain (see especially §4 on socket auth, and §3 on the transport choice).
 >
-> **This file is not a to-do list.** [IDEAS.md](IDEAS.md) is the single source of truth for outstanding work. The items from this document that were _not_ built are tracked there, not here:
+> **This file is not a to-do list.** [IDEAS.md](IDEAS.md) is the single source of truth for outstanding work. Nearly everything below shipped, including §8's graceful shutdown (`SIGTERM`/`SIGINT` → `io.close()` → `server.close()` → Mongo disconnect, in `backend/src/index.ts`). What's left, tracked in IDEAS.md instead of here:
 >
-> - **§8 graceful shutdown (`SIGTERM`, then `io.close()`) was never implemented**, tracked as `P2.9` in IDEAS.md.
-> - **§9 horizontal scaling (Redis adapter)** remains deliberate future work, tracked in IDEAS.md.
-> - **§13 open questions** are still unconfirmed, tracked in IDEAS.md.
+> - **§9 horizontal scaling (Redis adapter)** remains deliberate future work.
+> - **§13 open questions** are still unconfirmed (tracked as F5).
 >
 > Everything else in §12's implementation order shipped, with tests (`backend/src/socket/{auth,handlers,presence,rate-limit,typing}.ts` and the frontend `components/messages/*` + `hooks/use{Socket,Messages,Conversations}.ts`).
 

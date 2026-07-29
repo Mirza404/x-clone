@@ -6,264 +6,38 @@ A playground/portfolio backlog. Two tracks: **product correctness/features** and
 
 ## Related documents: read this first
 
-**This file is the single source of truth for outstanding work.** Two sibling documents exist; neither is a to-do list, and they must not be treated as one:
-
-| Document                                                   | What it is                                                                             | Authoritative for                                                                 |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **IDEAS.md** (this file)                                   | The backlog: _what_ to do, in _what order_, and _why_                                  | Everything outstanding                                                            |
-| [GAPS_PLAN.md](GAPS_PLAN.md)                               | Implementation blueprint for **D1.1-D1.4** only. Still pending, nothing in it is built | The _how_ of those four items: exact config, acceptance criteria, risks           |
-| [WEBSOCKET_MESSAGING_PLAN.md](WEBSOCKET_MESSAGING_PLAN.md) | **As-built record.** The messaging system it describes is shipped                      | The _why_ behind the messaging architecture (socket auth model, transport choice) |
-
-If a sibling document disagrees with this file about what remains to be done, **this file wins**. The leftovers from the messaging plan have been pulled into P2.9 and F5 here.
+**This file is the single source of truth for outstanding work.**
+[WEBSOCKET_MESSAGING_PLAN.md](WEBSOCKET_MESSAGING_PLAN.md) is an **as-built record** (not a to-do list): the messaging system it describes is shipped, and it's kept only for the architectural rationale (socket auth model, transport choice) that the code itself doesn't explain. If it disagrees with this file about what remains to be done, this file wins.
 
 ---
 
-## Reality check: what actually exists today
+## Reality check: what actually exists today (verified 2026-07-29)
 
-Verified against the repo, not assumed. Earlier versions of this file were stale on several of these.
-
-- **CI** (`.github/workflows/ci.yml`): format, lint, typecheck, test, build, dependency-audit, gitleaks secret-scan, concurrency + `cancel-in-progress`, composite `install-deps` action.
-- **Deployment: already live.** Frontend serving at `https://x-clone-frontend-voi9.onrender.com`. This invalidates the old "A1 gives you a live URL, top priority" framing; the live URL exists. What's missing is the _automated, gated_ path to it (see D2).
-- **Dockerfiles are already hardened.** Backend is multi-stage running compiled `dist/` as `USER node`; frontend uses Next `output: 'standalone'`. This is D1.1/D1.2, previously listed as outstanding. See D1 for the one line still missing.
-- **Backend is deployed too.** `render.yaml` defines both services (`x-clone-backend`, `x-clone-frontend`), both on Render's **free** plan. Free instances sleep after inactivity; see the socket caveat in F5.
+- **CI** (`.github/workflows/ci.yml`): format, lint, typecheck, test, build, dependency-audit, gitleaks secret-scan, a real `mongo:7` service container, coverage upload for both projects, concurrency + `cancel-in-progress`, composite `install-deps` action.
+- **Deployment: already live.** Frontend serving at `https://x-clone-frontend-voi9.onrender.com`. Backend deployed too via `render.yaml`, both on Render's **free** plan (sleeps after inactivity; see the socket caveat in F5).
+- **Dockerfiles hardened, both sides.** Backend multi-stage running compiled `dist/` as `USER node`. Frontend uses Next `output: 'standalone'`, and the runner copies `public/` (favicon ships, and `Avatar.tsx` renders an inline SVG fallback rather than fetching one, so it can never 404).
+- **Coverage gate is live.** `backend/.c8rc.json` thresholds ratcheted to measured levels (lines 85 / functions 95 / branches 75 / statements 85); frontend Jest has a coverage threshold too.
+- **Messaging is built and hardened.** `Conversation`/`Message` models, `message-controller.ts`, `useSocket.ts`, `useMessages.ts`, `useConversations.ts`, `MessageThread.tsx`, graceful `SIGTERM`/`SIGINT` shutdown (`io.close()` → `server.close()` → Mongo disconnect). Seed wipe cleans up orphaned conversations/messages; `npm run seed:wipe` is an explicit script.
+- **Design system fully migrated.** No page left on hardcoded `bg-black`/`text-white`/`border-gray-*`; theme (light/dark) persists via `localStorage`, no mid-session flip.
 - Two npm projects (`backend/` Express+Mongoose, `frontend/` Next.js App Router), no workspaces.
-- **Messaging is built.** `Conversation`/`Message` models, `message-controller.ts`, `useSocket.ts`, `useMessages.ts`, `useConversations.ts`, `MessageThread.tsx`. Working, but see P1.4 and F1.
-- **Seeding exists.** `backend/scripts/seed.ts` (users/posts/comments/follows) and `seed-my-follows.ts` (follows + DM history for your own account).
-- **`frontend/public/` does not exist.** No favicon, no logo asset. See P1.3.
 
-### Holes in the previous version of this plan
-
-1. It had **no product-correctness track at all**: 100% DevOps/AI while the deployed app had visible UI bugs. A portfolio project with a broken sign-in screen and 404'd avatars undermines every infrastructure item above it. Fixed: Part P is now first.
-2. It treated **A1 (deploy) as unstarted** when the app is already live. Fixed in the reality check above.
-3. Items had **no dependency ordering or status**, so "recommended order" and the item list could drift apart. Fixed: status markers + an explicit sequencing section at the bottom.
-4. **A0.3 ("real MongoDB in CI")** was listed without checking whether the backend tests actually need a DB. They're currently unit-style. Reframed as D1.3 with that caveat.
-5. The **Part C items added later were never folded into the recommended order**, so they were invisible to anyone reading the bottom of the file. Fixed.
-
----
-
-## Part P: Product correctness (bugs on the live site)
-
-**Do these first.** They're small, they're visible on the deployed URL, and several are one-line fixes with outsized impact.
-
-### P1.1 Comment-thread page was never migrated to the design system `[ ]`
-
-`frontend/src/app/posts/[id]/comment/[commentId]/page.tsx` is the odd one out. Every other page uses the semantic Tailwind tokens (`border-border`, `text-content`, `text-muted`), this one still has hardcoded Tailwind palette colors from before the theming work.
-
-- **L50** `<div className="border border-gray-600">`: hardcoded gray. This is the "ugly black outline" around the whole thread. Should be `border-border` or, to match the feed, no outer border at all.
-- **L71** `<div key={reply.id} className="border-t border-gray-600">`: same problem per reply.
-- **L51** `max-w-2xl mx-auto mt-0 space-y-4`: centers and gaps the content, while the rest of the app is full-bleed with flush borders. The `space-y-4` is what creates the floating-card look.
-- **L60** `<h2 className="text-xl font-bold p-4 pt-0 pb-0">Replies</h2>`: no `text-content`, so it doesn't follow the theme. Compare the "Comments" heading in `NewComment.tsx`, which has `border-b border-border p-4 text-xl font-bold text-content`.
-- **L45-47** error state is a bare unstyled `<div>Something went wrong loading the comment.</div>`.
-- **Missing sticky back header.** `posts/[id]/page.tsx` L34-44 has a proper sticky header with an `ArrowLeft` back button; the comment thread has no way back and no title.
-- **Missing `AuthWall`.** Unauthenticated users see the reply composer and only find out on submit.
-
-**Fix:** rewrite the page to mirror `posts/[id]/page.tsx` structurally: sticky header with back arrow, full-bleed items, `border-border` dividers, themed headings.
-
-### P1.2 Theme does not persist; flips mid-session `[ ]`
-
-Two cooperating defects across `frontend/src/app/layout.tsx` L45-47 and `frontend/src/app/utils/ThemeProvider.tsx` L39-51.
-
-- The inline `theme-init` script reads `localStorage.theme`; when absent it falls back to `prefers-color-scheme`, but it **never writes the resolved value back**. So a user who has never clicked the toggle has no persisted theme, ever.
-- `ThemeProvider` L42-50 then registers a **live** `matchMedia('(prefers-color-scheme: dark)')` change listener that flips the app whenever the OS preference changes. Windows' automatic night mode will therefore flip the site out from under you mid-session, which matches the reported "it went light to dark when I clicked a comment."
-
-**Fix:** treat system preference as an _initial default only_. On first resolve, persist it to `localStorage` immediately (in the inline script, so it happens before paint). Then the live `matchMedia` listener becomes dead code and should be removed, or kept only behind an explicit "follow system" mode the user opts into. Decide which; the simpler option is removal.
-
-### P1.3 `frontend/public/` does not exist: every fallback asset 404s `[ ]`
-
-The directory is missing entirely.
-
-- `Avatar.tsx` L27 falls back to `src={src || '/Logo.png'}`, which 404s and renders the browser's broken-image icon plus alt text. **This is the "Unknown" text in the messages list.** It's not a text bug, it's a broken `<img>` rendering its alt.
-- `layout.tsx` L44 `<link rel="icon" href="/favicon.ico" />` 404s too.
-
-**Fix:** create `frontend/public/` with a real `favicon.ico` and a default avatar. Consider making the Avatar fallback an inline SVG component instead of a network request, so it can never 404 again.
-
-> **Creating `frontend/public/` is not sufficient: it will still 404 in production.** `frontend/Dockerfile` copies `.next/standalone` and `.next/static` into the runner but has **no `COPY --from=builder /app/public ./public`** line. Next.js serves `public/` automatically in `npm run dev`, so this fix will look correct locally, pass review, deploy, and _still_ 404 on Render. Add the `COPY` line in the same commit. (This is the sole remaining piece of D1.2.)
-
-### P1.4 Conversations show "Unknown user", orphaned by the seed wipe `[ ]`
-
-`ConversationListItem.tsx` L21 renders `participant?.name ?? 'Unknown user'`. The backend (`message-controller.ts` L61-69) returns `name: otherUser?.name ?? null` when its lookup into the users collection misses.
-
-**Root cause:** `seed.ts`'s `wipeSeedData()` (L157-187) deletes seed users, their posts, their comments and their follows, but **never touches `Conversation` or `Message`**. `seed-my-follows.ts` creates DM history against those same seed users. So every wipe orphans the conversations, leaving them pointing at user IDs that no longer exist.
-
-**Fix, both sides:**
-
-- `wipeSeedData()` must also delete `Message` documents and `Conversation` documents whose `participants` include a wiped user ID.
-- Independently, the frontend should degrade gracefully rather than showing a broken row, but the real fix is the wipe, since these rows are unrecoverable garbage.
-
-### P1.5 Seed flag ergonomics: `--wipe` keeps getting swallowed `[ ]`
-
-`npm run seed -- --wipe` under Windows PowerShell has repeatedly failed to forward the flag (npm warns `Unknown cli config "--wipe"`), silently producing a _duplicate_ seed batch instead of a reset. This has already caused several thousand redundant documents in the dev database.
-
-**Fix options (pick one):**
-
-- Add an explicit `"seed:wipe": "ts-node scripts/seed.ts --wipe"` script. No flag forwarding, nothing to swallow. Simplest, recommended.
-- Or invert the default: wipe unless `--append` is passed. Safer against accidental accumulation, but changes existing behaviour.
-
-Either way: have the script **log loudly** what mode it's in on the first line of output, so a swallowed flag is obvious instead of silent. Also document the incantation in `README.md`.
-
----
-
-## Part P2: Same-class defects found on a systematic sweep
-
-P1.1 (comment thread never migrated to the design system) was not a one-off. A targeted scan for that _class_ of problem turned up the following. Ordered by user-visible impact.
-
-### P2.1 Two more pages hardcoded to dark-only, worse than P1.1 `[ ]`
-
-P1.1's page uses hardcoded grays but is at least readable. These two are pinned to a **black background with white text**, so in light mode they render as a black box in an otherwise white app, and the textarea text is white-on-white while typing.
-
-**`frontend/src/app/posts/[id]/editPost/page.tsx`**
-
-- L93 `bg-black bg-opacity-50 ... border border-gray-700`
-- L117 textarea: `text-white bg-black` <- **white text on white page in light mode**
-- L104/L195 `text-gray-400` / `text-gray-500`
-- L143, L174 `bg-black bg-opacity-75 text-gray-400 hover:text-white`
-- L194 `border-t border-gray-700`
-- L202 `bg-black text-white border-gray-700 hover:bg-gray-300 hover:text-black`
-- L209 `bg-white font-bold text-black hover:bg-gray-300`
-- Also L93 `w-[598px]`: a hardcoded pixel width that won't survive the F1 layout refactor.
-
-**`frontend/src/app/posts/[id]/comment/[commentId]/edit/EditCommentClient.tsx`**: same treatment, L134, L146, L159 (`text-white`), L167, L169, L178, L186.
-
-**Fix:** migrate both to semantic tokens exactly as P1.1 does. These three pages (P1.1 + these two) are the complete set of un-migrated routes; everything else already uses `text-content`/`bg-bg`/`border-border`. Worth doing as one commit per page.
-
-### P2.2 `window.location.href` forces full page reloads in four places `[ ]`
-
-Four sites do a hard browser navigation instead of `router.push`:
-
-- `posts/[id]/comment/[commentId]/page.tsx` L56, L76 (edit links)
-- `utils/postMutations.ts` L66, L71
-
-Each one throws away the entire React Query cache, the socket connection, and all React state, then re-downloads the app. **This is also the third contributor to the P1.2 theme flip:** a full reload re-runs the `theme-init` script, which (per P1.2) has no persisted value to read and so re-derives the theme from the OS. Fixing P1.2 removes the flip; fixing this removes the reload.
-
-**Worse: `postMutations.ts` L71 navigates away on _failure_.** The `onError` handler fires `window.location.href = '/posts'`, so a delete that fails shows an error toast and _then_ yanks the user off the page they were on. Errors should leave the user where they are.
-
-**Fix:** use `router.push`/`router.replace` throughout; delete the `onError` navigation entirely.
-
-### P2.3 `Comment` is the only model with no indexes `[x]`
-
-Every other model got indexed; `Comment` was overlooked:
-
-| Model          | Indexes                                              |
-| -------------- | ---------------------------------------------------- |
-| `Post`         | `{ author: 1, createdAt: -1 }`                       |
-| `Follow`       | `{ follower, following }` unique, `{ following: 1 }` |
-| `Message`      | `{ conversation: 1, createdAt: -1 }`                 |
-| `Conversation` | `{ participants: 1 }`, `{ lastMessageAt: -1 }`       |
-| **`Comment`**  | **none**                                             |
-
-Meanwhile `findCommentsByPost` queries `{ _id: { $in: post.comments }, parentComment: null }` with `.sort({ createdAt: -1 })` and a `countDocuments` on the same filter: a collection scan on every post view, on a collection that just grew past 1000 documents from the duplicate seeding.
-
-**Fix:** add `CommentSchema.index({ postId: 1, createdAt: -1 })` and `CommentSchema.index({ parentComment: 1 })`.
-
-### P2.4 Duplicate fetchers make a prefetch silently useless `[ ]`
-
-`utils/fetchInfo.ts` has two functions hitting the **identical endpoint** `GET /api/post/:postId/comment/:commentId`:
-
-- L46 `getComment()` returns `data[0] ?? null`, swallows errors
-- L114 `getCommentById()` returns the raw array, rethrows
-
-They're used with **different cache keys**, which is the actual bug:
-
-- `CommentItem.tsx` L43-48 prefetches into `['comment', comment.id]`
-- `posts/[id]/comment/[commentId]/page.tsx` L24 reads from `['comment-thread', postId, commentId]`
-
-So the prefetch on every rendered comment costs a network request per comment and **is never read**. Navigating into a thread refetches from scratch. This is the same species of defect as the unscoped `invalidateQueries()`: cache keys that don't line up with intent.
-
-**Fix:** collapse to one fetcher and one key shape. Pick `getCommentById`'s error behaviour (rethrow, so React Query can show an error state) and `getComment`'s return shape (unwrapped).
-
-### P2.5 `name: maxLength: 20` will reject real Google display names `[x]`
-
-`Post.ts` L21-25 and `Comment.ts` L15-18 both cap the denormalized author `name` at 20 characters. Names come from Google OAuth profiles, which routinely exceed that: "Christopher Alexander Smith" is 27. When they do, `newComment.save()` / post creation throws a Mongoose `ValidationError` and the user gets a 500 with no useful message.
-
-Nobody has hit it yet because every account so far (yours + seeded "First Last" pairs) happens to fit.
-
-**Fix:** raise the cap to something realistic (50+), or drop the denormalized `name` entirely and always resolve it from the users collection, which is what the controllers already do for `authorImage`. The second option is cleaner and kills a whole class of stale-name bugs, but it's a bigger change.
-
-### P2.6 `allComments` is dead code, with tests `[ ]`
-
-`comment-controller.ts` L12-93 defines and L515 exports `allComments`, and `comment-controller.test.ts` L367-403 tests it. **It is not wired to any route**. `comment-routes.ts` never references it.
-
-Doubly bad: it inflates apparent test coverage with tests for code that can't run in production. Delete the handler and its tests, or route it if there's a use for a global comment feed.
-
-### P2.7 `writeLimiter` applied inconsistently `[x]`
-
-Rate limiting is on some write paths and not others:
-
-| Route                                   | Limited? |
-| --------------------------------------- | -------- |
-| `POST /post/new`                        | yes      |
-| `POST /message/conversations`           | yes      |
-| `POST /post/:postId/comment/new`        | **no**   |
-| `PATCH /post/edit`                      | **no**   |
-| `PATCH /comment/edit/:commentId`        | **no**   |
-| `POST /post/like`, `POST /comment/like` | **no**   |
-
-Comment creation and the like toggle are the easiest endpoints to hammer on a public site. Decide the policy deliberately and apply it uniformly, rather than leaving the current pattern, which looks like whichever routes happened to be written after the limiter existed.
-
-**Implemented policy:** every authenticated HTTP mutation in `backend/src/routes` uses the 60-per-15-minute `writeLimiter`, including create, edit, delete, like/follow, conversation creation, and read-state writes.
-
-### P2.8 Unstyled error states `[ ]`
-
-Two bare unstyled returns that ignore the theme entirely:
-
-- `posts/[id]/comment/[commentId]/page.tsx` L46
-- `edit/EditCommentClient.tsx` L126
-
-Both `return <div>Something went wrong loading the comment.</div>`. There's an `EmptyState` component already; use it, or add an `ErrorState` sibling.
-
-### P2.9 No graceful shutdown: sockets and Mongo are killed abruptly `[ ]`
-
-`WEBSOCKET_MESSAGING_PLAN.md` §8 specified "on `SIGTERM`, `io.close()` before `server.close()`". It was never implemented: there is **no `SIGTERM` or `SIGINT` handler anywhere in the backend**, and no `io.close()` call.
-
-This matters more than it looks, because **the app is deployed on Render, which sends `SIGTERM` on every deploy.** Right now each redeploy severs live WebSocket connections mid-frame and drops the Mongo connection without closing it, instead of draining. Users in a conversation see a hard disconnect rather than Socket.IO's normal reconnect path.
-
-**Fix:** add a shutdown handler in `backend/src/index.ts`: `io.close()`, then `server.close()`, then `mongoose.connection.close()`, with a timeout so a hung connection can't block the exit past the platform's kill deadline.
-
-### Clean: checked and found no problems
-
-Recording these so the next sweep doesn't redo them:
-
-- **No `console.log`/`console.debug` anywhere** in either project. The rule is holding.
-- **No unscoped `invalidateQueries()`** remaining. The `LikeButton` one was the only instance and it's fixed.
-- **No hardcoded `localhost` / `http://` URLs** in frontend source (all hits were SVG `xmlns`).
-- **Auth guards are complete.** Every mutating route has `requireAuth`, and `post-controller` checks author ownership on both update (L283) and delete (L241), as does `comment-controller`.
-- **`SideBar.tsx` L13-17 is the only dead input** in the codebase; every other `<input>`/`<textarea>` is properly controlled.
+Everything that was Part P / P2 / D1 in earlier drafts of this file (the product-correctness sweep and the four D1 DevOps gaps) is now done and has been removed from this file to keep it focused on what's actually outstanding: **Part F** (product features), **Part D** from D2 on (pipeline beyond the base Dockerfiles/CI), and **Part AI**.
 
 ---
 
 ## Part F: Product features
 
-### F1. Messages as its own full-bleed view `[ ]`
+### F1. Messages as its own full-bleed view `[x]`
 
-Messaging is currently crammed into the 600px center column, because `(navPages)/messages/page.tsx` renders inside the root layout's `<main className="w-full md:w-[600px] ...">` (`layout.tsx` L69). A two-pane conversation list + thread does not fit there.
+Messaging used to be crammed into the 600px center column, because `(navPages)/messages/page.tsx` rendered inside the root layout's shared three-column shell alongside every other route.
 
-**Target:** messages becomes a distinct top-level view that does **not** render the persistent left `NavMenu` (layout.tsx L64-66) or the right `SideBar` (L81-83), and uses the full viewport width.
+**Shipped:** the desktop chrome (`NavMenu` + capped `600px` `<main>` + right `SideBar`) moved out of the root layout into `frontend/src/app/(feed)/layout.tsx`, which now owns every feed route (`posts`, `newPost`, and the rest of the former `(navPages)` group). `frontend/src/app/messages/` sits outside that group with its own `layout.tsx`: full-bleed content, no `SideBar`, no width cap, `NavMenu` kept (so users aren't stranded with no navigation) but its "Messages" entry was dropped — the floating chat FAB (`FloatingActions`, feed-only now) plus `MessagePopover`'s "Messages" link are the entry points instead. Root `layout.tsx` holds only `<html>`/`<body>`, the theme-init script, and providers.
 
-**Approach, the main design decision to make first:**
+### F2. Search: posts and messages `[x]`
 
-- The chrome (NavMenu/SideBar) currently lives in the **root** `layout.tsx`, so every route gets it. To let one route opt out, that chrome has to move down into a route-group layout.
-- Concretely: introduce a route group (e.g. `(feed)/layout.tsx`) that owns the NavMenu + SideBar + 600px main column, move the existing feed routes under it, and leave the root layout holding only providers (`ThemeProvider`, `QueryProvider`, `SessionProvider`, `SocketProvider`, `PostModalProvider`, `CustomToaster`) plus `<html>`/`<body>`.
-- Messages then lives outside that group with its own layout, probably a slim icon-rail nav instead of nothing at all, so users aren't stranded with no navigation.
-- **Watch out:** the mobile chrome (`MobileHeader`, `MobileNavBar`, `MobileTabs`, `MobilePostButton`) is also in the root layout and will need the same treatment. `FloatingActions` too.
-- **Watch out:** provider order matters: `SocketProvider` must stay above messages, and it currently sits inside the root layout, which is where it should remain.
-
-This is a structural refactor touching every route. Do it in its own commit, before the visual work.
-
-### F2. Search: posts and messages `[ ]`
-
-Currently entirely non-functional:
-
-- `SideBar.tsx` L13-17 is a **dead uncontrolled input**: no state, no handler, no submit, no results view.
-- `(navPages)/explore/page.tsx` is a 7-line stub returning `<div>Explore Page</div>`.
-- **There is no search route on the backend at all.**
-
-**Scope:**
-
-1. **Backend:** add a search endpoint for posts. Start with a case-insensitive regex or a Mongo text index on `Post.content` + author `name`; paginate it the same way `findCommentsByPost` does. A text index is the better default; regex on a growing collection won't hold up. (Note: this is also the natural seam for the semantic/vector search in AI1.1 later; build the plumbing so it can be swapped.)
-2. **Frontend, posts:** wire the SideBar input to a real `/explore?q=` route, build the results page, reuse `PostItem`. Debounce input; use React Query with the query string in the key.
-3. **Frontend, messages:** add a search field in the messages view, directly above the conversation list. Simplest useful version is client-side filtering of the already-loaded conversation summaries by participant name, no backend needed. Searching _message contents_ is a second, larger step that does need an endpoint.
-
-Depends on F1 for the messages half (the search bar's placement assumes the new layout).
+- **Backend:** `GET /api/post/search?q=` added, case-insensitive regex over `content` and denormalized `name`, paginated like `getPostsPaginated`.
+- **Frontend, posts:** `SideBar`'s search input is wired to `/explore?q=`; `explore/page.tsx` renders results reusing `PostItem` via a debounced React Query call keyed on the query string.
+- **Frontend, messages:** a client-side filter box above `ConversationList` narrows the already-loaded conversation summaries by participant name. Searching message contents (a backend concern) is not built — flag as a future step if wanted.
 
 ### F3. Comments at feature parity with posts `[ ]`
 
@@ -277,22 +51,13 @@ Comments currently support text + likes + one level of replies. Posts support im
 
 ### F4. Placeholder pages `[ ]`
 
-`bookmarks`, `communities`, `notifications`, `explore`, and others are all one-line stubs returning plain text. On a live portfolio site these are dead ends a visitor will click. Either implement, or render a consistent themed "Coming soon" empty state (there's already an `EmptyState` component) so they look intentional rather than unfinished.
+`bookmarks`, `communities`, `notifications`, `explore` (partially addressed by F2's results view, but still a stub outside search results), and others are all one-line stubs returning plain text. On a live portfolio site these are dead ends a visitor will click. Either implement, or render a consistent themed "Coming soon" empty state (there's already an `EmptyState` component) so they look intentional rather than unfinished.
 
 ---
 
 ## Part D: DevOps / CI-CD
 
-### D1. Gaps in what exists today `[~]`
-
-> **Corrected 2026-07-27.** D1.1 and D1.2 were listed as outstanding in every prior version of this file. **Both are already built.** The claim was inherited from an older draft and never re-verified against the repo. Verified now, file by file.
-
-1. **Harden the backend Dockerfile.** `[x]` **Done.** `backend/Dockerfile` is multi-stage (`deps` to `build` to `runner`), builds via `tsconfig.build.json`, runs `node dist/index.js`, and sets `USER node`. `package.json` has `"build": "tsc -p tsconfig.build.json"` and `"start": "node dist/index.js"`. `.dockerignore` covers `dist`, `.git`, `*.test.ts`, `coverage`, `nodemon.json`, `README*`, editor cruft. Nothing left here.
-2. **Frontend runtime image.** `[~]` **Nearly done.** `next.config.mjs` has `output: 'standalone'`; the Dockerfile copies `.next/standalone` + `.next/static` and sets `USER node`. **One line missing:** there is no `COPY --from=builder /app/public ./public`, because `frontend/public/` doesn't exist yet. **This is a trap for P1.3**; see the warning there. That's the only remaining work in this item.
-3. **Real MongoDB in CI.** `[ ]` The `test` job has no DB service. **Caveat the old plan missed:** the backend tests are currently unit-style, so adding a `mongo` service container is only worth it _together with_ writing integration tests that actually use it. Don't add the service in isolation; that's infrastructure with no consumer.
-4. **Coverage gate.** `[ ]` Collect coverage (backend runner + frontend Jest), enforce a threshold, upload as an artifact and/or comment on the PR. `frontend/jest.config.ts` already sets `coverageProvider: 'v8'`, so the frontend half is close to free.
-
-**Process note:** items 1 and 2 were done in the repo while this file still listed them as pending. Before starting any D-item, verify its "current state" claim against the code. This file has been wrong about that before.
+D1 (Dockerfile hardening, real Mongo in CI, coverage gate) is fully shipped — see the reality check above. Numbering below continues from D2 to keep history/links stable.
 
 ### D2. Automate the deploy that already exists `[~]`
 
@@ -301,7 +66,7 @@ The site is live on Render, but reframe the goal: the win here is no longer "get
 - On merge to `main`: build backend + frontend images, push to **GHCR** (`ghcr.io/<user>/x-clone-*`).
 - Deploy job **gated on `test` + `build` passing**. That's the interesting part, and the part a reviewer looks for.
 - Document the rollback path. A deploy story without a rollback story is half a story.
-- **No longer blocked:** the old note said this depends on D1.1/D1.2 landing first. Both are built, so the hardened images already exist, so this can start immediately.
+- The hardened images already exist (D1), so this can start immediately.
 
 ### D3. Preview environments per pull request `[ ]`
 
@@ -314,7 +79,6 @@ The site is live on Render, but reframe the goal: the win here is no longer "get
 - Boot both services via `docker-compose` in CI.
 - Smoke flow: sign in (mock provider), create a post, comment, send a DM.
 - Headless; upload the Playwright trace as an artifact on failure.
-- **Do this after Part P.** E2E tests written against currently-buggy UI will need rewriting once the bugs are fixed.
 
 ### D5. Reusable workflow / matrix refactor `[ ]`
 
@@ -354,7 +118,7 @@ Local `kind`/minikube manifests or a Helm chart for the two services + Mongo. Ov
 
 ### AI1. In-app AI features `[ ]`
 
-1. **Semantic search + RAG on posts.** _Best infra fit, top AI pick._ Embed each post on create; store vectors in **Mongo Atlas Vector Search** (already on Atlas, so zero new infra). "Search by meaning" + "related posts". Needs a backfill job for existing posts. **Build F2's search endpoint first** and treat this as swapping the retrieval strategy behind it, not a parallel system.
+1. **Semantic search + RAG on posts.** _Best infra fit, top AI pick._ Embed each post on create; store vectors in **Mongo Atlas Vector Search** (already on Atlas, so zero new infra). "Search by meaning" + "related posts". Needs a backfill job for existing posts. F2's search endpoint now exists — treat this as swapping the retrieval strategy behind it, not a parallel system.
 2. **AI compose / reply assist.** "Improve this post", tone rewrite, autocomplete, with **streamed** tokens to the UI. Pairs naturally with messaging (smart replies in DMs).
 3. **Automated content moderation.** Run new posts + DMs through a moderation model; flag or hold for review. Real trust-and-safety signal.
 4. **AI feed ranking.** Rank the timeline by embedding similarity to a user's interest profile instead of pure `createdAt`.
@@ -401,7 +165,7 @@ Inherited from `WEBSOCKET_MESSAGING_PLAN.md`, which is now a design-rationale re
 
 - The first socket connection after idle will fail or hang while the backend wakes. Socket.IO retries, so it recovers, but "it looked broken for 30 seconds" is expected, not a bug.
 - Presence is an in-memory `Map` (`socket/presence.ts`), so a sleep wipes all online state.
-- P2.9 (graceful shutdown) makes the sleep/wake cycle noticeably cleaner, which is a second reason to do it early.
+- Graceful shutdown (shipped) makes the sleep/wake cycle noticeably cleaner, which is a second reason F6's pinger is worth doing early.
 
 If messaging ever looks broken in production, **check whether the backend is awake before debugging the socket code.** This is the most likely explanation and costs nothing to rule out.
 
@@ -430,34 +194,16 @@ There's currently no easy way to manually verify the messaging WebSocket round-t
 
 Dependencies are real; the ordering below respects them.
 
-**Phase 1a: visible breakage on the live site.** Small, independent, one commit each.
+**Phase 1: the layout refactor and search — done.** F1 (messages as its own view) and F2 (search, posts + messages) both shipped; see the reality check and Part F above.
 
-> P1.3 (missing `public/`), then P1.2 (theme persistence), then P2.2 (`window.location.href` reloads), then P1.1 + P2.1 (the three un-migrated pages, one commit per page), then P2.8 (error states)
+**Phase 2: pipeline.**
 
-`P1.3` goes first: smallest fix, widest visual blast radius, and P1.4's broken avatars won't _look_ fixed until it lands. `P1.2` and `P2.2` are adjacent (both feed the theme flip) but they're separate concerns, so separate commits.
+> D2 (gated deploy to the existing Render app), then D4 (E2E, now that the UI is stable), then D3 (PR previews)
 
-**Phase 1b: data and API correctness.** No visible symptom today, all cheap.
-
-> P2.3 (Comment indexes), then P2.5 (`maxLength: 20`), then P2.4 (duplicate fetchers / dead prefetch), then P2.9 (graceful shutdown), then P1.4 + P1.5 (seed wipe + flag ergonomics), then P2.6 (delete dead `allComments`), then P2.7 (rate-limit policy)
-
-`P2.9` sits here rather than in phase 3 because it's a ~15-line fix that improves every deploy from now on, including the ones this plan's later phases will trigger.
-
-**Parallelizable.** Phase 1a and 1b share no files. If you're dispatching agents, these are two independent workstreams, but keep P1.1/P2.1 (three separate page migrations) on one agent, since they're the same refactor applied three times and consistency matters more than speed.
-
-**Phase 2: the layout refactor.** One structural commit, then features on top.
-
-> F6's uptime pinger (do this first, ~10 min, removes most of the cold-start problem), then F1 (messages as its own view), then F2 (search, posts then messages), then F6's UI states, then F4 (placeholder pages), then F3 + F5.4 (image support on comments _and_ messages, same upload path, do together), then the rest of F5
-
-F6 is deliberately split: the **pinger** is a 10-minute config change with an outsized payoff, so it goes first. The **UI states** land after F1, since where the messages blocker renders depends on the layout F1 creates.
-
-F1 is the riskiest item in this plan: it touches the root layout and therefore every route. Do it alone, verify each route renders, then build on it.
-
-**Phase 3: pipeline.**
-
-> D1.1 + D1.2 (Dockerfiles), then D2 (gated deploy to the existing Render app), then D4 (E2E, now that the UI is stable), then D3 (PR previews), then D1.4 (coverage gate)
-
-**Phase 4: the differentiators.** Pick by interest; these are the resume centerpieces.
+**Phase 3: the differentiators.** Pick by interest; these are the resume centerpieces.
 
 > AI1.1 (semantic search, reusing F2's endpoint), then AI3.1 (AI PR reviewer), then D8 (observability), then AI2 (Ollama socket bot, any time, it's independent and fun)
+
+**Also open, do whenever fits:** F6 (cold-start UX — do the uptime pinger first, it's 10 minutes), F3 + F5.4 (image support on comments _and_ messages together, same upload path), F4 (placeholder pages), F5 (remaining messaging product decisions).
 
 **Deliberately deprioritized:** D9 (Terraform), D10 (Kubernetes), D11 (load testing). All three are legitimate but only pay off on a project with real traffic or real infrastructure sprawl. Reach for them when the earlier phases are done, not before.
