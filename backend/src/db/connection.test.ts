@@ -9,7 +9,7 @@ import {
 const hasMongoUrl = Boolean(process.env.MONGODB_URL);
 const skip = hasMongoUrl
   ? false
-  : 'MONGODB_URL not set — skipping integration test';
+  : 'MONGODB_URL not set, skipping integration test';
 
 before(async () => {
   if (hasMongoUrl) {

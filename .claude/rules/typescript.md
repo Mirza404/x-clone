@@ -4,11 +4,11 @@ Enforcement: `@typescript-eslint/no-explicit-any` and `no-console` are `"error"`
 
 ## No `any`, implicit or explicit
 
-Don't write `: any`, `<any>`, or `as any`. Both tsconfigs already have `strict: true`, so _implicit_ `any` (an untyped parameter, an unannotated destructure) is a compiler error already — the eslint rule closes the remaining gap, which is _explicit_ `any` used to silence the compiler.
+Don't write `: any`, `<any>`, or `as any`. Both tsconfigs already have `strict: true`, so _implicit_ `any` (an untyped parameter, an unannotated destructure) is a compiler error already. The eslint rule closes the remaining gap, which is _explicit_ `any` used to silence the compiler.
 
-**Why:** `any` doesn't mean "figure out the type later," it means "stop type-checking this value" — it propagates through every place the value flows and defeats the reason both projects turned `strict` on. If the real type is genuinely unknown (e.g. a JSON payload from an external API), use `unknown` and narrow it, not `any`.
+**Why:** `any` doesn't mean "figure out the type later," it means "stop type-checking this value". It propagates through every place the value flows and defeats the reason both projects turned `strict` on. If the real type is genuinely unknown (e.g. a JSON payload from an external API), use `unknown` and narrow it, not `any`.
 
-If you hit a case where `any` looks like the only option, that's a signal to stop and either write the narrower type or ask — don't reach for `any` to get the hook to pass.
+If you hit a case where `any` looks like the only option, that's a signal to stop and either write the narrower type or ask. Don't reach for `any` to get the hook to pass.
 
 ## No stray `console.log`/`console.debug`
 

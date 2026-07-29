@@ -16,7 +16,7 @@ export default function ProfileRedirectPage() {
   }, [session, router]);
 
   if (status === 'loading' || session?.user?.id) {
-    return <div className="animate-pulse p-4 text-muted">Loading…</div>;
+    return <div className="animate-pulse p-4 text-muted">Loading...</div>;
   }
 
   return <AuthWall />;

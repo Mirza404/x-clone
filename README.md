@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/Mirza404/x-clone/actions/workflows/ci.yml/badge.svg)](https://github.com/Mirza404/x-clone/actions/workflows/ci.yml)
 
-- Backend: Express + TypeScript — see [backend/src/app.ts](backend/src/app.ts) and [backend/src/index.ts](backend/src/index.ts).
-- Frontend: Next.js 14 (app dir) — see [frontend/src/app/layout.tsx](frontend/src/app/layout.tsx).
+- Backend: Express + TypeScript. See [backend/src/app.ts](backend/src/app.ts) and [backend/src/index.ts](backend/src/index.ts).
+- Frontend: Next.js 14 (app dir). See [frontend/src/app/layout.tsx](frontend/src/app/layout.tsx).
 - Database: MongoDB (Atlas recommended). Backend connects via [`connectToDatabase`](backend/src/db/connection.ts).
 - Client-side data layer: React Query (caching, infinite queries, mutations, optimistic updates).
 
@@ -12,7 +12,7 @@ Getting started (dev)
 1. Copy env files:
    - Backend: copy [backend/.env.example](backend/.env.example) -> `backend/.env` and set your Atlas URL and secrets.
    - Frontend: copy [frontend/.env.example](frontend/.env.example) -> `frontend/.env`.
-   - Both apps need the same `BACKEND_JWT_SECRET` value — generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and paste it into both `backend/.env` and `frontend/.env`. Next.js uses it to mint short-lived tokens from the NextAuth session; Express uses it to verify them.
+   - Both apps need the same `BACKEND_JWT_SECRET` value. Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and paste it into both `backend/.env` and `frontend/.env`. Next.js uses it to mint short-lived tokens from the NextAuth session; Express uses it to verify them.
 2. Start backend:
    - `cd backend`
    - `npm install`
@@ -24,13 +24,7 @@ Getting started (dev)
    - `npm run dev`
    - open http://localhost:3000
 
-Seed development data
-
-- From `backend/`, run `npm run seed` to append a new seed batch.
-- Run `npm run seed:wipe` to delete existing seed users and their related posts, comments, follows, conversations, and messages before creating a fresh batch.
-- Both commands print `APPEND` or `WIPE` on their first output line. Check the mode before allowing a seed run to continue.
-
-React Query — what I used and why
+React Query: what I used and why
 
 - Central provider: [`QueryProvider`](frontend/src/query-client-provider/index.tsx) creates a global QueryClient for caching and devtools.
 - Fetches / pagination:
@@ -53,7 +47,7 @@ Could I have done the same without React Query?
 Useful backend/frontend files
 
 - Backend entry & router: [backend/src/app.ts](backend/src/app.ts), [backend/src/index.ts](backend/src/index.ts)
-- DB connection: [`connectToDatabase`](backend/src/db/connection.ts) — set your MongoDB Atlas URI in [backend/.env.example](backend/.env.example)
+- DB connection: [`connectToDatabase`](backend/src/db/connection.ts). Set your MongoDB Atlas URI in [backend/.env.example](backend/.env.example)
 - API routes: [backend/src/routes/post-routes.ts](backend/src/routes/post-routes.ts), [backend/src/routes/comment-routes.ts](backend/src/routes/comment-routes.ts)
 - Frontend layout & providers: [frontend/src/app/layout.tsx](frontend/src/app/layout.tsx), [`QueryProvider`](frontend/src/query-client-provider/index.tsx)
 - React Query helpers: [`postMutations`](frontend/src/app/utils/postMutations.ts), [`useCommentMutations`](frontend/src/app/utils/commentMutations.ts)

@@ -23,7 +23,7 @@ const OPENERS = [
 
 const REPLIES = [
   'Thanks! Appreciate it.',
-  'Yeah, for sure — count me in.',
+  'Yeah, for sure, count me in.',
   'Not much, just shipping small stuff. You?',
   'Haha fair enough.',
   'Sounds good, talk soon.',

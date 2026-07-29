@@ -14,7 +14,9 @@ export default function ProfilePage() {
   const { data: profile, isLoading, isError } = useFetchProfile(id);
 
   if (isLoading) {
-    return <div className="animate-pulse p-4 text-muted">Loading profile…</div>;
+    return (
+      <div className="animate-pulse p-4 text-muted">Loading profile...</div>
+    );
   }
 
   if (isError || !profile) {

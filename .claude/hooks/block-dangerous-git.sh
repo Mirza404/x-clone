@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PreToolUse hook (Bash) — hard-blocks git commands the user reserves for
+# PreToolUse hook (Bash): hard-blocks git commands the user reserves for
 # themselves: push (any form), rebase, merge, and other history-rewriting
 # ops. See .claude/rules/git-workflow.md. Claude may still commit locally.
 set -euo pipefail

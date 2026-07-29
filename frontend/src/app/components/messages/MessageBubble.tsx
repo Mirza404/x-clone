@@ -27,7 +27,7 @@ export default function MessageBubble({
         <span
           className={`mt-1 text-xs text-muted ${isMine ? 'text-right' : 'text-left'}`}
         >
-          {message.status === 'sending' && 'Sending…'}
+          {message.status === 'sending' && 'Sending...'}
           {message.status === 'failed' && 'Failed to send'}
           {!message.status &&
             (seenByPeer ? 'Read' : relativeTime(message.createdAt))}

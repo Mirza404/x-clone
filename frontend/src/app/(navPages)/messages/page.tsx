@@ -14,7 +14,7 @@ export default function MessagesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   if (status === 'loading') {
-    return <div className="animate-pulse p-4 text-muted">Loading…</div>;
+    return <div className="animate-pulse p-4 text-muted">Loading...</div>;
   }
 
   if (status === 'unauthenticated') {
