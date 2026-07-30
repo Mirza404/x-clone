@@ -19,7 +19,7 @@ export default function MessageComposer({
 
   const resetTextareaHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = '24px';
+      textareaRef.current.style.height = '44px';
     }
   };
 
@@ -40,7 +40,7 @@ export default function MessageComposer({
     >
       <textarea
         ref={textareaRef}
-        className="h-6 max-h-[150px] flex-1 resize-none overflow-hidden bg-input rounded-2xl px-4 py-1.5 text-[15px] text-content placeholder-muted focus:outline-none"
+        className="h-[44px] max-h-[150px] flex-1 resize-none overflow-hidden bg-input rounded-2xl px-4 py-2.5 text-[15px] leading-6 text-content placeholder-muted focus:outline-none"
         placeholder="Start a new message"
         maxLength={MAX_LENGTH}
         value={content}
@@ -50,7 +50,7 @@ export default function MessageComposer({
         }}
         onInput={(e) => {
           const target = e.target as HTMLTextAreaElement;
-          target.style.height = '24px';
+          target.style.height = '44px';
           target.style.height = `${Math.min(target.scrollHeight, 150)}px`;
         }}
         onKeyDown={useEnterSubmit({
