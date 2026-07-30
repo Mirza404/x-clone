@@ -14,14 +14,26 @@ import AuthWall from '../ui/AuthWall';
 
 const GUEST_POST_LIMIT = 6;
 
-function PostListInfinite() {
+interface PostListInfiniteProps {
+  feed?: 'for-you' | 'following';
+}
+
+function PostListInfinite({ feed = 'for-you' }: PostListInfiniteProps) {
   const { ref, inView } = useInView();
   const { status: sessionStatus } = useSession();
   const isGuest = sessionStatus === 'unauthenticated';
-  const { useFetchPosts, useFetchInfinitePosts, useDeletePost } =
-    usePostMutations();
+  const {
+    useFetchPosts,
+    useFetchInfinitePosts,
+    useFetchInfiniteFollowingPosts,
+    useDeletePost,
+  } = usePostMutations();
   const postsQuery = useFetchPosts();
   const deletePostMutation = useDeletePost();
+  const forYouQuery = useFetchInfinitePosts(feed === 'for-you');
+  const followingQuery = useFetchInfiniteFollowingPosts(
+    feed === 'following' && !isGuest
+  );
   const {
     data,
     fetchNextPage,
@@ -29,7 +41,7 @@ function PostListInfinite() {
     isFetchingNextPage,
     status,
     refetch,
-  } = useFetchInfinitePosts();
+  } = feed === 'following' ? followingQuery : forYouQuery;
 
   const allPosts: Post[] =
     data?.pages?.flatMap((group) => group?.posts ?? []) ?? [];
@@ -66,7 +78,12 @@ function PostListInfinite() {
   }
 
   if (allPosts.length === 0) {
-    return (
+    return feed === 'following' ? (
+      <EmptyState
+        title="You're not following anyone yet"
+        subtitle="Posts from accounts you follow will appear here."
+      />
+    ) : (
       <EmptyState
         title="Welcome to X Clone"
         subtitle="When posts arrive, they'll show up here."
