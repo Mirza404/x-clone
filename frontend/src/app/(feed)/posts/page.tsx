@@ -3,7 +3,6 @@ import { useState } from 'react';
 import NewPostPage from '../newPost/page';
 import PostListInfinite from '@/app/components/posts/PostListInfinite';
 import FeedTabs from '@/app/components/feed/FeedTabs';
-import EmptyState from '@/app/components/ui/EmptyState';
 
 export default function PostsPage() {
   const [activeTab, setActiveTab] = useState<'for-you' | 'following'>(
@@ -15,14 +14,7 @@ export default function PostsPage() {
       <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
       {/* Only show on desktop */}
       <NewPostPage />
-      {activeTab === 'for-you' ? (
-        <PostListInfinite />
-      ) : (
-        <EmptyState
-          title="You're not following anyone yet"
-          subtitle="Posts from accounts you follow will appear here."
-        />
-      )}
+      <PostListInfinite feed={activeTab} />
     </div>
   );
 }
