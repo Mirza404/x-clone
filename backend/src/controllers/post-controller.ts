@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
+import Follow from '../models/Follow';
 import { Request, Response } from 'express';
 import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
@@ -60,6 +61,71 @@ async function allPosts(req: Request, res: Response): Promise<void> {
       .json({ posts: postsWithUserData, totalPages, currentPage: page });
   } catch (e) {
     console.error('Error getting posts:', e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  }
+}
+
+async function followingPosts(req: Request, res: Response): Promise<void> {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: 'Database not connected' });
+      return;
+    }
+
+    const followerId = req.userId;
+    if (!followerId) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    const follows = await Follow.find({ follower: followerId })
+      .select('following')
+      .lean();
+    const followingIds = follows.map((follow) => follow.following);
+
+    const filter = { author: { $in: followingIds } };
+
+    const posts = await Post.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const postsWithUserData = await Promise.all(
+      posts.map(async (post) => {
+        const user = await getUsersCollection().findOne(
+          { _id: new mongoose.Types.ObjectId(post.author) },
+          { projection: { image: 1 } }
+        );
+
+        return {
+          id: post._id,
+          content: post.content,
+          images: post.images,
+          name: post.name,
+          createdAt: post.createdAt,
+          likes: post.likes,
+          author: post.author,
+          authorImage: user?.image || null,
+          comments: post.comments,
+        };
+      })
+    );
+
+    const totalPosts = await Post.countDocuments(filter);
+    const totalPages = Math.ceil(totalPosts / limit);
+
+    res
+      .status(200)
+      .json({ posts: postsWithUserData, totalPages, currentPage: page });
+  } catch (e) {
+    console.error('Error getting following posts:', e);
     if (!res.headersSent) {
       res.status(500).json({ message: 'Internal Server Error' });
     }
@@ -439,6 +505,7 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
 
 export {
   allPosts,
+  followingPosts,
   searchPosts,
   getPost,
   createPost,
