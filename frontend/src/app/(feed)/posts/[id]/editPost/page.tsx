@@ -5,8 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import LoadingBar from '../../../components/ui/CustomLoadBar';
-import { uploadImages } from '../../../utils/imageUtils'; // Import the uploadImages function
+import LoadingBar from '@/app/components/ui/CustomLoadBar';
+import { uploadImages } from '@/app/utils/imageUtils';
 import FileUpload from '@/app/utils/FileUpload';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
 import { getApiErrorMessage } from '@/app/utils/apiError';

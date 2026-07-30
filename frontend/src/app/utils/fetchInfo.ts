@@ -91,6 +91,30 @@ export async function getCommentsPaginated(postId: string, page: number) {
     };
   }
 }
+export async function getSearchResultsPaginated(query: string, page: number) {
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+
+  try {
+    const res = await axios.get(`${serverUrl}/api/post/search`, {
+      params: { q: query, page, limit: 10 },
+    });
+    const totalPages = res.data.totalPages;
+    const hasNext = page < totalPages;
+    return {
+      nextPage: hasNext ? page + 1 : undefined,
+      previousPage: page > 1 ? page - 1 : undefined,
+      posts: res.data.posts,
+    };
+  } catch (error: unknown) {
+    console.error('Error searching posts:', getApiErrorMessage(error, 'Error'));
+    return {
+      nextPage: undefined,
+      previousPage: undefined,
+      posts: [],
+    };
+  }
+}
+
 export async function getPostsByAuthorPaginated(
   authorId: string,
   page: number

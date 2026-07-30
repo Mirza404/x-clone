@@ -1,6 +1,6 @@
 'use client';
 import { use } from 'react';
-import { getPost } from '../../utils/fetchInfo';
+import { getPost } from '@/app/utils/fetchInfo';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';

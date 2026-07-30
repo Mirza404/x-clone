@@ -66,6 +66,68 @@ async function allPosts(req: Request, res: Response): Promise<void> {
   }
 }
 
+async function searchPosts(req: Request, res: Response): Promise<void> {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: 'Database not connected' });
+      return;
+    }
+
+    const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    if (!query) {
+      res.status(200).json({ posts: [], totalPages: 0, currentPage: page });
+      return;
+    }
+
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(escaped, 'i');
+    const filter = { $or: [{ content: pattern }, { name: pattern }] };
+
+    const posts = await Post.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const postsWithUserData = await Promise.all(
+      posts.map(async (post) => {
+        const user = await getUsersCollection().findOne(
+          { _id: new mongoose.Types.ObjectId(post.author) },
+          { projection: { image: 1 } }
+        );
+
+        return {
+          id: post._id,
+          content: post.content,
+          images: post.images,
+          name: post.name,
+          createdAt: post.createdAt,
+          likes: post.likes,
+          author: post.author,
+          authorImage: user?.image || null,
+          comments: post.comments,
+        };
+      })
+    );
+
+    const totalPosts = await Post.countDocuments(filter);
+    const totalPages = Math.ceil(totalPosts / limit);
+
+    res
+      .status(200)
+      .json({ posts: postsWithUserData, totalPages, currentPage: page });
+  } catch (e) {
+    console.error('Error searching posts:', e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  }
+}
+
 async function getPost(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
@@ -377,6 +439,7 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
 
 export {
   allPosts,
+  searchPosts,
   getPost,
   createPost,
   deletePost,
