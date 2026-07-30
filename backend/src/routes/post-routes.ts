@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   allPosts,
+  followingPosts,
   searchPosts,
   createPost,
   deletePost,
@@ -16,7 +17,8 @@ import { writeLimiter } from '../middleware/rate-limit';
 const postRoutes = Router();
 
 postRoutes.get('/', allPosts);
-// Must be registered before '/:id' so "search" isn't swallowed as an id param.
+// Must be registered before '/:id' so "following"/"search" aren't swallowed as an id param.
+postRoutes.get('/following', requireAuth, followingPosts);
 postRoutes.get('/search', searchPosts);
 postRoutes.get('/:id', getPost);
 postRoutes.post('/new', requireAuth, writeLimiter, createPost);
