@@ -20,7 +20,13 @@ export default function FeedLayout({
         </div>
 
         {/* Center content */}
-        <main className="w-full md:w-[600px] min-h-screen border-x border-border">
+        <main className="w-full md:w-[600px] min-h-screen border-x border-border relative">
+          {/* Pages like /profile intentionally skip a top header/border, so
+              without this the column's top edge reads as an unstyled cutoff.
+              This pins a fade to the viewport top as a "you're at the start,
+              can't scroll further up" cue instead of adding a border back. */}
+          <div className="sticky top-0 z-10 -mb-6 h-6 bg-gradient-to-b from-bg to-transparent pointer-events-none" />
+
           {/* Mobile Tabs - Only visible on mobile */}
           <MobileTabs />
 

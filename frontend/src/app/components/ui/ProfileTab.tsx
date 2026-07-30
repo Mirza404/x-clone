@@ -6,7 +6,11 @@ import { MoreHorizontal } from 'lucide-react';
 import Avatar from './Avatar';
 import { toHandle } from '../../utils/handle';
 
-const ProfileTab = () => {
+interface ProfileTabProps {
+  iconOnly?: boolean;
+}
+
+const ProfileTab = ({ iconOnly = false }: ProfileTabProps) => {
   const { data: session, status } = useSession();
   const [showSignOutText, setShowSignOutText] = useState(false);
 
@@ -32,15 +36,33 @@ const ProfileTab = () => {
     return (
       <button
         type="button"
+        aria-label="Sign In"
         className="relative flex h-[52px] w-full items-center justify-center rounded-full bg-primary p-3 font-bold text-white transition-colors hover:bg-primary-hover"
         onClick={handleClick}
       >
-        Sign In
+        {iconOnly ? <MoreHorizontal className="h-5 w-5" /> : 'Sign In'}
       </button>
     );
   }
 
   const handle = toHandle(session?.user?.name);
+
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        aria-label="Sign Out"
+        className="mx-auto flex h-[52px] w-[52px] items-center justify-center rounded-full text-content transition-colors hover:bg-hover"
+        onClick={handleClick}
+      >
+        <Avatar
+          src={session?.user?.image}
+          alt={session?.user?.name ?? 'Profile'}
+          size="sm"
+        />
+      </button>
+    );
+  }
 
   return (
     <div
