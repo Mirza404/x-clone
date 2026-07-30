@@ -106,10 +106,7 @@ export async function getSearchResultsPaginated(query: string, page: number) {
       posts: res.data.posts,
     };
   } catch (error: unknown) {
-    console.error(
-      'Error searching posts:',
-      getApiErrorMessage(error, 'Error')
-    );
+    console.error('Error searching posts:', getApiErrorMessage(error, 'Error'));
     return {
       nextPage: undefined,
       previousPage: undefined,
