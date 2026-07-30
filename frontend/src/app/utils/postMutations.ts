@@ -8,6 +8,7 @@ import api from './apiClient';
 import {
   fetchPosts,
   getPostsPaginated,
+  getFollowingPostsPaginated,
   getSearchResultsPaginated,
 } from './fetchInfo';
 import toast from 'react-hot-toast';
@@ -41,12 +42,23 @@ export const usePostMutations = () => {
     });
   }
 
-  function useFetchInfinitePosts() {
+  function useFetchInfinitePosts(enabled = true) {
     return useInfiniteQuery({
       queryKey: ['infinitePosts'],
       queryFn: ({ pageParam = 1 }) => getPostsPaginated(pageParam),
       initialPageParam: 1,
       getNextPageParam: (lastPage) => lastPage.nextPage,
+      enabled,
+    });
+  }
+
+  function useFetchInfiniteFollowingPosts(enabled = true) {
+    return useInfiniteQuery({
+      queryKey: ['infiniteFollowingPosts'],
+      queryFn: ({ pageParam = 1 }) => getFollowingPostsPaginated(pageParam),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) => lastPage.nextPage,
+      enabled,
     });
   }
 
@@ -126,6 +138,7 @@ export const usePostMutations = () => {
   return {
     useFetchPosts,
     useFetchInfinitePosts,
+    useFetchInfiniteFollowingPosts,
     useFetchInfiniteComments,
     useFetchInfiniteSearchResults,
     useDeletePost,
