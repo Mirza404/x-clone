@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   User,
   MoreHorizontal,
+  Pen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -48,20 +49,22 @@ function NavItem({
   label,
   icon: Icon,
   isActive,
-}: NavLinkItem & { isActive: boolean }) {
+  iconOnly,
+}: NavLinkItem & { isActive: boolean; iconOnly: boolean }) {
   return (
     <li>
       <Link
         href={href}
-        className={`flex w-fit items-center gap-4 rounded-full py-3 pl-3 pr-5 text-content transition-colors hover:bg-hover ${
-          isActive ? 'font-bold' : 'font-normal'
-        }`}
+        aria-label={label}
+        className={`flex w-fit items-center gap-4 rounded-full py-3 text-content transition-colors hover:bg-hover ${
+          iconOnly ? 'justify-center px-3' : 'pl-3 pr-5'
+        } ${isActive ? 'font-bold' : 'font-normal'}`}
       >
         <Icon
           className="h-[26px] w-[26px] flex-shrink-0"
           strokeWidth={isActive ? 2.5 : 2}
         />
-        <span className="text-xl">{label}</span>
+        {!iconOnly && <span className="text-xl">{label}</span>}
       </Link>
     </li>
   );
@@ -72,6 +75,7 @@ export default function NavMenu() {
   const router = useRouter();
   const { data: session } = useSession();
   const { openPostModal } = usePostModal();
+  const iconOnly = pathname.startsWith('/messages');
 
   const handlePostClick = () => {
     if (!session) {
@@ -106,13 +110,19 @@ export default function NavMenu() {
               key={item.href}
               {...item}
               isActive={pathname === item.href}
+              iconOnly={iconOnly}
             />
           ))}
           <li>
             <Menu as="div" className="relative w-fit">
-              <Menu.Button className="flex w-fit items-center gap-4 rounded-full py-3 pl-3 pr-5 text-content transition-colors hover:bg-hover">
+              <Menu.Button
+                aria-label="More"
+                className={`flex w-fit items-center gap-4 rounded-full py-3 text-content transition-colors hover:bg-hover ${
+                  iconOnly ? 'justify-center px-3' : 'pl-3 pr-5'
+                }`}
+              >
                 <MoreHorizontal className="h-[26px] w-[26px] flex-shrink-0" />
-                <span className="text-xl">More</span>
+                {!iconOnly && <span className="text-xl">More</span>}
               </Menu.Button>
               <Transition
                 as={Fragment}
@@ -139,14 +149,17 @@ export default function NavMenu() {
         <button
           type="button"
           onClick={handlePostClick}
-          className="mx-3 mt-4 flex h-[52px] w-[90%] items-center justify-center rounded-full bg-btn text-[17px] font-bold text-btn-fg transition-colors hover:bg-btn-hover"
+          aria-label="Post"
+          className={`mt-4 flex h-[52px] items-center justify-center rounded-full bg-btn text-[17px] font-bold text-btn-fg transition-colors hover:bg-btn-hover ${
+            iconOnly ? 'mx-auto w-[52px]' : 'mx-3 w-[90%]'
+          }`}
         >
-          Post
+          {iconOnly ? <Pen className="h-6 w-6" /> : 'Post'}
         </button>
       </nav>
 
       <div className="mb-2">
-        <ProfileTab />
+        <ProfileTab iconOnly={iconOnly} />
       </div>
     </div>
   );
