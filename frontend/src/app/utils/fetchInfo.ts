@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { Comment } from '../types/Comment';
 import { getApiErrorMessage } from './apiError';
+import api from './apiClient';
 
 export const fetchPosts = async () => {
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
@@ -107,6 +108,31 @@ export async function getSearchResultsPaginated(query: string, page: number) {
     };
   } catch (error: unknown) {
     console.error('Error searching posts:', getApiErrorMessage(error, 'Error'));
+    return {
+      nextPage: undefined,
+      previousPage: undefined,
+      posts: [],
+    };
+  }
+}
+
+export async function getFollowingPostsPaginated(page: number) {
+  try {
+    const res = await api.get('/api/post/following', {
+      params: { page, limit: 5 },
+    });
+    const totalPages = res.data.totalPages;
+    const hasNext = page < totalPages;
+    return {
+      nextPage: hasNext ? page + 1 : undefined,
+      previousPage: page > 1 ? page - 1 : undefined,
+      posts: res.data.posts,
+    };
+  } catch (error: unknown) {
+    console.error(
+      'Error fetching following posts:',
+      getApiErrorMessage(error, 'Error')
+    );
     return {
       nextPage: undefined,
       previousPage: undefined,
