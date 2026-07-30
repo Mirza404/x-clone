@@ -9,8 +9,9 @@ export default function MessagesLayout({
   return (
     <div className="flex min-h-screen justify-center pb-14 md:pb-0">
       <div className="flex w-full max-w-[1600px]">
-        {/* Left navigation - Hidden on mobile */}
-        <div className="hidden md:block w-[275px] flex-shrink-0 mr-2">
+        {/* Left navigation - icon-only on messages (see NavMenu's iconOnly
+            check), so it takes a narrower column than the rest of the app */}
+        <div className="hidden md:block w-[88px] flex-shrink-0 mr-2">
           <NavMenu />
         </div>
 
