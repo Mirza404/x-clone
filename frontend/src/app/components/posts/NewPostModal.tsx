@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -91,9 +92,9 @@ export default function NewPostModal({ onClose }: { onClose: () => void }) {
 
         {/* Content */}
         <div className="flex px-4 pb-2">
-          <div className="mr-3 flex-shrink-0">
+          <Link href="/profile" className="mr-3 flex-shrink-0">
             <Avatar src={session?.user?.image} alt="Profile" size="md" />
-          </div>
+          </Link>
           <div className="flex-1">
             <textarea
               ref={textareaRef}
