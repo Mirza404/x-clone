@@ -64,6 +64,13 @@ function mockMutations(overrides: {
       status: 'success',
       ...overrides.infinite,
     }),
+    useFetchInfiniteFollowingPosts: () => ({
+      data: { pages: [] },
+      fetchNextPage: jest.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      status: 'success',
+    }),
     useDeletePost: () => ({ mutate: overrides.deleteMutate ?? jest.fn() }),
   });
 }

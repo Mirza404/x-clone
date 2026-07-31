@@ -81,6 +81,9 @@ export const useProfileMutations = () => {
       },
       onSettled: () => {
         queryClient.invalidateQueries({ queryKey: ['profile', profileId] });
+        queryClient.invalidateQueries({
+          queryKey: ['infiniteFollowingPosts'],
+        });
       },
     });
   }

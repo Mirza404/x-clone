@@ -25,9 +25,10 @@ const SideBar = () => {
         : '';
 
   const navigate = useDebouncedCallback((value: string) => {
-    if (value.trim()) {
-      router.push(`/explore?q=${encodeURIComponent(value.trim())}`);
-    }
+    const trimmed = value.trim();
+    router.push(
+      trimmed ? `/explore?q=${encodeURIComponent(trimmed)}` : '/explore'
+    );
   }, 400);
 
   return (

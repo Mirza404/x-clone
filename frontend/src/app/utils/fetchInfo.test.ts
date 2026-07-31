@@ -2,6 +2,10 @@ import axios from 'axios';
 import { getPostsPaginated } from './fetchInfo';
 
 jest.mock('axios');
+jest.mock('./apiClient', () => ({
+  __esModule: true,
+  default: { get: jest.fn() },
+}));
 
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
