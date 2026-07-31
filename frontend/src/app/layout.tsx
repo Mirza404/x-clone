@@ -12,7 +12,6 @@ import CustomToaster from './components/ui/CustomToaster';
 import MobilePostButton from './components/mobile/MobilePostButton';
 import MobileHeader from './components/mobile/MobileHeader';
 import MobileNavBar from './components/mobile/MobileNavBar';
-import MobileTabs from './components/mobile/MobileTabs';
 import ThemeProvider from './utils/ThemeProvider';
 import FloatingActions from './components/ui/FloatingActions';
 import PostModalProvider from './utils/PostModalProvider';
@@ -71,11 +70,8 @@ export default async function RootLayout({
 
                       {/* Center content */}
                       <main className="w-full md:w-[600px] min-h-screen border-x border-border">
-                        {/* Mobile Tabs - Only visible on mobile */}
-                        <MobileTabs />
-
-                        {children}
                         {/* Page Content */}
+                        {children}
 
                         {/* Mobile Post Button - Only visible on mobile */}
                         <MobilePostButton />
