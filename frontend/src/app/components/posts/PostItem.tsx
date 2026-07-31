@@ -95,13 +95,17 @@ export default function PostItem({
           <Link
             href={`/profile/${post.author}`}
             onClick={(e) => e.stopPropagation()}
-            className="font-bold text-content hover:underline"
+            className="min-w-0 truncate whitespace-nowrap font-bold text-content hover:underline"
           >
             {post.name}
           </Link>
           {post.verified && <VerifiedBadge />}
-          {handle && <span className="truncate">{handle}</span>}
-          <span aria-hidden="true">·</span>
+          {handle && (
+            <span className="min-w-0 truncate whitespace-nowrap">{handle}</span>
+          )}
+          <span aria-hidden="true" className="flex-shrink-0">
+            ·
+          </span>
           <span className="flex-shrink-0">{relativeTime(post.createdAt)}</span>
           <button
             className="interactive-element ml-auto rounded-full p-1.5 text-muted transition-colors hover:bg-primary-bg hover:text-primary"

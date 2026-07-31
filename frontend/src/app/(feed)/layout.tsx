@@ -3,7 +3,6 @@ import { Suspense } from 'react';
 import NavMenu from '../components/ui/NavMenu';
 import SideBar from '../components/ui/SideBar';
 import MobilePostButton from '../components/mobile/MobilePostButton';
-import MobileTabs from '../components/mobile/MobileTabs';
 import FloatingActions from '../components/ui/FloatingActions';
 
 export default function FeedLayout({
@@ -26,9 +25,6 @@ export default function FeedLayout({
               This pins a fade to the viewport top as a "you're at the start,
               can't scroll further up" cue instead of adding a border back. */}
           <div className="sticky top-0 z-10 -mb-6 h-6 bg-gradient-to-b from-bg to-transparent pointer-events-none" />
-
-          {/* Mobile Tabs - Only visible on mobile */}
-          <MobileTabs />
 
           {children}
 

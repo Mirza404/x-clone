@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
 import { useCommentMutations } from '../../utils/commentMutations';
@@ -60,13 +61,13 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
   return (
     <div>
       <div className="flex flex-row border-t border-border px-4 pt-2">
-        <div className="mr-5 w-8 min-w-[32px] flex-shrink-0 pt-2">
+        <Link href="/profile" className="mr-3 flex-shrink-0 pt-2">
           <Avatar
             src={session?.user?.image}
             alt={session?.user?.name ?? 'Profile'}
             size="md"
           />
-        </div>
+        </Link>
         <div className="flex min-w-0 flex-1 flex-col py-3">
           <form
             onSubmit={(e) => {

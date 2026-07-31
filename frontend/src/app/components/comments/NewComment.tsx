@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import classNames from 'classnames';
 import toast from 'react-hot-toast';
@@ -46,13 +47,13 @@ const NewComment = () => {
       </h2>
       <div className="flex w-full min-h-[116px] items-center justify-center">
         <div className="mx-auto flex w-full flex-row border-b border-border px-4 pt-2">
-          <div className="mr-2 w-10 min-w-[40px] flex-shrink-0 pt-2">
+          <Link href="/profile" className="mr-3 flex-shrink-0 pt-2">
             <Avatar
               src={session?.user?.image}
               alt={session?.user?.name ?? 'Profile'}
               size="md"
             />
-          </div>
+          </Link>
           <div className="flex min-w-0 flex-1 flex-col py-3">
             <form
               onSubmit={(e) => {

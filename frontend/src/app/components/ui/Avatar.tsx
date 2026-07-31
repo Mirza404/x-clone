@@ -21,7 +21,10 @@ export default function Avatar({
   className = '',
   ...props
 }: AvatarProps) {
-  const shared = `${SIZES[size]} flex-shrink-0 rounded-full object-cover ${className}`;
+  // `aspect-square` is belt-and-braces: the fixed h/w above already square the
+  // avatar, but a flex parent that squeezes the box would otherwise turn it
+  // into an ellipse (which is how the mobile reply composer looked).
+  const shared = `${SIZES[size]} aspect-square flex-shrink-0 rounded-full object-cover ${className}`;
 
   // Rendered inline rather than fetched from `public/`, so a missing user
   // image can never turn into a 404 + broken-image icon (which is how the

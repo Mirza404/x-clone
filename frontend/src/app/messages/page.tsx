@@ -43,7 +43,12 @@ export default function MessagesPage() {
   );
 
   return (
-    <div className="sticky top-0 flex h-screen">
+    // On mobile the layout already spends 3.5rem on the sticky header and
+    // another 3.5rem on the fixed bottom nav, so a plain `h-screen` here
+    // overflowed the viewport by exactly those 7rem — you had to scroll up to
+    // see who you were talking to. Subtract them so header, thread and
+    // composer all fit without scrolling the page itself.
+    <div className="flex h-[calc(100dvh-7rem)] md:sticky md:top-0 md:h-screen">
       <div
         className={`flex w-full flex-col border-r border-border md:flex md:w-[320px] md:flex-shrink-0 ${
           selectedId ? 'hidden' : 'flex'
