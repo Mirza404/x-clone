@@ -118,7 +118,7 @@ const NewPostPage = () => {
       <div className="hidden md:flex items-center justify-center bg-bg w-full min-h-[116px] border-b border-border">
         <LoadingBar progress={progress} />
         <div className="flex flex-row mt-0 mx-auto px-4 pt-3 pb-2 w-full">
-          <div className="mr-3 min-w-[40px] w-[40px] flex-shrink-0">
+          <Link href="/profile" className="mr-3 flex-shrink-0">
             <Avatar
               src={session?.user?.image}
               alt="Profile"
@@ -126,7 +126,7 @@ const NewPostPage = () => {
               onLoad={() => setLoading(false)}
               onError={() => setLoading(false)}
             />
-          </div>
+          </Link>
           <div className="flex flex-col flex-1 min-w-0">
             <form
               onSubmit={(e) => {
