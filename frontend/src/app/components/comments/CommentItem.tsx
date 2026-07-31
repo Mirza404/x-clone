@@ -1,6 +1,7 @@
 'use client';
 
 import type { Comment } from '../../types/Comment';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -61,18 +62,31 @@ const CommentItem = ({
           : undefined
       }
     >
-      <Avatar
-        src={comment?.authorImage}
-        alt={`${comment.name}'s profile`}
-        size="lg"
-      />
+      <Link
+        href={`/profile/${comment.author}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Avatar
+          src={comment?.authorImage}
+          alt={`${comment.name}'s profile`}
+          size="lg"
+        />
+      </Link>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-w-0 items-center gap-1 text-[15px] text-muted">
-          <span className="font-bold text-content hover:underline">
+          <Link
+            href={`/profile/${comment.author}`}
+            onClick={(e) => e.stopPropagation()}
+            className="min-w-0 truncate whitespace-nowrap font-bold text-content hover:underline"
+          >
             {comment.name}
+          </Link>
+          {handle && (
+            <span className="min-w-0 truncate whitespace-nowrap">{handle}</span>
+          )}
+          <span aria-hidden="true" className="flex-shrink-0">
+            ·
           </span>
-          {handle && <span className="truncate">{handle}</span>}
-          <span aria-hidden="true">·</span>
           <span className="flex-shrink-0">
             {relativeTime(comment.createdAt)}
           </span>
