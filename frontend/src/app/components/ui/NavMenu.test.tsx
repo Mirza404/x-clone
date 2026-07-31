@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import NavMenu from './NavMenu';
-import { useConversations } from '@/app/hooks/useConversations';
 import { usePostModal } from '@/app/utils/PostModalProvider';
 
 jest.mock('next-auth/react', () => ({
@@ -16,10 +15,6 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
-jest.mock('@/app/hooks/useConversations', () => ({
-  useConversations: jest.fn(),
-}));
-
 jest.mock('@/app/utils/PostModalProvider', () => ({
   usePostModal: jest.fn(),
 }));
@@ -27,7 +22,6 @@ jest.mock('@/app/utils/PostModalProvider', () => ({
 const mockedUseSession = useSession as jest.Mock;
 const mockedUsePathname = usePathname as jest.Mock;
 const mockedUseRouter = useRouter as jest.Mock;
-const mockedUseConversations = useConversations as jest.Mock;
 const mockedUsePostModal = usePostModal as jest.Mock;
 
 describe('NavMenu', () => {
@@ -45,31 +39,18 @@ describe('NavMenu', () => {
     jest.clearAllMocks();
   });
 
-  it('shows no badge when there are no unread messages', () => {
-    mockedUseConversations.mockReturnValue({ data: [] });
-
+  it('renders the feed nav items', () => {
     render(<NavMenu />);
 
-    expect(screen.queryByLabelText(/unread messages/)).not.toBeInTheDocument();
+    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.getByText('Explore')).toBeInTheDocument();
+    expect(screen.getByText('Notifications')).toBeInTheDocument();
+    expect(screen.getByText('Profile')).toBeInTheDocument();
   });
 
-  it('shows the total unread count on the Messages item', () => {
-    mockedUseConversations.mockReturnValue({
-      data: [{ unreadCount: 2 }, { unreadCount: 3 }],
-    });
-
+  it('does not render a Messages item (messages has its own layout + entry point)', () => {
     render(<NavMenu />);
 
-    expect(screen.getByLabelText('5 unread messages')).toHaveTextContent('5');
-  });
-
-  it('caps the badge at "9+"', () => {
-    mockedUseConversations.mockReturnValue({
-      data: [{ unreadCount: 20 }],
-    });
-
-    render(<NavMenu />);
-
-    expect(screen.getByLabelText('20 unread messages')).toHaveTextContent('9+');
+    expect(screen.queryByText('Messages')).not.toBeInTheDocument();
   });
 });

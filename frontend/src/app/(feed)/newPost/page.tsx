@@ -7,14 +7,14 @@ import toast from 'react-hot-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { Smile, Calendar, MapPin, ListOrdered } from 'lucide-react';
-import LoadingBar from '../components/ui/CustomLoadBar';
-import FileUpload from '../utils/FileUpload';
-import IconButton from '../components/ui/IconButton';
-import Avatar from '../components/ui/Avatar';
+import LoadingBar from '@/app/components/ui/CustomLoadBar';
+import FileUpload from '@/app/utils/FileUpload';
+import IconButton from '@/app/components/ui/IconButton';
+import Avatar from '@/app/components/ui/Avatar';
 import classNames from 'classnames';
-import { uploadImages } from '../utils/imageUtils';
-import { useEnterSubmit } from '../utils/formSubmit';
-import api from '../utils/apiClient';
+import { uploadImages } from '@/app/utils/imageUtils';
+import { useEnterSubmit } from '@/app/utils/formSubmit';
+import api from '@/app/utils/apiClient';
 
 const NewPostPage = () => {
   const [content, setContent] = useState('');

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import AuthWall from '../../components/ui/AuthWall';
+import AuthWall from '@/app/components/ui/AuthWall';
 
 export default function ProfileRedirectPage() {
   const { data: session, status } = useSession();

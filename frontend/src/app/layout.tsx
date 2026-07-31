@@ -3,17 +3,13 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import Script from 'next/script';
 import './globals.css';
-import NavMenu from './components/ui/NavMenu';
-import SideBar from './components/ui/SideBar';
 import SessionProvider from './utils/SessionProvider';
 import SocketProvider from './utils/SocketProvider';
 import QueryProvider from '@/query-client-provider';
 import CustomToaster from './components/ui/CustomToaster';
-import MobilePostButton from './components/mobile/MobilePostButton';
 import MobileHeader from './components/mobile/MobileHeader';
 import MobileNavBar from './components/mobile/MobileNavBar';
 import ThemeProvider from './utils/ThemeProvider';
-import FloatingActions from './components/ui/FloatingActions';
 import PostModalProvider from './utils/PostModalProvider';
 
 const geistSans = localFont({
@@ -60,35 +56,10 @@ export default async function RootLayout({
                   {/* Mobile Header - Only visible on mobile */}
                   <MobileHeader />
 
-                  <div className="flex justify-center min-h-screen pb-14 md:pb-0">
-                    {/* Main content layout */}
-                    <div className="flex w-full max-w-[1265px] mx-auto">
-                      {/* Left navigation - Hidden on mobile */}
-                      <div className="hidden md:block w-[275px] flex-shrink-0 mr-2">
-                        <NavMenu />
-                      </div>
-
-                      {/* Center content */}
-                      <main className="w-full md:w-[600px] min-h-screen border-x border-border">
-                        {/* Page Content */}
-                        {children}
-
-                        {/* Mobile Post Button - Only visible on mobile */}
-                        <MobilePostButton />
-                      </main>
-
-                      {/* Right sidebar - Hidden on mobile */}
-                      <div className="hidden md:block w-[350px] ml-2">
-                        <SideBar />
-                      </div>
-                    </div>
-                  </div>
+                  {children}
 
                   {/* Mobile Navigation Bar - Only visible on mobile */}
                   <MobileNavBar />
-
-                  {/* Floating action buttons - desktop only */}
-                  <FloatingActions />
                 </PostModalProvider>
               </SocketProvider>
             </SessionProvider>

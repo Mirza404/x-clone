@@ -4,7 +4,6 @@ import {
   Home,
   Search,
   Bell,
-  Mail,
   Bookmark,
   Briefcase,
   Users,
@@ -21,7 +20,6 @@ import { Fragment } from 'react';
 import ProfileTab from './ProfileTab';
 import ThemeToggle from './ThemeToggle';
 import { usePostModal } from '@/app/utils/PostModalProvider';
-import { useConversations } from '@/app/hooks/useConversations';
 
 interface NavLinkItem {
   href: string;
@@ -29,11 +27,14 @@ interface NavLinkItem {
   icon: LucideIcon;
 }
 
+// Messages is deliberately absent here: it now lives in its own full-bleed
+// layout (frontend/src/app/messages/layout.tsx) and is reached via the
+// floating chat button (FloatingActions) or MessagePopover's expand link,
+// not this labeled nav.
 const NAV_ITEMS: NavLinkItem[] = [
   { href: '/posts', label: 'Home', icon: Home },
   { href: '/explore', label: 'Explore', icon: Search },
   { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/messages', label: 'Messages', icon: Mail },
   { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
   { href: '/jobs', label: 'Jobs', icon: Briefcase },
   { href: '/communities', label: 'Communities', icon: Users },
@@ -47,8 +48,7 @@ function NavItem({
   label,
   icon: Icon,
   isActive,
-  badgeCount,
-}: NavLinkItem & { isActive: boolean; badgeCount?: number }) {
+}: NavLinkItem & { isActive: boolean }) {
   return (
     <li>
       <Link
@@ -57,20 +57,10 @@ function NavItem({
           isActive ? 'font-bold' : 'font-normal'
         }`}
       >
-        <span className="relative flex-shrink-0">
-          <Icon
-            className="h-[26px] w-[26px]"
-            strokeWidth={isActive ? 2.5 : 2}
-          />
-          {Boolean(badgeCount) && (
-            <span
-              aria-label={`${badgeCount} unread messages`}
-              className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white"
-            >
-              {badgeCount && badgeCount > 9 ? '9+' : badgeCount}
-            </span>
-          )}
-        </span>
+        <Icon
+          className="h-[26px] w-[26px] flex-shrink-0"
+          strokeWidth={isActive ? 2.5 : 2}
+        />
         <span className="text-xl">{label}</span>
       </Link>
     </li>
@@ -82,9 +72,6 @@ export default function NavMenu() {
   const router = useRouter();
   const { data: session } = useSession();
   const { openPostModal } = usePostModal();
-  const { data: conversations } = useConversations();
-  const unreadMessagesCount =
-    conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
 
   const handlePostClick = () => {
     if (!session) {
@@ -119,9 +106,6 @@ export default function NavMenu() {
               key={item.href}
               {...item}
               isActive={pathname === item.href}
-              badgeCount={
-                item.href === '/messages' ? unreadMessagesCount : undefined
-              }
             />
           ))}
           <li>

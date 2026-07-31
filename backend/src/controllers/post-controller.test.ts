@@ -8,6 +8,7 @@ import {
   deletePost,
   toggleLike,
   allPosts,
+  searchPosts,
   getPost,
   createPost,
   updatePost,
@@ -385,6 +386,71 @@ test('allPosts ignores an invalid author id', async () => {
   await allPosts(createQueryRequest({ author: 'not-an-id' }), response);
 
   assert.deepEqual(findCalls, [{}]);
+  assert.equal(response.statusCode, 200);
+});
+
+test('searchPosts returns an empty page without querying when q is blank', async () => {
+  setReadyState(1);
+  const findCalls: unknown[] = [];
+
+  (Post as unknown as { find: (filter: unknown) => unknown }).find = (
+    filter: unknown
+  ) => {
+    findCalls.push(filter);
+    return {
+      sort: () => ({
+        skip: () => ({
+          limit: () => ({
+            lean: async () => [],
+          }),
+        }),
+      }),
+    };
+  };
+
+  const response = createResponse();
+  await searchPosts(createQueryRequest({}), response);
+
+  assert.equal(findCalls.length, 0);
+  assert.deepEqual(response.body, {
+    posts: [],
+    totalPages: 0,
+    currentPage: 1,
+  });
+});
+
+test('searchPosts matches content or name case-insensitively', async () => {
+  setReadyState(1);
+  setEmptyUsersCollection();
+  const findCalls: unknown[] = [];
+
+  (Post as unknown as { find: (filter: unknown) => unknown }).find = (
+    filter: unknown
+  ) => {
+    findCalls.push(filter);
+    return {
+      sort: () => ({
+        skip: () => ({
+          limit: () => ({
+            lean: async () => [],
+          }),
+        }),
+      }),
+    };
+  };
+  (
+    Post as unknown as { countDocuments: (filter: unknown) => Promise<number> }
+  ).countDocuments = async () => 0;
+
+  const response = createResponse();
+  await searchPosts(createQueryRequest({ q: 'Hello' }), response);
+
+  assert.equal(findCalls.length, 1);
+  const filter = findCalls[0] as {
+    $or: Array<{ content?: RegExp; name?: RegExp }>;
+  };
+  assert.equal(filter.$or[0].content?.test('say hello world'), true);
+  assert.equal(filter.$or[1].name?.test('Hello Smith'), true);
   assert.equal(response.statusCode, 200);
 });
 
