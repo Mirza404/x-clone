@@ -1,7 +1,10 @@
-import React from 'react';
+import EmptyState from '../../components/ui/EmptyState';
 
-const page = () => {
-  return <div>Bookmarks Page</div>;
-};
-
-export default page;
+export default function Page() {
+  return (
+    <EmptyState
+      title="Coming Soon"
+      subtitle="Bookmarks isn't built yet. Check back later."
+    />
+  );
+}
