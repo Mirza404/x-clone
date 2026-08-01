@@ -46,12 +46,12 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
     setSelectedFiles(files);
   };
 
-  const removeImage = (index: number, isExisting: boolean) => {
-    if (isExisting) {
-      setExistingImages((images) => images.filter((_, i) => i !== index));
-    } else {
-      setSelectedFiles((files) => files.filter((_, i) => i !== index));
-    }
+  const removeExistingImage = (index: number) => {
+    setExistingImages((images) => images.filter((_, i) => i !== index));
+  };
+
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles((files) => files.filter((_, i) => i !== index));
   };
 
   const updatePostMutation = useMutation({
@@ -133,14 +133,14 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
               {existingImages.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   {existingImages.map((image, index) => (
-                    <div key={`existing-${index}`} className="relative group">
+                    <div key={image} className="relative group">
                       <img
                         src={image || '/placeholder.svg'}
                         alt="Existing"
                         className="w-full h-48 object-cover rounded-lg"
                       />
                       <button
-                        onClick={() => removeImage(index, true)}
+                        onClick={() => removeExistingImage(index)}
                         className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white transition-colors hover:bg-black/90"
                       >
                         <svg
@@ -164,14 +164,17 @@ const EditPostPage = ({ params }: { params: Promise<{ id: string }> }) => {
               {selectedFiles.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   {selectedFiles.map((file, index) => (
-                    <div key={`new-${index}`} className="relative group">
+                    <div
+                      key={`${file.name}-${file.lastModified}-${file.size}`}
+                      className="relative group"
+                    >
                       <img
                         src={URL.createObjectURL(file) || '/placeholder.svg'}
                         alt="Preview"
                         className="w-full h-48 object-cover rounded-lg"
                       />
                       <button
-                        onClick={() => removeImage(index, false)}
+                        onClick={() => removeSelectedFile(index)}
                         className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white transition-colors hover:bg-black/90"
                       >
                         <svg
