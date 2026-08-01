@@ -5,7 +5,7 @@ import Follow from '../models/Follow';
 import { Request, Response } from 'express';
 import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
-import { hasObjectId, toObjectId } from '../utils/object-id';
+import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { getUsersCollection } from '../db/connection';
 
 async function allPosts(req: Request, res: Response): Promise<void> {
@@ -366,7 +366,7 @@ async function deletePost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    if (post.author.toString() !== req.userId) {
+    if (!equalsObjectId(post.author, req.userId ?? '')) {
       res.status(403).json({ message: 'You can only modify your own posts' });
       return;
     }
@@ -408,7 +408,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    if (existingPost.author.toString() !== req.userId) {
+    if (!equalsObjectId(existingPost.author, req.userId ?? '')) {
       res.status(403).json({ message: 'You can only modify your own posts' });
       return;
     }
