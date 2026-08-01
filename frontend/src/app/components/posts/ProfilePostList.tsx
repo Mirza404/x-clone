@@ -31,6 +31,7 @@ export default function ProfilePostList({ authorId }: { authorId: string }) {
     return (
       <div className="w-full">
         {Array.from({ length: 3 }).map((_, i) => (
+          // eslint-disable-next-line react/no-array-index-key -- fixed-length static placeholder list, never reorders/mutates
           <PostSkeleton key={i} />
         ))}
       </div>
