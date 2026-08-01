@@ -16,6 +16,7 @@ Run from repo root unless noted:
 Standards for this repo live in `.claude/rules/`, one file per concern:
 
 - [.claude/rules/typescript.md](.claude/rules/typescript.md): type/lint rules, hook-enforced
+- [.claude/rules/react-keys.md](.claude/rules/react-keys.md): no index as React list key, hook-enforced with judgment-based exception
 - [.claude/rules/git-workflow.md](.claude/rules/git-workflow.md): commit and doc-update conventions, judgment-based
 
 Read the relevant rule file before touching code in that area. Deterministic rules are backed by a `PostToolUse` hook (`.claude/hooks/lint-edited-file.sh`) that lints edited `.ts`/`.tsx` files immediately. A rule doc without a hook means it's judgment-based on purpose, not an oversight.
