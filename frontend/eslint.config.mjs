@@ -19,6 +19,9 @@ const eslintConfig = [
       // See .claude/rules/react-keys.md: disallowed by default, override with
       // an eslint-disable comment + reasoning only for lists that truly can't reorder.
       'react/no-array-index-key': 'error',
+      // See .claude/rules/typescript.md: bumped from next/core-web-vitals' default 'warn'.
+      'jsx-a11y/alt-text': 'error',
+      'react-hooks/exhaustive-deps': 'error',
     },
   },
 ];
