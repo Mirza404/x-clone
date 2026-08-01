@@ -161,7 +161,10 @@ const NewPostPage = () => {
               {selectedFiles.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mt-2 max-w-full">
                   {selectedFiles.map((file, index) => (
-                    <div key={index} className="relative group aspect-video">
+                    <div
+                      key={`${file.name}-${file.lastModified}-${file.size}`}
+                      className="relative group aspect-video"
+                    >
                       <img
                         src={URL.createObjectURL(file) || '/placeholder.svg'}
                         alt="Preview"
