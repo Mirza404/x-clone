@@ -126,8 +126,7 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
                     disabled={loading || content.trim() === ''}
                   >
                     {loading ? (
-                      <span
-                        role="status"
+                      <output
                         aria-label="Posting"
                         className="h-4 w-4 animate-spin rounded-full border-2 border-btn-fg/40 border-t-btn-fg"
                       />
