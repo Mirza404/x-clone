@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import Conversation from '../models/Conversation';
-import { toObjectId } from '../utils/object-id';
+import { toObjectId, equalsObjectId } from '../utils/object-id';
 
 const socketsByUser = new Map<string, Set<string>>();
 
@@ -44,7 +44,7 @@ async function getConversationPartnerIds(userId: string): Promise<string[]> {
   const partnerIds = new Set<string>();
   for (const conversation of conversations) {
     for (const participant of conversation.participants) {
-      if (participant.toString() !== userId) {
+      if (!equalsObjectId(participant, userId)) {
         partnerIds.add(participant.toString());
       }
     }
