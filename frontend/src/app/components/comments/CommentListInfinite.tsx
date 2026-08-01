@@ -45,8 +45,8 @@ export const CommentListInfinite = () => {
 
   return (
     <div>
-      {data?.pages?.map((group, i) => (
-        <Fragment key={i}>
+      {data?.pages?.map((group) => (
+        <Fragment key={group?.comments?.[0]?.id ?? 'empty-page'}>
           {group?.comments?.map((comment: Comment) => (
             <div key={comment.id} className="relative">
               <CommentItem
