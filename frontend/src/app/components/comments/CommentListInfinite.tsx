@@ -61,18 +61,40 @@ export const CommentListInfinite = () => {
         </Fragment>
       ))}
       <div ref={ref}>
-        {isFetchingNextPage ? (
-          <LoadCircle />
-        ) : hasNextPage ? null : data?.pages[0]?.comments?.length ? (
-          <div className="p-4 text-center text-muted">
-            Nothing more to load.
-          </div>
-        ) : (
-          <div className="p-4 text-center text-muted">No comments yet.</div>
-        )}
+        <CommentListFooter
+          isFetchingNextPage={isFetchingNextPage}
+          hasNextPage={hasNextPage}
+          hasComments={Boolean(data?.pages[0]?.comments?.length)}
+        />
       </div>
     </div>
   );
 };
+
+function CommentListFooter({
+  isFetchingNextPage,
+  hasNextPage,
+  hasComments,
+}: {
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
+  hasComments: boolean;
+}) {
+  if (isFetchingNextPage) {
+    return <LoadCircle />;
+  }
+
+  if (hasNextPage) {
+    return null;
+  }
+
+  if (hasComments) {
+    return (
+      <div className="p-4 text-center text-muted">Nothing more to load.</div>
+    );
+  }
+
+  return <div className="p-4 text-center text-muted">No comments yet.</div>;
+}
 
 export default CommentListInfinite;
