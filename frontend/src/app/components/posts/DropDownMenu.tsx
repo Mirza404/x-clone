@@ -57,7 +57,7 @@ const Dropdown: React.FC<DropdownProps> = ({
     >
       {menuItems.map((item, index) => (
         <button
-          key={index}
+          key={item.label}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
