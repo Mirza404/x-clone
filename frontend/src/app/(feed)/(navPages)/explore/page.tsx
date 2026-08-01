@@ -81,6 +81,7 @@ function ExploreResultsBody({
     return (
       <>
         {Array.from({ length: 5 }).map((_, i) => (
+          // eslint-disable-next-line react/no-array-index-key -- fixed-length static placeholder list, never reorders/mutates
           <PostSkeleton key={i} />
         ))}
       </>
