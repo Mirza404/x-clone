@@ -50,38 +50,76 @@ function ExploreResults() {
         Results for &ldquo;{query}&rdquo;
       </h1>
 
-      {status === 'pending' ? (
-        Array.from({ length: 5 }).map((_, i) => <PostSkeleton key={i} />)
-      ) : status === 'error' ? (
-        <div className="flex flex-col items-center gap-3 border-b border-border py-10 text-center">
-          <p className="text-[15px] text-muted">Something went wrong.</p>
-        </div>
-      ) : posts.length === 0 ? (
-        <EmptyState
-          title="No results"
-          subtitle="Try a different search term."
-        />
-      ) : (
-        <>
-          {posts.map((post) => (
-            <PostItem
-              key={post.id}
-              post={post}
-              onDelete={() => deletePostMutation.mutate(post.id)}
-            />
-          ))}
-          <div
-            ref={ref}
-            className="flex justify-center border-b border-border py-6"
-          >
-            {isFetchingNextPage ? (
-              <LoadCircle />
-            ) : hasNextPage ? null : (
-              <span className="text-muted">Nothing more to load.</span>
-            )}
-          </div>
-        </>
-      )}
+      <ExploreResultsBody
+        status={status}
+        posts={posts}
+        onDeletePost={(postId) => deletePostMutation.mutate(postId)}
+        loadMoreRef={ref}
+        isFetchingNextPage={isFetchingNextPage}
+        hasNextPage={hasNextPage}
+      />
     </div>
+  );
+}
+
+function ExploreResultsBody({
+  status,
+  posts,
+  onDeletePost,
+  loadMoreRef,
+  isFetchingNextPage,
+  hasNextPage,
+}: {
+  status: 'pending' | 'error' | 'success';
+  posts: Post[];
+  onDeletePost: (postId: string) => void;
+  loadMoreRef: (node?: Element | null) => void;
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
+}) {
+  if (status === 'pending') {
+    return (
+      <>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <PostSkeleton key={i} />
+        ))}
+      </>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-3 border-b border-border py-10 text-center">
+        <p className="text-[15px] text-muted">Something went wrong.</p>
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <EmptyState title="No results" subtitle="Try a different search term." />
+    );
+  }
+
+  return (
+    <>
+      {posts.map((post) => (
+        <PostItem
+          key={post.id}
+          post={post}
+          onDelete={() => onDeletePost(post.id)}
+        />
+      ))}
+      <div
+        ref={loadMoreRef}
+        className="flex justify-center border-b border-border py-6"
+      >
+        {isFetchingNextPage ? (
+          <LoadCircle />
+        ) : hasNextPage ? null : (
+          <span className="text-muted">Nothing more to load.</span>
+        )}
+      </div>
+    </>
   );
 }
