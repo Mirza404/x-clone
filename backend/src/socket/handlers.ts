@@ -2,7 +2,7 @@ import { Server, Socket } from 'socket.io';
 import mongoose from 'mongoose';
 import Conversation, { participantsKey } from '../models/Conversation';
 import Message from '../models/Message';
-import { hasObjectId, toObjectId } from '../utils/object-id';
+import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { allow } from './rate-limit';
 
 interface MessageSendPayload {
@@ -104,15 +104,15 @@ async function handleMessageSend(
     });
 
     const recipient = conversation.participants.find(
-      (participant) => participant.toString() !== userId
+      (participant) => !equalsObjectId(participant, userId)
     );
 
     conversation.lastMessage = message._id;
     conversation.lastMessageAt = message.createdAt;
 
     if (recipient) {
-      const unreadEntry = conversation.unread.find(
-        (entry) => entry.user.toString() === recipient.toString()
+      const unreadEntry = conversation.unread.find((entry) =>
+        equalsObjectId(entry.user, recipient)
       );
       if (unreadEntry) {
         unreadEntry.count += 1;
@@ -163,8 +163,8 @@ async function handleMessageRead(
       return;
     }
 
-    const unreadEntry = conversation.unread.find(
-      (entry) => entry.user.toString() === userId
+    const unreadEntry = conversation.unread.find((entry) =>
+      equalsObjectId(entry.user, userId)
     );
     if (unreadEntry) {
       unreadEntry.count = 0;
@@ -177,7 +177,7 @@ async function handleMessageRead(
     );
 
     const recipient = conversation.participants.find(
-      (participant) => participant.toString() !== userId
+      (participant) => !equalsObjectId(participant, userId)
     );
 
     if (recipient) {

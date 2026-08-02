@@ -28,5 +28,22 @@ module.exports = tseslint.config(
       'no-console': ['error', { allow: ['info', 'warn', 'error'] }],
     },
   },
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['src/utils/object-id.ts', 'src/**/*.test.ts'],
+    rules: {
+      // See .claude/rules/backend-conventions.md: compare ObjectId-like
+      // values with equalsObjectId/hasObjectId from utils/object-id, not raw .toString().
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "BinaryExpression[operator=/^[!=]==$/] CallExpression[callee.property.name='toString']",
+          message:
+            "Don't compare ObjectId-like values with raw .toString() ===/!==. Use equalsObjectId/hasObjectId from ../utils/object-id instead.",
+        },
+      ],
+    },
+  },
   prettierConfig
 );

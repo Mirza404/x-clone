@@ -4,7 +4,7 @@ import type {} from '../types/express';
 import Conversation, { participantsKey } from '../models/Conversation';
 import Message from '../models/Message';
 import { getUsersCollection } from '../db/connection';
-import { hasObjectId, toObjectId } from '../utils/object-id';
+import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 
 function isParticipant(
   conversation: { participants: mongoose.Types.ObjectId[] },
@@ -17,7 +17,7 @@ function otherParticipant(
   conversation: { participants: mongoose.Types.ObjectId[] },
   userId: string
 ): mongoose.Types.ObjectId | undefined {
-  return conversation.participants.find((p) => p.toString() !== userId);
+  return conversation.participants.find((p) => !equalsObjectId(p, userId));
 }
 
 async function listConversations(req: Request, res: Response): Promise<void> {
@@ -54,8 +54,8 @@ async function listConversations(req: Request, res: Response): Promise<void> {
     const result = conversations.map((conversation) => {
       const other = otherParticipant(conversation, userId);
       const otherUser = other ? userMap.get(other.toString()) : null;
-      const unreadEntry = conversation.unread.find(
-        (entry) => entry.user.toString() === userId
+      const unreadEntry = conversation.unread.find((entry) =>
+        equalsObjectId(entry.user, userId)
       );
 
       return {

@@ -5,7 +5,7 @@ import { Request, Response } from 'express';
 import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
 import { LeanComment } from '../types/LeanComment';
-import { hasObjectId, toObjectId } from '../utils/object-id';
+import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { collectCommentThreadIds } from '../utils/comment-tree';
 import { getUsersCollection } from '../db/connection';
 
@@ -284,7 +284,7 @@ async function deleteComment(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    if (comment.author.toString() !== req.userId) {
+    if (!equalsObjectId(comment.author, req.userId ?? '')) {
       res
         .status(403)
         .json({ message: 'You can only modify your own comments' });
@@ -331,7 +331,7 @@ async function updateComment(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    if (existingComment.author.toString() !== req.userId) {
+    if (!equalsObjectId(existingComment.author, req.userId ?? '')) {
       res
         .status(403)
         .json({ message: 'You can only modify your own comments' });

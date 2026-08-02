@@ -10,6 +10,12 @@ Don't write `: any`, `<any>`, or `as any`. Both tsconfigs already have `strict: 
 
 If you hit a case where `any` looks like the only option, that's a signal to stop and either write the narrower type or ask. Don't reach for `any` to get the hook to pass.
 
+## Warnings fail the build
+
+Both `npm run lint` scripts pass `--max-warnings 0`: any ESLint warning, not just errors, fails CI. Frontend also bumps `jsx-a11y/alt-text` and `react-hooks/exhaustive-deps` from `eslint-config-next/core-web-vitals`'s default `warn` to `error` in `frontend/eslint.config.mjs`, so they block on write via the hook instead of only failing CI.
+
+**Why:** a missing `alt` on an `<img>` shipped as a warning and sat unnoticed until it surfaced as a real accessibility bug. Warnings that nobody is forced to look at are equivalent to no rule at all.
+
 ## No stray `console.log`/`console.debug`
 
 `console.info`, `console.warn`, and `console.error` are allowed; `console.log` and `console.debug` are not.

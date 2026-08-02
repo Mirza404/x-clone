@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import mongoose from 'mongoose';
 import Conversation from '../models/Conversation';
-import { hasObjectId } from '../utils/object-id';
+import { hasObjectId, equalsObjectId } from '../utils/object-id';
 
 interface TypingPayload {
   conversationId?: string;
@@ -28,7 +28,7 @@ async function handleTyping(
   }
 
   const recipient = conversation.participants.find(
-    (participant) => participant.toString() !== userId
+    (participant) => !equalsObjectId(participant, userId)
   );
 
   if (recipient) {
