@@ -22,7 +22,7 @@ async function connectToDatabase() {
     console.info('Mongo DB connection established');
   } catch (error) {
     console.error(error);
-    throw new Error('Can not connect to the Database.');
+    throw new Error('Can not connect to the Database.', { cause: error });
   }
 }
 
@@ -31,7 +31,7 @@ async function disconnectFromDatabase() {
     await mongoose.disconnect();
   } catch (error) {
     console.error(error);
-    throw new Error('Error disconnecting from the Database.');
+    throw new Error('Error disconnecting from the Database.', { cause: error });
   }
 }
 
