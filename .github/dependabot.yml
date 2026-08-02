@@ -5,27 +5,43 @@ updates:
     schedule:
       interval: weekly
     groups:
-      root-dependencies:
-        patterns:
-          - '*'
+      root-dependencies-minor:
+        update-types:
+          - minor
+          - patch
+      root-dependencies-major:
+        update-types:
+          - major
 
   - package-ecosystem: npm
     directory: /backend
     schedule:
       interval: weekly
     groups:
-      backend-dependencies:
-        patterns:
-          - '*'
+      backend-dependencies-minor:
+        update-types:
+          - minor
+          - patch
+      backend-dependencies-major:
+        update-types:
+          - major
 
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
+    ignore:
+      # @auth/mongodb-adapter peer-requires mongodb ^6; unpin once it supports v7.
+      - dependency-name: 'mongodb'
+        update-types: ['version-update:semver-major']
     groups:
-      frontend-dependencies:
-        patterns:
-          - '*'
+      frontend-dependencies-minor:
+        update-types:
+          - minor
+          - patch
+      frontend-dependencies-major:
+        update-types:
+          - major
 
   - package-ecosystem: github-actions
     directory: /
