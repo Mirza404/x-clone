@@ -30,7 +30,7 @@ jobs:
           - name: Dependency Audit
             script: deps:check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/install-deps
       - run: npm run ${{ matrix.script }}
 
@@ -47,7 +47,7 @@ jobs:
     env:
       MONGODB_URL: 'mongodb://localhost:27017/xclone-ci'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/install-deps
       - run: npm test
       - name: Upload backend coverage
@@ -77,7 +77,7 @@ jobs:
       NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: 'ci-placeholder'
       NEXT_PUBLIC_SERVER_URL: 'http://localhost:5000'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/install-deps
       - run: npm run build
 
@@ -87,7 +87,7 @@ jobs:
     env:
       GITLEAKS_VERSION: '8.21.2'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -106,7 +106,7 @@ jobs:
     needs: [checks, test, build, secret-scan]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Lowercase image owner
         id: owner
