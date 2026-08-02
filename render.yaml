@@ -5,6 +5,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free
+    autoDeploy: false
     envVars:
       - key: MONGODB_URL
         sync: false
@@ -21,6 +22,7 @@ services:
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
     plan: free
+    autoDeploy: false
     envVars:
       - key: NEXTAUTH_URL
         value: https://x-clone-frontend-voi9.onrender.com
