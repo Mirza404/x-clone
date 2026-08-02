@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/Mirza404/x-clone#readme",
   "devDependencies": {
-    "eslint": "^9.22.0",
+    "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.3",
     "prettier": "3.6.2",
