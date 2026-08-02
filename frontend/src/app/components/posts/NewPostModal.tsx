@@ -15,7 +15,9 @@ import api from '../../utils/apiClient';
 export default function NewPostModal({ onClose }: { onClose: () => void }) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<{ id: string; file: File }[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<
+    { id: string; file: File }[]
+  >([]);
   const [progress, setProgress] = useState(0);
   const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
