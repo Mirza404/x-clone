@@ -15,7 +15,9 @@ import api from '../../utils/apiClient';
 export default function NewPostModal({ onClose }: { onClose: () => void }) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<
+    { id: string; file: File }[]
+  >([]);
   const [progress, setProgress] = useState(0);
   const { data: session } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -34,11 +36,11 @@ export default function NewPostModal({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const handleImagesUploaded = (files: File[]) => {
-    setSelectedFiles(files);
+    setSelectedFiles(files.map((file) => ({ id: crypto.randomUUID(), file })));
   };
 
-  const removeImage = (index: number) => {
-    setSelectedFiles((files) => files.filter((_, i) => i !== index));
+  const removeImage = (id: string) => {
+    setSelectedFiles((files) => files.filter((f) => f.id !== id));
   };
 
   const newPostMutation = useMutation({
@@ -46,7 +48,7 @@ export default function NewPostModal({ onClose }: { onClose: () => void }) {
       setLoading(true);
       setProgress(0);
 
-      const uploadedUrls = await uploadImages(selectedFiles);
+      const uploadedUrls = await uploadImages(selectedFiles.map((f) => f.file));
 
       setProgress(50);
       const response = await api.post('/api/post/new', {
@@ -107,8 +109,8 @@ export default function NewPostModal({ onClose }: { onClose: () => void }) {
 
             {selectedFiles.length > 0 && (
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {selectedFiles.map((file, index) => (
-                  <div key={index} className="group relative aspect-video">
+                {selectedFiles.map(({ id, file }) => (
+                  <div key={id} className="group relative aspect-video">
                     <img
                       src={URL.createObjectURL(file) || '/placeholder.svg'}
                       alt="Preview"
@@ -116,7 +118,7 @@ export default function NewPostModal({ onClose }: { onClose: () => void }) {
                       className="h-full w-full rounded-lg object-cover"
                     />
                     <button
-                      onClick={() => removeImage(index)}
+                      onClick={() => removeImage(id)}
                       className="absolute right-2 top-2 rounded-full bg-black/75 p-1 text-white/70 transition-colors hover:text-white"
                     >
                       <X className="h-4 w-4" />

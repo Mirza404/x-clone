@@ -115,7 +115,10 @@ export default function MobileNewPost({ onClose }: { onClose: () => void }) {
           {selectedFiles.length > 0 && (
             <div className="mt-2 grid grid-cols-2 gap-2">
               {selectedFiles.map((file, index) => (
-                <div key={index} className="group relative aspect-video">
+                <div
+                  key={`${file.name}-${file.lastModified}-${file.size}`}
+                  className="group relative aspect-video"
+                >
                   <img
                     src={URL.createObjectURL(file) || '/placeholder.svg'}
                     alt="Preview"

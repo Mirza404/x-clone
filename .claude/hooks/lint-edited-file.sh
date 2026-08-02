@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # PostToolUse hook (Write|Edit): lints the just-edited TS/TSX file and blocks
-# on ESLint errors, giving fast local feedback for rules like no-explicit-any
-# and no-console before they ever reach CI. See .claude/rules/typescript.md.
+# on ESLint errors, giving fast local feedback for rules like no-explicit-any,
+# no-console, and no-array-index-key before they ever reach CI.
+# See .claude/rules/typescript.md and .claude/rules/react-keys.md.
 # Routing/binary-resolution helpers live in hook-common.sh (shared, sourced).
 set -euo pipefail
 
@@ -32,6 +33,6 @@ fi
 {
   echo "$output"
   echo
-  echo "ESLint failed on $file_path. Fix the errors above before continuing. See .claude/rules/typescript.md for why (e.g. no-explicit-any, no-console)."
+  echo "ESLint failed on $file_path. Fix the errors above before continuing. See .claude/rules/typescript.md and .claude/rules/react-keys.md for why."
 } >&2
 exit 2

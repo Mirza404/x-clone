@@ -164,9 +164,9 @@ export default function PostItem({
                       <ChevronRight className="h-5 w-5" />
                     </button>
                     <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 transform gap-1">
-                      {post.images.map((_, index) => (
+                      {post.images.map((image, index) => (
                         <div
-                          key={index}
+                          key={image}
                           className={`h-1.5 w-1.5 rounded-full ${
                             index === currentImageIndex
                               ? 'bg-white'
