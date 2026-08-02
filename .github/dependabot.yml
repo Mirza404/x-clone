@@ -38,6 +38,13 @@ updates:
       # @auth/mongodb-adapter peer-requires mongodb ^6; unpin once it supports v7.
       - dependency-name: 'mongodb'
         update-types: ['version-update:semver-major']
+      # TS7 removes `baseUrl`; same ts-node incompatibility as the backend ignore above.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      # eslint-plugin-react's peer range caps at eslint 9, so eslint-config-next can't
+      # move to eslint 10 yet; unpin once it does.
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
     groups:
       frontend-dependencies-minor:
         update-types:
