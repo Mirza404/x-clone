@@ -59,14 +59,15 @@ Comments currently support text + likes + one level of replies. Posts support im
 
 D1 (Dockerfile hardening, real Mongo in CI, coverage gate) is fully shipped — see the reality check above. Numbering below continues from D2 to keep history/links stable.
 
-### D2. Automate the deploy that already exists `[~]`
+### D2. Automate the deploy that already exists `[x]`
 
-The site is live on Render, but reframe the goal: the win here is no longer "get a URL," it's **a gated, reproducible pipeline to it.**
+**Shipped:** `ci.yml`'s `deploy` job (`needs: [checks, test, build, secret-scan]`, gated on push to `main`) builds both Dockerfiles and pushes to GHCR (`ghcr.io/<owner>/x-clone-backend`/`x-clone-frontend`, tagged `latest` + commit SHA), then calls Render's REST API (`POST /v1/services/{id}/deploys`) per service to trigger the actual deploy. `render.yaml` sets `autoDeploy: false` on both services so Render's own on-push auto-build (previously ungated) is no longer the deploy path — the CI job is. (Render's per-service Deploy Hook URL, the simpler option, wasn't exposed in this account's dashboard — API key + service ID used instead.)
 
-- On merge to `main`: build backend + frontend images, push to **GHCR** (`ghcr.io/<user>/x-clone-*`).
-- Deploy job **gated on `test` + `build` passing**. That's the interesting part, and the part a reviewer looks for.
-- Document the rollback path. A deploy story without a rollback story is half a story.
-- The hardened images already exist (D1), so this can start immediately.
+Required repo secrets (Settings → Secrets and variables → Actions): `RENDER_API_KEY` (Render dashboard → Account Settings → API Keys), `RENDER_BACKEND_SERVICE_ID` and `RENDER_FRONTEND_SERVICE_ID` (the `srv-xxxxx` id in each service's dashboard URL), `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` (same value already set in Render's frontend env, needed here too since Next bakes `NEXT_PUBLIC_*` into the build).
+
+**Rollback:** Render dashboard → service → Deploys → pick a prior deploy → Rollback. The GHCR SHA-tagged images are a secondary, off-platform rollback path if ever needed.
+
+GHCR images aren't currently consumed by Render (Render still builds from the Dockerfile itself on hook trigger, doesn't pull the pushed image) — pushing them is the "reproducible artifact" half of the story and sets up D9/D10 if pursued later. Wiring Render to actually deploy the built image (vs. rebuilding) isn't natively supported by Render's Docker runtime, so this is a known, accepted gap.
 
 ### D3. Preview environments per pull request `[ ]`
 
