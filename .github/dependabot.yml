@@ -17,6 +17,10 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    ignore:
+      # ts-node 10.9.2 crashes on TS7's restructured ts.sys API; unpin once ts-node catches up.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
       backend-dependencies-minor:
         update-types:
