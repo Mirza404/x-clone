@@ -45,9 +45,9 @@ Messaging used to be crammed into the 600px center column, because `(navPages)/m
 
 **Decided:** kept replies 2-level, per the note in the original entry — `comment-tree.ts`'s `collectCommentThreadIds`, the thread page, and pagination all still assume 2 levels, unchanged.
 
-### F4. Placeholder pages `[ ]`
+### F4. Placeholder pages `[x]`
 
-`bookmarks`, `communities`, `notifications`, `explore` (partially addressed by F2's results view, but still a stub outside search results), and others are all one-line stubs returning plain text. On a live portfolio site these are dead ends a visitor will click. Either implement, or render a consistent themed "Coming soon" empty state (there's already an `EmptyState` component) so they look intentional rather than unfinished.
+**Shipped:** `bookmarks`, `communities`, `notifications`, `jobs`, `premium`, `verifiedorgs` all render a themed `EmptyState` ("Coming Soon" + a one-line explanation) instead of a plain-text stub. `explore` has the full F2 search-results view, plus its own `EmptyState` ("Search X Clone") for the no-query case. This shipped alongside the `(feed)` route-group move (`fix: correct EmptyState import path after (feed) route group move`) but this file wasn't updated at the time.
 
 ---
 
@@ -122,7 +122,7 @@ Local `kind`/minikube manifests or a Helm chart for the two services + Mongo. Ov
 5. **Thread / conversation summarizer.** "Summarize this comment tree / this DM thread".
 6. **Notification / digest agent.** Weekly agent summarizing your activity, drafting candidate posts.
 
-### F6. "Backend is waking up" state for cold starts `[ ]`
+### F6. "Backend is waking up" state for cold starts `[x]`
 
 Both Render services are on `plan: free`, so the backend sleeps after inactivity and cold-starts in roughly 30-60s. Today that failure mode is invisible and looks like the app is broken:
 
@@ -143,18 +143,21 @@ So this is **not a messages-only problem**. A blocker on `/messages` alone would
 - **Feed and elsewhere:** a dismissible top banner, **not** a blocker. The feed can still render cached posts from the Query cache while the backend wakes.
 - Add a `timeout` to the axios instance in `apiClient.ts` so REST calls fail loudly instead of hanging forever; currently there is none.
 
-**Cheap alternative worth pricing first:** an uptime pinger (cron-job.org, UptimeRobot, or a scheduled GitHub Action) hitting the backend every ~10 minutes keeps the free instance awake and makes this whole problem mostly disappear. That's ~10 minutes of setup versus a few hours of UI work. **Do the pinger first**, then decide whether the UI state is still worth building. It still is for genuine outages and for the very first request after a deploy, but it stops being urgent. Pairs naturally with D8's `/healthz` endpoint, which gives the pinger something cheap to hit.
+**Decided 2026-08-04: skip the uptime pinger, ship the UI work.** The pinger's only job is keeping Render's free instance from sleeping, which wasn't wanted here — so the sleep/wake cycle stays as real behavior and this UI is what makes it legible instead of looking broken.
 
-### F5. Messaging follow-ups carried over from the as-built record `[ ]`
+**Shipped:** `useBackendWaking()` (`frontend/src/app/hooks/useBackendWaking.ts`) derives `'ok' | 'waking' | 'unreachable'` from `useSocketContext().connected` while `status === 'authenticated'`, on a 2s grace period (never flags on the first tick) and a 60s cutoff to `'unreachable'`. Built without a ref-based "adjust state on prop change" pattern — this repo's stricter `eslint-plugin-react-hooks` config (`react-hooks/refs`, `react-hooks/set-state-in-effect`) forbids mutating refs during render, so both the hook and `BackendWakingBanner` key their effect on the derived boolean and only ever call `setState` from inside the timer/timeout callback, never synchronously in the effect body. `messages/page.tsx` blocks on `'waking'`/`'unreachable'` with `EmptyState` (spinner, then a manual retry past 60s) since the view is unusable without a socket; `BackendWakingBanner.tsx` is a dismissible, non-blocking banner mounted in `(feed)/layout.tsx` so it covers every feed route. `apiClient.ts`'s axios instance got a 15s `timeout` so REST calls fail loudly instead of hanging through a cold start.
+
+### F5. Messaging follow-ups carried over from the as-built record `[x]`
 
 Inherited from `WEBSOCKET_MESSAGING_PLAN.md`, which is now a design-rationale record rather than a to-do list. These are the parts of it that never shipped.
 
-**Unresolved product decisions** (the plan's §13, all still on v1 assumptions, never confirmed):
+**Product decisions (the plan's §13) — confirmed 2026-08-04, no code changes:**
 
-1. **Who can DM whom?** `createConversation` currently guards only `recipientId !== userId`, so **anyone can DM anyone**. If that's not wanted, the guard belongs in `message-controller.ts`'s get-or-create. On a public portfolio site this is also the spam surface.
-2. **Message length cap:** 2000 chars, assumed and shipped. Confirm or change.
-3. **Presence scope:** currently broadcast to conversation partners only, not followers. Confirm.
-4. **Media in messages:** deferred; `Message` has no `images` field. Note this is the _same_ gap as F3 for comments; if you do one, do both, and share the upload path.
+1. **Who can DM whom?** Confirmed: leave open. `createConversation` still only guards `recipientId !== userId` — anyone can DM anyone. No moderation/report system exists yet to back a stricter model, and this matches most X-clone demos.
+2. **Message length cap:** Confirmed: keep 2000 chars as already shipped.
+3. **Presence scope:** Confirmed: keep broadcasting to conversation partners only, not followers. Cheaper to compute and less exposure of activity to non-contacts; broadening it is exactly what the deferred Redis/horizontal-scaling section below is for.
+
+**Media in messages: shipped.** `Message.images: [String]` added (mirrors `Post`/`Comment`, max 8, optional). `MessageSendPayload` and the `message:send` socket handler (`backend/src/socket/handlers.ts`) accept and validate `images` (rejects >8 without touching the DB), `handleMessageSend` persists them. `getConversationMessages` normalizes missing `images` to `[]` for messages that predate this field. `MessageComposer.tsx` got the same `FileUpload`-select-preview-remove flow as `NewComment`/`NewReply`, uploading via the existing `uploadImages` (Cloudinary) path before `message:send` fires; `MessageBubble.tsx` renders the images in a 1-2 column grid. Content is still required (image-only messages aren't supported), consistent with F3's comments.
 
 **Deferred infrastructure** (the plan's §9): horizontal scaling needs `@socket.io/redis-adapter` + Redis, presence moved out of the in-memory `Map` into Redis, and sticky sessions at the load balancer. Single-instance is correct for now; this is only worth doing if the app ever runs more than one backend instance. Depends on nothing; blocks nothing.
 
@@ -201,6 +204,6 @@ Dependencies are real; the ordering below respects them.
 
 > AI1.1 (semantic search, reusing F2's endpoint), then AI3.1 (AI PR reviewer), then D8 (observability), then AI2 (Ollama socket bot, any time, it's independent and fun)
 
-**Also open, do whenever fits:** F6 (cold-start UX — do the uptime pinger first, it's 10 minutes), F5.4 (image support on messages, same upload path as F3's comment images), F4 (placeholder pages), F5 (remaining messaging product decisions).
+**Part F is now fully shipped** (F1-F6). Remaining open work is Part D (pipeline, from D3 on) and Part AI.
 
 **Deliberately deprioritized:** D9 (Terraform), D10 (Kubernetes), D11 (load testing). All three are legitimate but only pay off on a project with real traffic or real infrastructure sprawl. Reach for them when the earlier phases are done, not before.
