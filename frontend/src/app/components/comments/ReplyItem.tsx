@@ -89,6 +89,21 @@ const ReplyItem = ({
         ) : (
           <div className="text-[15px] italic text-muted">No content</div>
         )}
+        {reply.images && reply.images.length > 0 && (
+          <div
+            className={`mt-2 grid gap-1 ${reply.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
+          >
+            {reply.images.map((image) => (
+              <img
+                key={image}
+                src={image}
+                loading="lazy"
+                className="max-h-64 w-full rounded-2xl border border-border object-cover"
+                alt="Reply attachment"
+              />
+            ))}
+          </div>
+        )}
         <div className="like-button mt-2 flex items-center gap-3">
           <LikeButton
             type="comment"
