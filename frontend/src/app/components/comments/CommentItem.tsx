@@ -104,6 +104,21 @@ const CommentItem = ({
             </button>
           )}
         </div>
+        {comment.images && comment.images.length > 0 && (
+          <div
+            className={`mt-3 grid gap-1 ${comment.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
+          >
+            {comment.images.map((image) => (
+              <img
+                key={image}
+                src={image}
+                loading="lazy"
+                className="max-h-80 w-full rounded-2xl border border-border object-cover"
+                alt="Comment attachment"
+              />
+            ))}
+          </div>
+        )}
         <div className="like-button mt-2 flex items-center gap-4">
           <LikeButton
             type="comment"
