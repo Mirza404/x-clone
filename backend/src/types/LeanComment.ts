@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 export interface LeanComment {
   _id: mongoose.Types.ObjectId;
   content: string;
+  images?: string[];
   name: string;
   email?: string; // Optional, not always present
   author: mongoose.Types.ObjectId;
