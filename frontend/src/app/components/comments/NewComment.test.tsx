@@ -69,6 +69,7 @@ describe('NewComment composer', () => {
         {
           parentCommentId: undefined,
           content: 'Hello world',
+          images: [],
         }
       )
     );
