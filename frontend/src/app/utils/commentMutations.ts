@@ -32,14 +32,17 @@ export function useCommentMutations() {
       postId,
       parentCommentId,
       content,
+      images,
     }: {
       postId: string;
       parentCommentId?: string | null;
       content: string;
+      images?: string[];
     }) => {
       const response = await api.post(`/api/post/${postId}/comment/new`, {
         parentCommentId,
         content,
+        images,
       });
       return response.data;
     },
@@ -59,14 +62,17 @@ export function useCommentMutations() {
       postId,
       parentCommentId,
       content,
+      images,
     }: {
       postId: string;
       parentCommentId: string;
       content: string;
+      images?: string[];
     }) => {
       const response = await api.post(`/api/post/${postId}/comment/new`, {
         parentCommentId,
         content,
+        images,
       });
       return response.data;
     },
