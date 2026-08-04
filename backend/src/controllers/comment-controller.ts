@@ -75,6 +75,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
     const commentsWithUserData = comments.map((comment) => ({
       id: comment._id,
       content: comment.content,
+      images: comment.images ?? [],
       name: comment.name,
       postId: comment.postId,
       parentComment: comment.parentComment,
@@ -85,6 +86,7 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
       replies: (comment.replies ?? []).map((reply) => ({
         id: reply._id,
         content: reply.content,
+        images: reply.images ?? [],
         name: reply.name,
         postId: reply.postId,
         parentComment: reply.parentComment,
@@ -187,6 +189,7 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
     const commentWithUserData = {
       id: typedComment._id,
       content: typedComment.content,
+      images: typedComment.images ?? [],
       name: typedComment.name,
       postId: typedComment.postId,
       parentComment: typedComment.parentComment,
@@ -197,6 +200,7 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       replies: (typedComment.replies ?? []).map((reply) => ({
         id: reply._id,
         content: reply.content,
+        images: reply.images ?? [],
         name: reply.name,
         postId: reply.postId,
         parentComment: reply.parentComment,
@@ -220,7 +224,7 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
 async function createComment(req: Request, res: Response): Promise<void> {
   try {
     const { postId } = req.params;
-    const { content, parentCommentId } = req.body;
+    const { content, parentCommentId, images } = req.body;
     const author = req.userId;
 
     if (!postId || !content || !author) {
@@ -231,6 +235,7 @@ async function createComment(req: Request, res: Response): Promise<void> {
     const name = await getUserNameByID(author.toString().trim());
     const newComment = new Comment({
       content,
+      images: images ?? [],
       author,
       name,
       postId,
