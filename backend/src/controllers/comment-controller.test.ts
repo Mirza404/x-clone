@@ -441,6 +441,7 @@ test('findCommentsByPost returns top-level comments with author images', async (
       {
         id: commentId,
         content: 'hi',
+        images: [],
         name: 'Ada',
         postId,
         parentComment: null,
@@ -548,6 +549,7 @@ test('findCommentById returns the comment with author images when found as top-l
     {
       id: commentId,
       content: 'hi',
+      images: [],
       name: 'Ada',
       postId,
       parentComment: null,
