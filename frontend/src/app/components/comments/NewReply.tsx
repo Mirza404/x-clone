@@ -7,8 +7,11 @@ import classNames from 'classnames';
 import { useCommentMutations } from '../../utils/commentMutations';
 import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { X } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import { useEnterSubmit } from '@/app/utils/formSubmit';
+import { uploadImages } from '@/app/utils/imageUtils';
+import FileUpload from '@/app/utils/FileUpload';
 
 interface ReplyProps {
   postId: string;
@@ -21,6 +24,9 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
   const [content, setContent] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<
+    { id: string; file: File }[]
+  >([]);
   const { newReplyMutation } = useCommentMutations();
   const params = useParams();
   const postId = params.id as string;
@@ -30,7 +36,15 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleImagesUploaded = (files: File[]) => {
+    setSelectedFiles(files.map((file) => ({ id: crypto.randomUUID(), file })));
+  };
+
+  const removeImage = (fileId: string) => {
+    setSelectedFiles((files) => files.filter((f) => f.id !== fileId));
+  };
+
+  const handleSubmit = async () => {
     if (!content.trim()) return;
 
     if (!session?.user) {
@@ -39,15 +53,27 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
     }
 
     setLoading(true);
+
+    let images: string[] = [];
+    try {
+      images = await uploadImages(selectedFiles.map((f) => f.file));
+    } catch {
+      toast.error('Image upload failed. Please try again.');
+      setLoading(false);
+      return;
+    }
+
     newReplyMutation.mutate(
       {
         postId: postId, // This will be handled by the mutation hook
         parentCommentId,
         content,
+        images,
       },
       {
         onSuccess: () => {
           setContent('');
+          setSelectedFiles([]);
           setLoading(false);
         },
         onError: () => {
@@ -108,9 +134,37 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
               disabled={loading}
             />
 
+            {selectedFiles.length > 0 && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {selectedFiles.map(({ id: fileId, file }) => (
+                  <div key={fileId} className="group relative aspect-video">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="Preview"
+                      loading="lazy"
+                      className="h-full w-full rounded-lg object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(fileId)}
+                      className="absolute right-2 top-2 rounded-full bg-black/75 p-1 text-white/70 transition-colors hover:text-white"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="mt-1.5 h-[40px] w-full py-0.5">
               <div className="flex h-full w-full flex-row items-center justify-between">
-                <div className="flex gap-2">
+                <FileUpload onImagesUploaded={handleImagesUploaded} />
+                <div className="flex items-center gap-3">
+                  <p
+                    className={`mt-1 text-right text-xs ${content.length > 380 ? 'text-like' : 'text-muted'}`}
+                  >
+                    {content.length}/380
+                  </p>
                   <button
                     className={classNames(
                       'flex h-8 w-[76px] items-center justify-center rounded-full px-4 text-center text-[15px] font-bold transition duration-300',
@@ -135,11 +189,6 @@ const NewReply: React.FC<ReplyProps> = ({ parentCommentId }) => {
                     )}
                   </button>
                 </div>
-                <p
-                  className={`mt-1 text-right text-xs ${content.length > 380 ? 'text-like' : 'text-muted'}`}
-                >
-                  {content.length}/380
-                </p>
               </div>
             </div>
           </form>
