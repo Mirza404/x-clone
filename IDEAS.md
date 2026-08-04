@@ -39,15 +39,11 @@ Messaging used to be crammed into the 600px center column, because `(navPages)/m
 - **Frontend, posts:** `SideBar`'s search input is wired to `/explore?q=`; `explore/page.tsx` renders results reusing `PostItem` via a debounced React Query call keyed on the query string.
 - **Frontend, messages:** a client-side filter box above `ConversationList` narrows the already-loaded conversation summaries by participant name. Searching message contents (a backend concern) is not built — flag as a future step if wanted.
 
-### F3. Comments at feature parity with posts `[ ]`
+### F3. Comments at feature parity with posts `[x]`
 
-Comments currently support text + likes + one level of replies. Posts support images (`Post.images: string[]`); the `Comment` schema (`backend/src/models/Comment.ts`) has **no `images` field at all**.
+**Shipped:** `images: [String]` added to `CommentSchema` mirroring `PostSchema`'s constraints (max 8, optional), plus the backend `LeanComment` and frontend `Comment` types. `FileUpload` is wired into `NewComment.tsx` and `NewReply.tsx` with the same select-preview-remove flow as `NewPostModal`, uploading through the existing `uploadImages` (Cloudinary) path before the comment/reply mutation fires. `comment-controller.ts`'s `createComment` accepts and persists `images`; `findCommentsByPost`/`findCommentById` return it for both top-level comments and replies. `CommentItem.tsx`/`ReplyItem.tsx` render the images in a simple 1-2 column grid (not a full carousel like `PostItem` — comments don't need the swipe affordance for parity, just the ability to attach and see images).
 
-- Add `images: [String]` to `CommentSchema`, mirroring `PostSchema`'s constraints.
-- Wire the existing upload path (`FileUpload` component, used by `NewPostModal`/`MobileNewPost`/`EditPostPage`) into `NewComment.tsx` and `NewReply.tsx`.
-- `comment-controller.ts`'s `createComment` must accept and persist `images`.
-- Add the field to both the backend `LeanComment` type and the frontend `Comment` type.
-- **Decide:** keep replies 2-level (`comment-tree.ts` currently assumes this) or go fully recursive. 2-level is almost certainly enough for parity; recursive is a much bigger lift and changes `collectCommentThreadIds`, the thread page, and pagination.
+**Decided:** kept replies 2-level, per the note in the original entry — `comment-tree.ts`'s `collectCommentThreadIds`, the thread page, and pagination all still assume 2 levels, unchanged.
 
 ### F4. Placeholder pages `[ ]`
 
@@ -205,6 +201,6 @@ Dependencies are real; the ordering below respects them.
 
 > AI1.1 (semantic search, reusing F2's endpoint), then AI3.1 (AI PR reviewer), then D8 (observability), then AI2 (Ollama socket bot, any time, it's independent and fun)
 
-**Also open, do whenever fits:** F6 (cold-start UX — do the uptime pinger first, it's 10 minutes), F3 + F5.4 (image support on comments _and_ messages together, same upload path), F4 (placeholder pages), F5 (remaining messaging product decisions).
+**Also open, do whenever fits:** F6 (cold-start UX — do the uptime pinger first, it's 10 minutes), F5.4 (image support on messages, same upload path as F3's comment images), F4 (placeholder pages), F5 (remaining messaging product decisions).
 
 **Deliberately deprioritized:** D9 (Terraform), D10 (Kubernetes), D11 (load testing). All three are legitimate but only pay off on a project with real traffic or real infrastructure sprawl. Reach for them when the earlier phases are done, not before.
