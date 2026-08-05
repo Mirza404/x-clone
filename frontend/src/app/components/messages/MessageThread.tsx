@@ -66,9 +66,9 @@ export default function MessageThread({
     .reverse()
     .find((message) => message.sender === currentUserId)?._id;
 
-  const handleSend = (content: string) => {
+  const handleSend = (content: string, images: string[]) => {
     stopTypingNow();
-    sendMessage(content);
+    sendMessage(content, images);
   };
 
   return (
