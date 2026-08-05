@@ -8,6 +8,7 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
     conversation: 'conv-1',
     sender: 'user-1',
     content: 'hello there',
+    images: [],
     readBy: [],
     deliveredTo: [],
     createdAt: new Date(0).toISOString(),
