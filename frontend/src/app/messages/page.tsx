@@ -5,9 +5,11 @@ import { useSession } from 'next-auth/react';
 import { Search } from 'lucide-react';
 import AuthWall from '../components/ui/AuthWall';
 import EmptyState from '../components/ui/EmptyState';
+import LoadCircle from '../components/ui/LoadCircle';
 import ConversationList from '../components/messages/ConversationList';
 import MessageThread from '../components/messages/MessageThread';
 import { useConversations } from '@/app/hooks/useConversations';
+import { useBackendWaking } from '@/app/hooks/useBackendWaking';
 import type { ConversationSummary } from '@/app/types/Conversation';
 
 function filterConversationsByParticipant(
@@ -25,6 +27,7 @@ function filterConversationsByParticipant(
 export default function MessagesPage() {
   const { status } = useSession();
   const { data: conversations, isLoading, isError } = useConversations();
+  const backendStatus = useBackendWaking();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
@@ -34,6 +37,36 @@ export default function MessagesPage() {
 
   if (status === 'unauthenticated') {
     return <AuthWall />;
+  }
+
+  // Messages are useless without a live socket, so this is the one place a
+  // blocking state (rather than a dismissible banner) is warranted.
+  if (backendStatus === 'waking') {
+    return (
+      <EmptyState
+        title="Waking the server up..."
+        subtitle="Free hosting sleeps after inactivity, this takes up to a minute."
+        action={<LoadCircle />}
+      />
+    );
+  }
+
+  if (backendStatus === 'unreachable') {
+    return (
+      <EmptyState
+        title="Can't reach the server"
+        subtitle="This is taking longer than expected. Check your connection and try again."
+        action={
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-full bg-btn px-4 py-1.5 text-[15px] font-bold text-btn-fg transition-colors hover:bg-btn-hover"
+          >
+            Retry
+          </button>
+        }
+      />
+    );
   }
 
   const selected = conversations?.find((c) => c.id === selectedId) ?? null;
