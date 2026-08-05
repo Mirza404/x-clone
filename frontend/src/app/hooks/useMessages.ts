@@ -240,7 +240,7 @@ function useMessages(conversationId: string | null) {
     .flatMap((page) => page.messages);
 
   const sendMessage = useCallback(
-    (content: string) => {
+    (content: string, images: string[] = []) => {
       const trimmed = content.trim();
       if (!conversationId || !trimmed) {
         return;
@@ -252,6 +252,7 @@ function useMessages(conversationId: string | null) {
         conversation: conversationId,
         sender: currentUserId,
         content: trimmed,
+        images,
         readBy: [],
         deliveredTo: [],
         createdAt: new Date().toISOString(),
@@ -287,9 +288,12 @@ function useMessages(conversationId: string | null) {
         );
       }, ACK_TIMEOUT_MS);
 
-      emit<{ conversationId: string; content: string }, MessageSendAck>(
+      emit<
+        { conversationId: string; content: string; images: string[] },
+        MessageSendAck
+      >(
         'message:send',
-        { conversationId, content: trimmed },
+        { conversationId, content: trimmed, images },
         (ack) => {
           if (settled) return;
           settled = true;
