@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import MessageThread from './MessageThread';
 import { useMessages } from '@/app/hooks/useMessages';
@@ -87,6 +87,7 @@ describe('MessageThread', () => {
           sender: 'user-2',
           content: 'hey',
           readBy: [],
+          images: [],
           deliveredTo: [],
           createdAt: new Date(0).toISOString(),
         },
@@ -104,7 +105,7 @@ describe('MessageThread', () => {
     expect(screen.getByText('hey')).toBeInTheDocument();
   });
 
-  it('calls sendMessage from the composer', () => {
+  it('calls sendMessage from the composer', async () => {
     const sendMessage = jest.fn();
     mockMessages({ sendMessage });
 
@@ -120,10 +121,12 @@ describe('MessageThread', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(sendMessage).toHaveBeenCalledWith('hi there');
+    await waitFor(() =>
+      expect(sendMessage).toHaveBeenCalledWith('hi there', [])
+    );
   });
 
-  it('calls stopTypingNow before sendMessage when the composer submits', () => {
+  it('calls stopTypingNow before sendMessage when the composer submits', async () => {
     const sendMessage = jest.fn();
     const stopTypingNow = jest.fn();
     mockMessages({ sendMessage });
@@ -141,8 +144,10 @@ describe('MessageThread', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
+    await waitFor(() =>
+      expect(sendMessage).toHaveBeenCalledWith('hi there', [])
+    );
     expect(stopTypingNow).toHaveBeenCalled();
-    expect(sendMessage).toHaveBeenCalledWith('hi there');
   });
 
   it('calls notifyTyping when the composer input changes', () => {
@@ -231,6 +236,7 @@ describe('MessageThread', () => {
           sender: 'me',
           content: 'hi',
           readBy: [],
+          images: [],
           deliveredTo: [],
           createdAt: new Date(0).toISOString(),
         },
@@ -240,6 +246,7 @@ describe('MessageThread', () => {
           sender: 'me',
           content: 'you there?',
           readBy: ['user-2'],
+          images: [],
           deliveredTo: [],
           createdAt: new Date(1).toISOString(),
         },
@@ -265,6 +272,7 @@ describe('MessageThread', () => {
           sender: 'me',
           content: 'hi',
           readBy: ['user-2'],
+          images: [],
           deliveredTo: [],
           createdAt: new Date(0).toISOString(),
         },
@@ -274,6 +282,7 @@ describe('MessageThread', () => {
           sender: 'me',
           content: 'you there?',
           readBy: [],
+          images: [],
           deliveredTo: [],
           createdAt: new Date(1).toISOString(),
         },
