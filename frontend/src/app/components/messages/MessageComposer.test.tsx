@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import MessageComposer from './MessageComposer';
 
 describe('MessageComposer', () => {
@@ -7,7 +7,7 @@ describe('MessageComposer', () => {
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
   });
 
-  it('sends the trimmed content and clears the textarea', () => {
+  it('sends the trimmed content and clears the textarea', async () => {
     const onSend = jest.fn();
     render(<MessageComposer onSend={onSend} />);
 
@@ -15,11 +15,13 @@ describe('MessageComposer', () => {
     fireEvent.change(textarea, { target: { value: '  hey  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(onSend).toHaveBeenCalledWith('  hey  ');
+    await waitFor(() =>
+      expect(onSend).toHaveBeenCalledWith('  hey  ', [])
+    );
     expect(textarea).toHaveValue('');
   });
 
-  it('submits on Enter without Shift', () => {
+  it('submits on Enter without Shift', async () => {
     const onSend = jest.fn();
     render(<MessageComposer onSend={onSend} />);
 
@@ -27,10 +29,10 @@ describe('MessageComposer', () => {
     fireEvent.change(textarea, { target: { value: 'hi' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
-    expect(onSend).toHaveBeenCalledWith('hi');
+    await waitFor(() => expect(onSend).toHaveBeenCalledWith('hi', []));
   });
 
-  it('does not submit on Shift+Enter', () => {
+  it('does not submit on Shift+Enter', async () => {
     const onSend = jest.fn();
     render(<MessageComposer onSend={onSend} />);
 
