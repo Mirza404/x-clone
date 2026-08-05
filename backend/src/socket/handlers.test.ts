@@ -242,6 +242,61 @@ test('message:send persists, bumps recipient unread, emits to both rooms, and ac
   assert.ok(emissions.every((e) => e.event === 'message:new'));
 });
 
+test('message:send forwards images to the created message', async () => {
+  const { io } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+  const conversation = fakeConversation({ participants: [userId] });
+
+  (Conversation as unknown as { findById: () => unknown }).findById = () =>
+    conversation;
+
+  const createCalls: unknown[] = [];
+  (Message as unknown as { create: (args: unknown) => Promise<unknown> }).create =
+    async (args: unknown) => {
+      createCalls.push(args);
+      return { _id: new mongoose.Types.ObjectId(), createdAt: new Date() };
+    };
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit('message:send', {
+    conversationId: conversation._id.toString(),
+    content: 'look at this',
+    images: ['https://example.com/a.png', 'https://example.com/b.png'],
+  });
+
+  assert.equal(ack.ok, true);
+  assert.deepEqual((createCalls[0] as { images: string[] }).images, [
+    'https://example.com/a.png',
+    'https://example.com/b.png',
+  ]);
+});
+
+test('message:send rejects more than 8 images without touching the database', async () => {
+  const { io } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+
+  let createCalled = false;
+  (Message as unknown as { create: () => Promise<unknown> }).create =
+    async () => {
+      createCalled = true;
+      return {};
+    };
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit('message:send', {
+    content: 'too many',
+    images: Array.from({ length: 9 }, (_, i) => `https://example.com/${i}.png`),
+  });
+
+  assert.equal(ack.ok, false);
+  assert.match(ack.error ?? '', /at most 8 images/);
+  assert.equal(createCalled, false);
+});
+
 test('message:send acks an error when the conversation cannot be resolved', async () => {
   const { io } = createIo();
   const { socket, emit } = createSocket(
