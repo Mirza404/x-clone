@@ -195,7 +195,9 @@ async function getConversationMessages(
     const totalPages = Math.ceil(totalMessages / limit);
 
     res.status(200).json({
-      messages: messages.reverse(),
+      messages: messages
+        .reverse()
+        .map((message) => ({ ...message, images: message.images ?? [] })),
       totalPages,
       currentPage: page,
     });
