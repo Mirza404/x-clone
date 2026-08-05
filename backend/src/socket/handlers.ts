@@ -9,6 +9,7 @@ interface MessageSendPayload {
   conversationId?: string;
   recipientId?: string;
   content?: string;
+  images?: string[];
 }
 
 interface MessageSendAck {
@@ -76,6 +77,7 @@ async function handleMessageSend(
   userId: string,
   payload: MessageSendPayload,
   content: string,
+  images: string[],
   respond: (response: MessageSendAck) => void
 ): Promise<void> {
   try {
@@ -101,6 +103,7 @@ async function handleMessageSend(
       conversation: conversation._id,
       sender: toObjectId(userId),
       content,
+      images,
     });
 
     const recipient = conversation.participants.find(
@@ -219,7 +222,16 @@ function registerMessageHandlers(io: Server, socket: Socket): void {
         return;
       }
 
-      void handleMessageSend(io, userId, payload, content, respond);
+      const images = (
+        Array.isArray(payload.images) ? payload.images : []
+      ).filter((image): image is string => typeof image === 'string');
+
+      if (images.length > 8) {
+        respond({ ok: false, error: 'A message can have at most 8 images' });
+        return;
+      }
+
+      void handleMessageSend(io, userId, payload, content, images, respond);
     }
   );
 
