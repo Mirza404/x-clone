@@ -3,6 +3,7 @@ export interface Message {
   conversation: string;
   sender: string;
   content: string;
+  images: string[];
   readBy: string[];
   deliveredTo: string[];
   createdAt: string;
