@@ -5,9 +5,14 @@ import { useConversations } from '@/app/hooks/useConversations';
 import { useMessages } from '@/app/hooks/useMessages';
 import { useTyping } from '@/app/hooks/useTyping';
 import { useSocketContext } from '@/app/utils/SocketProvider';
+import { useBackendWaking } from '@/app/hooks/useBackendWaking';
 
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
+}));
+
+jest.mock('@/app/hooks/useBackendWaking', () => ({
+  useBackendWaking: jest.fn(),
 }));
 
 jest.mock('@/app/hooks/useConversations', () => ({
@@ -35,6 +40,7 @@ const mockedUseConversations = useConversations as jest.Mock;
 const mockedUseMessages = useMessages as jest.Mock;
 const mockedUseTyping = useTyping as jest.Mock;
 const mockedUseSocketContext = useSocketContext as jest.Mock;
+const mockedUseBackendWaking = useBackendWaking as jest.Mock;
 
 describe('MessagesPage', () => {
   beforeAll(() => {
@@ -42,6 +48,7 @@ describe('MessagesPage', () => {
   });
 
   beforeEach(() => {
+    mockedUseBackendWaking.mockReturnValue('ok');
     mockedUseMessages.mockReturnValue({
       messages: [],
       isLoading: false,
@@ -121,5 +128,34 @@ describe('MessagesPage', () => {
     expect(
       screen.getByPlaceholderText('Start a new message')
     ).toBeInTheDocument();
+  });
+
+  it('shows a waking placeholder instead of the conversation list', () => {
+    mockedUseSession.mockReturnValue({ status: 'authenticated' });
+    mockedUseConversations.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    });
+    mockedUseBackendWaking.mockReturnValue('waking');
+
+    render(<MessagesPage />);
+
+    expect(screen.getByText('Waking the server up...')).toBeInTheDocument();
+  });
+
+  it('shows an unreachable placeholder with a retry action', () => {
+    mockedUseSession.mockReturnValue({ status: 'authenticated' });
+    mockedUseConversations.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    });
+    mockedUseBackendWaking.mockReturnValue('unreachable');
+
+    render(<MessagesPage />);
+
+    expect(screen.getByText("Can't reach the server")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 });
