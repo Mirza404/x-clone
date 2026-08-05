@@ -40,6 +40,7 @@ describe('ConversationListItem', () => {
             conversation: 'conv-1',
             sender: 'user-2',
             content: 'hey there',
+            images: [],
             readBy: [],
             deliveredTo: [],
             createdAt: new Date(0).toISOString(),
