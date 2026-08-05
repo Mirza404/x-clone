@@ -34,6 +34,7 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
     conversation: 'conv-1',
     sender: 'other-user',
     content: 'hello',
+    images: [],
     readBy: [],
     deliveredTo: [],
     createdAt: new Date(0).toISOString(),
