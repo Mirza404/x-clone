@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_SERVER_URL });
+// Render's free tier cold-starts in tens of seconds; without a timeout a
+// request made right then hangs indefinitely instead of failing so React
+// Query can retry it. useBackendWaking (fed by the socket, which reconnects
+// far more aggressively) is what actually tells the user what's going on.
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_SERVER_URL,
+  timeout: 15_000,
+});
 
 type CachedToken = { token: string; expiresAt: number };
 let cachedToken: CachedToken | null = null;
