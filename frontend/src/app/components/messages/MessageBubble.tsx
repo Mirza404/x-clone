@@ -23,6 +23,21 @@ export default function MessageBubble({
           } ${message.status === 'failed' ? 'opacity-60' : ''}`}
         >
           {message.content}
+          {message.images && message.images.length > 0 && (
+            <div
+              className={`mt-2 grid gap-1 ${message.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
+            >
+              {message.images.map((image) => (
+                <img
+                  key={image}
+                  src={image}
+                  loading="lazy"
+                  className="max-h-64 w-full rounded-xl object-cover"
+                  alt="Message attachment"
+                />
+              ))}
+            </div>
+          )}
         </div>
         <span
           className={`mt-1 text-xs text-muted ${isMine ? 'text-right' : 'text-left'}`}
