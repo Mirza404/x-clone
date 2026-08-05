@@ -17,6 +17,12 @@ const MessageSchema = new mongoose.Schema({
     minLength: 1,
     maxLength: 2000,
   },
+  images: {
+    type: [String],
+    maxLength: 8,
+    minLength: 0,
+    required: false,
+  },
   readBy: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: 'User',
