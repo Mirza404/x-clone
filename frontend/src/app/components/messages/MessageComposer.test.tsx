@@ -15,9 +15,7 @@ describe('MessageComposer', () => {
     fireEvent.change(textarea, { target: { value: '  hey  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    await waitFor(() =>
-      expect(onSend).toHaveBeenCalledWith('  hey  ', [])
-    );
+    await waitFor(() => expect(onSend).toHaveBeenCalledWith('  hey  ', []));
     expect(textarea).toHaveValue('');
   });
 

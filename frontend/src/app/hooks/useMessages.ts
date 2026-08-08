@@ -291,26 +291,22 @@ function useMessages(conversationId: string | null) {
       emit<
         { conversationId: string; content: string; images: string[] },
         MessageSendAck
-      >(
-        'message:send',
-        { conversationId, content: trimmed, images },
-        (ack) => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeout);
+      >('message:send', { conversationId, content: trimmed, images }, (ack) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
 
-          queryClient.setQueryData<MessagesData>(queryKey, (current) => {
-            if (!current) {
-              return current;
-            }
-            const pages =
-              ack.ok && ack.message
-                ? replaceMessage(current.pages, tempId, ack.message)
-                : markFailed(current.pages, tempId);
-            return { ...current, pages };
-          });
-        }
-      );
+        queryClient.setQueryData<MessagesData>(queryKey, (current) => {
+          if (!current) {
+            return current;
+          }
+          const pages =
+            ack.ok && ack.message
+              ? replaceMessage(current.pages, tempId, ack.message)
+              : markFailed(current.pages, tempId);
+          return { ...current, pages };
+        });
+      });
     },
     [conversationId, currentUserId, emit, queryClient, queryKey]
   );
