@@ -164,19 +164,21 @@ All behind `requireAuth`. Every handler must assert `req.userId` is a participan
 **Rooms:** each user joins a personal room `user:<userId>` on connect. Message fan-out targets the recipient's personal room, the simplest correct model for 1:1 and multi-tab.
 
 Client to server:
-| Event | Payload | Server action |
-| --- | --- | --- |
-| `message:send` | `{ conversationId?, recipientId?, content }` + ack callback | Validate; get-or-create conversation; persist `Message`; update `Conversation.lastMessage/lastMessageAt`, bump recipient unread; emit `message:new` to both participants' rooms; ack `{ ok, message }` to sender |
-| `message:read` | `{ conversationId }` | Set `readBy`, reset unread for user; emit `message:read` to the other participant |
-| `typing:start` / `typing:stop` | `{ conversationId }` | Relay `typing` to the other participant's room (not persisted) |
+
+| Event                          | Payload                                                     | Server action                                                                                                                                                                                                    |
+| ------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message:send`                 | `{ conversationId?, recipientId?, content }` + ack callback | Validate; get-or-create conversation; persist `Message`; update `Conversation.lastMessage/lastMessageAt`, bump recipient unread; emit `message:new` to both participants' rooms; ack `{ ok, message }` to sender |
+| `message:read`                 | `{ conversationId }`                                        | Set `readBy`, reset unread for user; emit `message:read` to the other participant                                                                                                                                |
+| `typing:start` / `typing:stop` | `{ conversationId }`                                        | Relay `typing` to the other participant's room (not persisted)                                                                                                                                                   |
 
 Server to client:
-| Event | Payload |
-| --- | --- |
-| `message:new` | `{ message, conversation }` |
-| `message:read` | `{ conversationId, userId, readAt }` |
-| `typing` | `{ conversationId, userId, isTyping }` |
-| `presence` | `{ userId, online }` |
+
+| Event          | Payload                                |
+| -------------- | -------------------------------------- |
+| `message:new`  | `{ message, conversation }`            |
+| `message:read` | `{ conversationId, userId, readAt }`   |
+| `typing`       | `{ conversationId, userId, isTyping }` |
+| `presence`     | `{ userId, online }`                   |
 
 **Validation & safety:**
 
