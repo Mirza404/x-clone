@@ -21,7 +21,7 @@
     "axios": "^1.19.0",
     "browser-image-compression": "^2.0.2",
     "classnames": "^2.5.1",
-    "framer-motion": "^12.43.0",
+    "framer-motion": "^13.0.0",
     "jsonwebtoken": "^9.0.3",
     "lucide": "^1.28.0",
     "lucide-react": "^1.28.0",
@@ -31,7 +31,7 @@
     "react": "^19",
     "react-dom": "^19",
     "react-hot-toast": "^2.5.2",
-    "react-intersection-observer": "^10.1.0",
+    "react-intersection-observer": "^11.0.0",
     "socket.io-client": "^4.8.3",
     "use-debounce": "^10.0.4"
   },
