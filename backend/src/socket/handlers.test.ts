@@ -263,11 +263,12 @@ test('message:send forwards images to the created message', async () => {
   stubNoExistingMessage();
 
   const createCalls: unknown[] = [];
-  (Message as unknown as { create: (args: unknown) => Promise<unknown> }).create =
-    async (args: unknown) => {
-      createCalls.push(args);
-      return { _id: new mongoose.Types.ObjectId(), createdAt: new Date() };
-    };
+  (
+    Message as unknown as { create: (args: unknown) => Promise<unknown> }
+  ).create = async (args: unknown) => {
+    createCalls.push(args);
+    return { _id: new mongoose.Types.ObjectId(), createdAt: new Date() };
+  };
 
   const { socket, emit } = createSocket(userId.toString());
   registerMessageHandlers(io, socket);
