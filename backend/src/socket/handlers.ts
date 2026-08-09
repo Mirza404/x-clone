@@ -10,6 +10,19 @@ interface MessageSendPayload {
   recipientId?: string;
   content?: string;
   images?: string[];
+  clientId?: string;
+}
+
+interface MongoDuplicateKeyError {
+  code: number;
+}
+
+function isDuplicateKeyError(error: unknown): error is MongoDuplicateKeyError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as MongoDuplicateKeyError).code === 11000
+  );
 }
 
 interface MessageSendAck {
@@ -78,6 +91,7 @@ async function handleMessageSend(
   payload: MessageSendPayload,
   content: string,
   images: string[],
+  clientId: string,
   respond: (response: MessageSendAck) => void
 ): Promise<void> {
   try {
@@ -99,12 +113,37 @@ async function handleMessageSend(
       return;
     }
 
-    const message = await Message.create({
-      conversation: conversation._id,
+    const existing = await Message.findOne({
       sender: toObjectId(userId),
-      content,
-      images,
+      clientId,
     });
+    if (existing) {
+      respond({ ok: true, message: existing, conversation });
+      return;
+    }
+
+    let message;
+    try {
+      message = await Message.create({
+        conversation: conversation._id,
+        sender: toObjectId(userId),
+        content,
+        images,
+        clientId,
+      });
+    } catch (e) {
+      if (isDuplicateKeyError(e)) {
+        const retried = await Message.findOne({
+          sender: toObjectId(userId),
+          clientId,
+        });
+        if (retried) {
+          respond({ ok: true, message: retried, conversation });
+          return;
+        }
+      }
+      throw e;
+    }
 
     const recipient = conversation.participants.find(
       (participant) => !equalsObjectId(participant, userId)
@@ -231,7 +270,24 @@ function registerMessageHandlers(io: Server, socket: Socket): void {
         return;
       }
 
-      void handleMessageSend(io, userId, payload, content, images, respond);
+      if (
+        typeof payload.clientId !== 'string' ||
+        payload.clientId.length === 0 ||
+        payload.clientId.length > 100
+      ) {
+        respond({ ok: false, error: 'Valid clientId is required' });
+        return;
+      }
+
+      void handleMessageSend(
+        io,
+        userId,
+        payload,
+        content,
+        images,
+        payload.clientId,
+        respond
+      );
     }
   );
 

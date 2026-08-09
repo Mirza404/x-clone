@@ -88,7 +88,7 @@ function upsertMessage(
     (m) =>
       m.status === 'sending' &&
       m.sender === currentUserId &&
-      m.content === message.content
+      m.clientId === message.clientId
   );
 
   if (latestPage && pending !== undefined && pending !== -1) {
@@ -247,10 +247,12 @@ function useMessages(conversationId: string | null) {
       }
 
       const tempId = `temp-${Math.random().toString(36).slice(2)}`;
+      const clientId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
       const optimisticMessage: Message = {
         _id: tempId,
         conversation: conversationId,
         sender: currentUserId,
+        clientId,
         content: trimmed,
         images,
         readBy: [],
@@ -289,24 +291,33 @@ function useMessages(conversationId: string | null) {
       }, ACK_TIMEOUT_MS);
 
       emit<
-        { conversationId: string; content: string; images: string[] },
+        {
+          conversationId: string;
+          content: string;
+          images: string[];
+          clientId: string;
+        },
         MessageSendAck
-      >('message:send', { conversationId, content: trimmed, images }, (ack) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeout);
+      >(
+        'message:send',
+        { conversationId, content: trimmed, images, clientId },
+        (ack) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
 
-        queryClient.setQueryData<MessagesData>(queryKey, (current) => {
-          if (!current) {
-            return current;
-          }
-          const pages =
-            ack.ok && ack.message
-              ? replaceMessage(current.pages, tempId, ack.message)
-              : markFailed(current.pages, tempId);
-          return { ...current, pages };
-        });
-      });
+          queryClient.setQueryData<MessagesData>(queryKey, (current) => {
+            if (!current) {
+              return current;
+            }
+            const pages =
+              ack.ok && ack.message
+                ? replaceMessage(current.pages, tempId, ack.message)
+                : markFailed(current.pages, tempId);
+            return { ...current, pages };
+          });
+        }
+      );
     },
     [conversationId, currentUserId, emit, queryClient, queryKey]
   );

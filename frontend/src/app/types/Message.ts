@@ -2,6 +2,7 @@ export interface Message {
   _id: string;
   conversation: string;
   sender: string;
+  clientId?: string;
   content: string;
   images: string[];
   readBy: string[];
