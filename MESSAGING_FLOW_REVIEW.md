@@ -122,29 +122,15 @@ The user may retry and create a duplicate. The original successful server messag
 
 ### Finding 3: `useConversations` can process one event multiple times
 
-**Status: confirmed from the component structure.**
+**Status: fixed.** The `message:new` -> query-cache bridge moved out of `useConversations` into a single hook, `useConversationsCacheSync`, mounted once from `SocketProvider` at the root of the tree. `useConversations` now only reads the query; it no longer touches the socket, so mounting it from any number of UI surfaces (messages page, mobile navigation, floating message UI) registers zero additional listeners. Covered by `useConversations.test.tsx` (`never subscribes to the socket, however many times it is mounted`) and `useConversationsCacheSync.test.tsx`.
 
-`useConversations` installs a `message:new` listener every time the hook is mounted. The hook is used by multiple UI surfaces, including the messages page, mobile navigation, and floating/message UI.
-
-Each listener updates the same React Query key. For an incoming message, each listener can increment `unreadCount`. The result depends on how many of those components are mounted at the same time.
-
-This can produce inflated unread counts. It also creates ordering races with `useMessages`, which may immediately mark an open conversation as read.
-
-**Relevant code:** `frontend/src/app/hooks/useConversations.ts`, the `subscribe('message:new', ...)` effect; callers include the messages page, mobile navigation, and floating message components.
-
-**Proposed direction:** install one global socket event-to-query-cache bridge in `SocketProvider` or a dedicated provider. Hooks should read/query state rather than each registering their own cache mutation listener. Add a test with two mounted consumers and one incoming event.
+**Relevant code:** `frontend/src/app/hooks/useConversationsCacheSync.ts`; `frontend/src/app/utils/SocketProvider.tsx` (mounts it once); `frontend/src/app/hooks/useConversations.ts` (query-only now).
 
 ### Finding 4: Inbox ordering is not updated when a new message arrives
 
-**Status: confirmed.**
+**Status: fixed.** `applyNewMessage` (now in `useConversationsCacheSync.ts`) removes the updated conversation from its previous position and moves it to the front of the array on `message:new`, instead of only patching its fields in place. Covered by `useConversationsCacheSync.test.tsx` (`moves the updated conversation to the front`).
 
-When `message:new` updates an existing conversation, `applyNewMessage` changes its preview, timestamp, and unread count but preserves the original array position. The server sorts the inbox by `lastMessageAt`, but the client-side live update does not reorder it.
-
-The inbox can therefore show a conversation with a newly received message below older conversations until a refetch occurs.
-
-**Relevant code:** `frontend/src/app/hooks/useConversations.ts`, `applyNewMessage`.
-
-**Proposed direction:** update the conversation, remove it from its previous position, and insert it according to `lastMessageAt`. The same single global event bridge should own this behavior.
+**Relevant code:** `frontend/src/app/hooks/useConversationsCacheSync.ts`, `applyNewMessage`.
 
 ### Finding 5: Reconnect recovery is incomplete
 
@@ -283,11 +269,11 @@ These parts of the implementation are sound or reasonable for the current scope:
 
 ## Recommended order for a deeper follow-up
 
-1. Add tests for multiple mounted `useConversations` consumers.
+1. ~~Add tests for multiple mounted `useConversations` consumers.~~ Done — see Finding 3.
 2. Add concurrent-send and concurrent-conversation-creation tests.
 3. Decide whether disconnected sends are queued, rejected, or retried.
-4. Add client-message idempotency.
-5. Centralize socket event processing and query-cache mutation.
+4. ~~Add client-message idempotency.~~ Done — see Finding 2.
+5. ~~Centralize socket event processing and query-cache mutation.~~ Done — see Findings 3 and 4.
 6. Fix REST error propagation and pagination validation.
 7. Add reconnect backfill for inbox and threads.
 8. Move to cursor-based history pagination.
