@@ -126,7 +126,10 @@ This does not address the ordering race with `useMessages` noted below (an open 
 
 ### Finding 4: Inbox ordering is not updated when a new message arrives
 
-**Status: confirmed.**
+**Status: fixed.** `applyNewMessage` now re-sorts the cached inbox by
+`lastMessageAt` after updating a conversation, so a conversation with a new
+message immediately moves to its correct position without waiting for a
+refetch. The single global cache bridge remains the owner of this update.
 
 When `message:new` updates an existing conversation, `applyNewMessage` changes its preview, timestamp, and unread count but preserves the original array position. The server sorts the inbox by `lastMessageAt`, but the client-side live update does not reorder it.
 
@@ -134,21 +137,28 @@ The inbox can therefore show a conversation with a newly received message below 
 
 **Relevant code:** `frontend/src/app/hooks/useConversations.ts`, `applyNewMessage`.
 
-**Proposed direction:** update the conversation, remove it from its previous position, and insert it according to `lastMessageAt`. The same single global event bridge should own this behavior.
+**Relevant coverage:** `frontend/src/app/hooks/useConversations.test.tsx`
+verifies that an updated conversation moves ahead of older entries.
 
 ### Finding 5: Reconnect recovery is incomplete
 
-**Status: confirmed.**
+**Status: fixed at the query-recovery level.** The global conversations cache
+bridge now detects a disconnected-to-connected transition and invalidates both
+the inbox query and active message-history queries. React Query refetches those
+active views from the durable REST state, recovering application events missed
+while the socket was offline.
 
 Socket.IO reconnects the transport, but application events missed during the disconnected period are not replayed by the server.
 
 The active message thread attempts a refetch after a connection transition. The conversation list does not have equivalent global reconnect invalidation. If no thread is open, an incoming message during the outage can leave the inbox stale.
 
-There is also no server-side cursor or event sequence number that would allow the client to request exactly what it missed.
+There is still no server-side event sequence number for replaying only the
+missed events. Recovery intentionally uses authoritative query refetches.
 
 **Relevant code:** `frontend/src/app/hooks/useMessages.ts`, reconnect refetch effect; `frontend/src/app/hooks/useConversations.ts`, which has no corresponding reconnect backfill.
 
-**Proposed direction:** at minimum invalidate/refetch the inbox and active histories after reconnect. For stronger guarantees, add a message cursor/backfill endpoint and treat Socket.IO events as notifications rather than the only recovery mechanism.
+**Relevant coverage:** `frontend/src/app/hooks/useConversations.test.tsx`
+verifies that reconnect invalidates both query families.
 
 ### Finding 6: Delivery receipts are not implemented despite the data model suggesting they are
 
