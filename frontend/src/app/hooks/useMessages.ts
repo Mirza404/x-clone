@@ -256,7 +256,6 @@ function useMessages(conversationId: string | null) {
         content: trimmed,
         images,
         readBy: [],
-        deliveredTo: [],
         createdAt: new Date().toISOString(),
         status: 'sending',
       };
