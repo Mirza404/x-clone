@@ -20,6 +20,38 @@ function otherParticipant(
   return conversation.participants.find((p) => !equalsObjectId(p, userId));
 }
 
+interface MessageCursor {
+  createdAt: Date;
+  id: mongoose.Types.ObjectId;
+}
+
+function parseMessageCursor(value: unknown): MessageCursor | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const separator = value.lastIndexOf('_');
+  const createdAt = new Date(value.slice(0, separator));
+  const id = value.slice(separator + 1);
+
+  if (
+    separator === -1 ||
+    Number.isNaN(createdAt.getTime()) ||
+    !mongoose.Types.ObjectId.isValid(id)
+  ) {
+    return null;
+  }
+
+  return { createdAt, id: toObjectId(id) };
+}
+
+function serializeMessageCursor(message: {
+  _id: mongoose.Types.ObjectId;
+  createdAt: Date;
+}): string {
+  return `${message.createdAt.toISOString()}_${message._id.toString()}`;
+}
+
 async function listConversations(req: Request, res: Response): Promise<void> {
   try {
     const userId = req.userId;
@@ -182,24 +214,36 @@ async function getConversationMessages(
     }
 
     const limit = parseInt(req.query.limit as string) || 20;
-    const page = parseInt(req.query.page as string) || 1;
-    const skip = (page - 1) * limit;
+    const cursor = parseMessageCursor(req.query.cursor);
 
-    const messages = await Message.find({ conversation: id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
+    if (req.query.cursor !== undefined && !cursor) {
+      res.status(400).json({ message: 'Invalid message cursor' });
+      return;
+    }
+
+    const messageFilter: Record<string, unknown> = { conversation: id };
+    if (cursor) {
+      messageFilter.$or = [
+        { createdAt: { $lt: cursor.createdAt } },
+        { createdAt: cursor.createdAt, _id: { $lt: cursor.id } },
+      ];
+    }
+
+    const messages = await Message.find(messageFilter)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit + 1)
       .lean();
 
-    const totalMessages = await Message.countDocuments({ conversation: id });
-    const totalPages = Math.ceil(totalMessages / limit);
+    const hasMore = messages.length > limit;
+    const pageMessages = hasMore ? messages.slice(0, limit) : messages;
+    const oldestMessage = pageMessages[pageMessages.length - 1];
 
     res.status(200).json({
-      messages: messages
+      messages: pageMessages
         .reverse()
         .map((message) => ({ ...message, images: message.images ?? [] })),
-      totalPages,
-      currentPage: page,
+      nextCursor:
+        hasMore && oldestMessage ? serializeMessageCursor(oldestMessage) : null,
     });
   } catch (e) {
     console.error('Error fetching messages:', e);
