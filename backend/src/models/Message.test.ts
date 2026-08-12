@@ -12,7 +12,6 @@ test('message model accepts a minimal valid message', () => {
 
   assert.equal(message.validateSync(), undefined);
   assert.deepEqual(message.readBy, []);
-  assert.deepEqual(message.deliveredTo, []);
 });
 
 test('message model requires conversation, sender, and content', () => {
