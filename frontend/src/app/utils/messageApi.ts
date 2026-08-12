@@ -46,24 +46,22 @@ export async function getOrCreateConversation(
   }
 }
 
-// The backend paginates from most-recent backwards: page 1 is the newest
-// window (chronological within itself), page 2 the window before that, etc.
-// nextPage therefore points further into the past, not forward in time.
+// The backend paginates from most-recent backwards. Each page is chronological
+// within itself, and nextPage is an opaque cursor pointing further into the
+// past. New messages cannot shift that boundary between requests.
 export async function getConversationMessages(
   conversationId: string,
-  page: number
+  cursor: string | null
 ) {
   try {
+    const params = cursor ? { cursor, limit: 20 } : { limit: 20 };
     const res = await api.get(
       `/api/message/conversations/${conversationId}/messages`,
-      { params: { page, limit: 20 } }
+      { params }
     );
-    const totalPages = res.data.totalPages;
-    const hasNext = page < totalPages;
 
     return {
-      nextPage: hasNext ? page + 1 : undefined,
-      previousPage: page > 1 ? page - 1 : undefined,
+      nextPage: (res.data.nextCursor as string | null) ?? undefined,
       messages: res.data.messages as Message[],
     };
   } catch (error) {
@@ -73,7 +71,6 @@ export async function getConversationMessages(
     );
     return {
       nextPage: undefined,
-      previousPage: undefined,
       messages: [] as Message[],
     };
   }
