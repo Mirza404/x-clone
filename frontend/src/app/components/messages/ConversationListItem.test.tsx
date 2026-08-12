@@ -42,7 +42,6 @@ describe('ConversationListItem', () => {
             content: 'hey there',
             images: [],
             readBy: [],
-            deliveredTo: [],
             createdAt: new Date(0).toISOString(),
           },
         })}
