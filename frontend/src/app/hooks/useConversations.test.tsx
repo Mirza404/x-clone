@@ -48,7 +48,6 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
     content: 'hello',
     images: [],
     readBy: [],
-    deliveredTo: [],
     createdAt: new Date(1).toISOString(),
     ...overrides,
   };
