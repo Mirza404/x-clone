@@ -162,27 +162,47 @@ verifies that reconnect invalidates both query families.
 
 ### Finding 6: Delivery receipts are not implemented despite the data model suggesting they are
 
-**Status: confirmed.**
+**Status: resolved by deferring delivery receipts.** The unused `deliveredTo`
+field has been removed from the Mongoose schema and frontend `Message`
+contract. The application now exposes only the read state it actually
+implements, rather than suggesting that server emission is recipient delivery.
 
-`Message` contains a `deliveredTo` field, but the send flow never updates it. The sender acknowledgement occurs after database persistence and server emission; it is not an acknowledgement from the recipient socket.
+Before this change, `Message` contained a `deliveredTo` field that the send
+flow never updated. The sender acknowledgement still occurs after database
+persistence and server emission; it is not an acknowledgement from the
+recipient socket.
 
 The current implementation supports a form of read receipt through `readBy`, but not a true delivery receipt.
 
 **Relevant code:** `backend/src/models/Message.ts`, `backend/src/socket/handlers.ts`.
 
-**Proposed direction:** either remove/defer `deliveredTo` from the active contract or define delivery precisely. A real delivery state would require recipient-side acknowledgement, multi-device semantics, retry behavior, and a durable update policy.
+True delivery receipts remain deferred until recipient acknowledgement,
+multi-device semantics, retry behavior, and a durable update policy are defined.
 
 ### Finding 7: Offset pagination can produce gaps or duplicates during live use
 
-**Status: confirmed design risk.**
+**Status: fixed.** History now uses an opaque cursor backed by the stable
+`(createdAt, _id)` pair. The backend queries strictly before that boundary,
+orders by both fields, and fetches one extra record to determine whether an
+older page exists. New inserts at the newest end can no longer shift subsequent
+history boundaries.
 
-History is fetched with descending `createdAt`, `skip`, and `limit`, then reversed for display. New messages inserted at the newest end can shift page boundaries between requests.
+Previously, history was fetched with descending `createdAt`, `skip`, and
+`limit`, then reversed for display. New messages inserted at the newest end
+could shift page boundaries between requests.
 
-For example, page 1 is loaded, then several new messages arrive, and page 2 is fetched. Page 2’s offset now refers to a different slice than it did before the new messages arrived. Messages can overlap or be skipped.
+For example, page 1 could be loaded, several new messages could arrive, and
+page 2's offset would then refer to a different slice. Messages could overlap
+or be skipped.
 
-**Relevant code:** `backend/src/controllers/message-controller.ts`, message query using `skip` and `limit`; `frontend/src/app/utils/messageApi.ts`, page-based query handling.
+**Relevant code:** `backend/src/controllers/message-controller.ts`, cursor
+filter and serialization; `backend/src/models/Message.ts`, compound cursor
+index; `frontend/src/app/utils/messageApi.ts` and
+`frontend/src/app/hooks/useMessages.ts`, cursor-based infinite query handling.
 
-**Proposed direction:** use cursor pagination based on a stable `(createdAt, _id)` pair, or another monotonic server-side cursor. Add tests where messages arrive between page requests.
+**Relevant coverage:** `backend/src/controllers/message-controller.test.ts`
+inserts a newer message between page requests and verifies the older page has
+neither a gap nor overlap. Frontend API and hook tests cover cursor propagation.
 
 ### Finding 8: Socket-based conversation creation does not verify that the recipient exists
 
