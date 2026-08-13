@@ -206,32 +206,51 @@ neither a gap nor overlap. Frontend API and hook tests cover cursor propagation.
 
 ### Finding 8: Socket-based conversation creation does not verify that the recipient exists
 
-**Status: confirmed.**
+**Status: fixed.** REST and Socket.IO now call the same
+`getOrCreateConversation` service. The service verifies the recipient in the
+users collection before looking up or creating the participant pair, so the
+socket path cannot create a conversation for a nonexistent user.
 
-The REST conversation-creation endpoint checks the users collection. The Socket.IO `recipientId` path only checks ObjectId validity before potentially creating a conversation.
+Previously, only the REST endpoint checked the users collection. The Socket.IO
+`recipientId` path checked ObjectId validity but could proceed directly to
+conversation creation.
 
-An authenticated client can therefore create a conversation referencing a valid-looking but nonexistent user ID.
+That difference between the two entry points has been removed.
 
-**Relevant code:** `backend/src/socket/handlers.ts`, `resolveConversation`; compare with `backend/src/controllers/message-controller.ts`, `createConversation`.
+**Relevant code:** `backend/src/services/conversation-service.ts`, used by
+`backend/src/socket/handlers.ts` and
+`backend/src/controllers/message-controller.ts`.
 
-**Proposed direction:** query the users collection before creating a conversation, or make Socket.IO call a shared get-or-create service used by REST and sockets. Handle duplicate-key races consistently.
+**Relevant coverage:** `backend/src/socket/handlers.test.ts` verifies that a
+nonexistent recipient is rejected before message creation.
 
 ### Finding 9: Conversation creation has a duplicate-key race
 
-**Status: confirmed design risk.**
+**Status: fixed.** Conversation creation is centralized in
+`getOrCreateConversation`, which performs `findOneAndUpdate` with `upsert` and
+`$setOnInsert` against the unique canonical `participantsKey`. REST and
+Socket.IO therefore share the same race-safe behavior. A duplicate-key fallback
+re-reads the winning conversation defensively.
 
-Both REST and Socket.IO use a read-then-create pattern for a canonical participant pair:
+Both REST and Socket.IO previously used a read-then-create pattern for a
+canonical participant pair:
 
 ```text
 findOne(participantsKey)
 if not found: create(...)
 ```
 
-Two simultaneous requests can both observe no conversation and race to create it. The unique index prevents two durable records, but the losing request currently falls into the generic error path rather than retrieving the record created by the winner.
+Two simultaneous requests could both observe no conversation and race to
+create it. The unique index prevented two durable records, but the losing
+request fell into the generic error path rather than retrieving the record
+created by the winner.
 
-**Relevant code:** `backend/src/controllers/message-controller.ts`, `createConversation`; `backend/src/socket/handlers.ts`, `resolveConversation`; unique `participantsKey` in `backend/src/models/Conversation.ts`.
+**Relevant code:** `backend/src/services/conversation-service.ts`; unique
+`participantsKey` in `backend/src/models/Conversation.ts`.
 
-**Proposed direction:** use an atomic upsert with `$setOnInsert`, or catch duplicate-key errors and re-read the canonical conversation. Centralize this logic.
+**Relevant coverage:** `backend/src/services/conversation-service.test.ts`
+races two calls and verifies both receive the same winning conversation;
+controller and socket tests verify both entry points use the shared path.
 
 ### Finding 10: REST helpers convert failures into successful empty results
 
