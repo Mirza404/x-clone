@@ -92,8 +92,7 @@ function stubConversationUpdate(conversation: FakeConversation): void {
     }
     if (update.$inc) {
       const elemUser = options?.arrayFilters?.[0]?.['elem.user'] as
-        | { toString(): string }
-        | undefined;
+        { toString(): string } | undefined;
       const entry = conversation.unread.find(
         (candidate) => candidate.user.toString() === elemUser?.toString()
       );
