@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import type {} from '../types/express';
-import Conversation, { participantsKey } from '../models/Conversation';
+import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { getUsersCollection } from '../db/connection';
 import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
+import { getOrCreateConversation } from '../services/conversation-service';
 
 function isParticipant(
   conversation: { participants: mongoose.Types.ObjectId[] },
@@ -139,30 +140,11 @@ async function createConversation(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const recipient = await getUsersCollection().findOne(
-      { _id: toObjectId(recipientId) },
-      { projection: { _id: 1 } }
-    );
-
-    if (!recipient) {
-      res.status(404).json({ message: 'User not found' });
-      return;
-    }
-
-    const key = participantsKey(userId, recipientId);
-
-    let conversation = await Conversation.findOne({ participantsKey: key });
+    const conversation = await getOrCreateConversation(userId, recipientId);
 
     if (!conversation) {
-      conversation = await Conversation.create({
-        participants: [toObjectId(userId), toObjectId(recipientId)],
-        participantsKey: key,
-        lastMessageAt: new Date(),
-        unread: [
-          { user: toObjectId(userId), count: 0 },
-          { user: toObjectId(recipientId), count: 0 },
-        ],
-      });
+      res.status(404).json({ message: 'User not found' });
+      return;
     }
 
     res.status(200).json({ conversation });
