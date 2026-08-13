@@ -1,8 +1,9 @@
 import { Server, Socket } from 'socket.io';
 import mongoose from 'mongoose';
-import Conversation, { participantsKey } from '../models/Conversation';
+import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
+import { getOrCreateConversation } from '../services/conversation-service';
 import { allow } from './rate-limit';
 
 interface MessageSendPayload {
@@ -65,21 +66,7 @@ async function resolveConversation(
     mongoose.Types.ObjectId.isValid(payload.recipientId) &&
     payload.recipientId !== userId
   ) {
-    const key = participantsKey(userId, payload.recipientId);
-    const existing = await Conversation.findOne({ participantsKey: key });
-    if (existing) {
-      return existing;
-    }
-
-    return Conversation.create({
-      participants: [toObjectId(userId), toObjectId(payload.recipientId)],
-      participantsKey: key,
-      lastMessageAt: new Date(),
-      unread: [
-        { user: toObjectId(userId), count: 0 },
-        { user: toObjectId(payload.recipientId), count: 0 },
-      ],
-    });
+    return getOrCreateConversation(userId, payload.recipientId);
   }
 
   return null;
