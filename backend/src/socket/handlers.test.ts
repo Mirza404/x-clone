@@ -19,24 +19,29 @@ type Emission = { room: string; event: string; payload: unknown };
 type MessageReadAck = { ok: boolean; error?: string };
 
 const originalConversationFindById = Conversation.findById;
-const originalConversationFindOne = Conversation.findOne;
-const originalConversationCreate = Conversation.create;
 const originalConversationFindOneAndUpdate = Conversation.findOneAndUpdate;
 const originalConversationFindByIdAndUpdate = Conversation.findByIdAndUpdate;
 const originalMessageCreate = Message.create;
 const originalMessageFindOne = Message.findOne;
 const originalMessageUpdateMany = Message.updateMany;
+const originalDbDescriptor = Object.getOwnPropertyDescriptor(
+  mongoose.connection,
+  'db'
+);
+
+function setRecipient(recipient: Record<string, unknown> | null): void {
+  Object.defineProperty(mongoose.connection, 'db', {
+    configurable: true,
+    get: () => ({
+      collection: () => ({ findOne: async () => recipient }),
+    }),
+  });
+}
 
 afterEach(() => {
   (
     Conversation as unknown as { findById: typeof originalConversationFindById }
   ).findById = originalConversationFindById;
-  (
-    Conversation as unknown as { findOne: typeof originalConversationFindOne }
-  ).findOne = originalConversationFindOne;
-  (
-    Conversation as unknown as { create: typeof originalConversationCreate }
-  ).create = originalConversationCreate;
   (
     Conversation as unknown as {
       findOneAndUpdate: typeof originalConversationFindOneAndUpdate;
@@ -54,6 +59,9 @@ afterEach(() => {
   (
     Message as unknown as { updateMany: typeof originalMessageUpdateMany }
   ).updateMany = originalMessageUpdateMany;
+  if (originalDbDescriptor) {
+    Object.defineProperty(mongoose.connection, 'db', originalDbDescriptor);
+  }
 });
 
 function stubNoExistingMessage(): void {
@@ -84,7 +92,8 @@ function stubConversationUpdate(conversation: FakeConversation): void {
     }
     if (update.$inc) {
       const elemUser = options?.arrayFilters?.[0]?.['elem.user'] as
-        { toString(): string } | undefined;
+        | { toString(): string }
+        | undefined;
       const entry = conversation.unread.find(
         (candidate) => candidate.user.toString() === elemUser?.toString()
       );
@@ -555,14 +564,13 @@ test('message:send works without an ack callback', async () => {
   });
 });
 
-test('message:send reuses an existing conversation found via recipientId', async () => {
+test('message:send resolves a valid recipient through the shared conversation service', async () => {
   const { io } = createIo();
   const userId = new mongoose.Types.ObjectId();
   const recipientId = new mongoose.Types.ObjectId();
   const existing = fakeConversation({ participants: [userId, recipientId] });
 
-  (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
-    async () => existing;
+  setRecipient({ _id: recipientId });
   stubNoExistingMessage();
   stubConversationUpdate(existing);
 
@@ -589,23 +597,14 @@ test('message:send reuses an existing conversation found via recipientId', async
   assert.equal(ack.conversation, existing);
 });
 
-test('message:send get-or-creates a conversation via recipientId', async () => {
+test('message:send atomically gets or creates a conversation via recipientId', async () => {
   const { io } = createIo();
   const userId = new mongoose.Types.ObjectId();
   const recipientId = new mongoose.Types.ObjectId();
 
-  (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
-    async () => null;
-
+  setRecipient({ _id: recipientId });
   stubNoExistingMessage();
-  let createArgs: unknown;
   const created = fakeConversation({ participants: [userId, recipientId] });
-  (
-    Conversation as unknown as { create: (args: unknown) => Promise<unknown> }
-  ).create = async (args) => {
-    createArgs = args;
-    return created;
-  };
   stubConversationUpdate(created);
 
   const createdMessage = {
@@ -628,7 +627,33 @@ test('message:send get-or-creates a conversation via recipientId', async () => {
   });
 
   assert.equal(ack.ok, true);
-  assert.ok(createArgs);
+  assert.equal(ack.conversation, created);
+});
+
+test('message:send rejects a nonexistent recipient before creating a conversation', async () => {
+  const { io } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+  setRecipient(null);
+
+  let messageCreated = false;
+  (Message as unknown as { create: () => Promise<unknown> }).create =
+    async () => {
+      messageCreated = true;
+      return {};
+    };
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+
+  const ack = await emit('message:send', {
+    recipientId: new mongoose.Types.ObjectId().toString(),
+    content: 'hi',
+    clientId: 'missing-recipient',
+  });
+
+  assert.equal(ack.ok, false);
+  assert.match(ack.error ?? '', /recipient invalid/);
+  assert.equal(messageCreated, false);
 });
 
 test('message:read rejects an invalid conversationId', async () => {
