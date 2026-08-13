@@ -25,9 +25,8 @@ const originalDbDescriptor = Object.getOwnPropertyDescriptor(
   'db'
 );
 const originalConversationFind = Conversation.find;
-const originalConversationFindOne = Conversation.findOne;
 const originalConversationFindById = Conversation.findById;
-const originalConversationCreate = Conversation.create;
+const originalConversationFindOneAndUpdate = Conversation.findOneAndUpdate;
 const originalConversationUpdateOne = Conversation.updateOne;
 const originalMessageFind = Message.find;
 const originalMessageUpdateMany = Message.updateMany;
@@ -144,16 +143,15 @@ afterEach(() => {
   (Conversation as unknown as { find: typeof originalConversationFind }).find =
     originalConversationFind;
   (
-    Conversation as unknown as { findOne: typeof originalConversationFindOne }
-  ).findOne = originalConversationFindOne;
-  (
     Conversation as unknown as {
       findById: typeof originalConversationFindById;
     }
   ).findById = originalConversationFindById;
   (
-    Conversation as unknown as { create: typeof originalConversationCreate }
-  ).create = originalConversationCreate;
+    Conversation as unknown as {
+      findOneAndUpdate: typeof originalConversationFindOneAndUpdate;
+    }
+  ).findOneAndUpdate = originalConversationFindOneAndUpdate;
   (
     Conversation as unknown as {
       updateOne: typeof originalConversationUpdateOne;
@@ -257,21 +255,26 @@ test('createConversation returns 404 when the recipient does not exist', async (
   assert.equal(response.statusCode, 404);
 });
 
-test('createConversation reuses an existing conversation for the pair', async () => {
+test('createConversation atomically gets or creates the participant pair', async () => {
   setReadyState(1);
   const userId = new mongoose.Types.ObjectId();
   const recipientId = new mongoose.Types.ObjectId();
   const existing = { _id: new mongoose.Types.ObjectId() };
 
   setUsersCollection([{ _id: recipientId }]);
-  (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
-    async () => existing;
-  let createCalled = false;
-  (Conversation as unknown as { create: () => Promise<unknown> }).create =
-    async () => {
-      createCalled = true;
-      return existing;
-    };
+  let upsertOptions: Record<string, unknown> | undefined;
+  (
+    Conversation as unknown as {
+      findOneAndUpdate: (
+        filter: unknown,
+        update: unknown,
+        options: Record<string, unknown>
+      ) => Promise<unknown>;
+    }
+  ).findOneAndUpdate = async (_filter, _update, options) => {
+    upsertOptions = options;
+    return existing;
+  };
 
   const response = createResponse();
 
@@ -284,7 +287,7 @@ test('createConversation reuses an existing conversation for the pair', async ()
   );
 
   assert.equal(response.statusCode, 200);
-  assert.equal(createCalled, false);
+  assert.equal(upsertOptions?.upsert, true);
   assert.deepEqual(response.body, { conversation: existing });
 });
 
