@@ -4,7 +4,10 @@ import type { ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { getConversations } from '../utils/messageApi';
 import { useSocketContext } from '../utils/SocketProvider';
-import { useConversations } from './useConversations';
+import {
+  useConversations,
+  useConversationsCacheBridge,
+} from './useConversations';
 import type { ConversationSummary } from '../types/Conversation';
 import type { Message } from '../types/Message';
 
@@ -51,14 +54,31 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
   };
 }
 
-function renderWithClient() {
+function makeWrapper(queryClient: QueryClient) {
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    );
+  }
+  return Wrapper;
+}
+
+// Mounts the cache bridge (once, as SocketProvider does) plus one or more
+// useConversations() consumers (as multiple UI surfaces do) sharing a client.
+function mountBridgeAndConsumers(consumerCount: number) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  const wrapper = makeWrapper(queryClient);
+
+  renderHook(() => useConversationsCacheBridge(), { wrapper });
+  const views = Array.from({ length: consumerCount }, () =>
+    renderHook(() => useConversations(), { wrapper })
   );
-  return renderHook(() => useConversations(), { wrapper });
+
+  return views;
 }
 
 describe('useConversations', () => {
@@ -85,9 +105,43 @@ describe('useConversations', () => {
   it('is disabled while unauthenticated', () => {
     mockedUseSession.mockReturnValue({ status: 'unauthenticated', data: null });
 
-    renderWithClient();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    renderHook(() => useConversations(), { wrapper: makeWrapper(queryClient) });
 
     expect(mockedGetConversations).not.toHaveBeenCalled();
+  });
+
+  it('does not itself subscribe to message:new (the cache bridge owns that)', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    renderHook(() => useConversations(), { wrapper: makeWrapper(queryClient) });
+
+    expect(mockedUseSocketContext).not.toHaveBeenCalled();
+  });
+});
+
+describe('useConversationsCacheBridge', () => {
+  let handlers: Map<string, (payload: unknown) => void>;
+
+  beforeEach(() => {
+    mockedUseSession.mockReturnValue({
+      status: 'authenticated',
+      data: { user: { id: 'me' } },
+    });
+    handlers = new Map();
+    mockedUseSocketContext.mockReturnValue({
+      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
+        handlers.set(event, handler);
+        return () => handlers.delete(event);
+      }),
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('bumps unreadCount and lastMessage for an incoming message:new', async () => {
@@ -95,7 +149,7 @@ describe('useConversations', () => {
       makeConversation({ unreadCount: 1 }),
     ]);
 
-    const { result } = renderWithClient();
+    const [{ result }] = mountBridgeAndConsumers(1);
     await waitFor(() => expect(result.current.data).toHaveLength(1));
 
     act(() => {
@@ -113,7 +167,7 @@ describe('useConversations', () => {
       makeConversation({ unreadCount: 0 }),
     ]);
 
-    const { result } = renderWithClient();
+    const [{ result }] = mountBridgeAndConsumers(1);
     await waitFor(() => expect(result.current.data).toHaveLength(1));
 
     act(() => {
@@ -136,7 +190,7 @@ describe('useConversations', () => {
         makeConversation({ id: 'conv-2' }),
       ]);
 
-    const { result } = renderWithClient();
+    const [{ result }] = mountBridgeAndConsumers(1);
     await waitFor(() => expect(result.current.data).toHaveLength(1));
 
     act(() => {
@@ -147,5 +201,38 @@ describe('useConversations', () => {
 
     await waitFor(() => expect(result.current.data).toHaveLength(2));
     expect(mockedGetConversations).toHaveBeenCalledTimes(2);
+  });
+
+  it('increments unreadCount only once when multiple UI surfaces mount useConversations', async () => {
+    mockedGetConversations.mockResolvedValue([
+      makeConversation({ unreadCount: 0 }),
+    ]);
+
+    // Simulates the messages page, mobile nav, and floating message UI all
+    // mounting useConversations() at once, while only one bridge is mounted
+    // (as SocketProvider guarantees in the app tree).
+    const views = mountBridgeAndConsumers(3);
+    await Promise.all(
+      views.map(({ result }) =>
+        waitFor(() => expect(result.current.data).toHaveLength(1))
+      )
+    );
+
+    // Only one handler should have been registered for message:new despite
+    // three mounted consumers.
+    expect(handlers.size).toBe(1);
+
+    act(() => {
+      handlers.get('message:new')?.({
+        message: makeMessage({ sender: 'user-2' }),
+      });
+    });
+
+    await waitFor(() =>
+      expect(views[0].result.current.data?.[0].unreadCount).toBe(1)
+    );
+    for (const { result } of views) {
+      expect(result.current.data?.[0].unreadCount).toBe(1);
+    }
   });
 });
