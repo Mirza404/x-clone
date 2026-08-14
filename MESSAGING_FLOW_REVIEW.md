@@ -118,17 +118,11 @@ The user may retry and create a duplicate. The original successful server messag
 
 ### Finding 3: `useConversations` can process one event multiple times
 
-**Status: confirmed from the component structure.**
+**Status: fixed.** The `message:new` subscription no longer lives in `useConversations`. It moved to a new `useConversationsCacheBridge` hook, mounted exactly once via `ConversationsCacheBridge` inside `SocketProvider` in the root layout. `useConversations` is now a plain `useQuery` wrapper with no socket subscription; every UI surface (messages page, mobile navigation, floating message UI) reads the same cache without registering its own listener. A regression test (`useConversations.test.tsx`, "increments unreadCount only once when multiple UI surfaces mount useConversations") mounts three consumers against one bridge and asserts a single `message:new` event bumps `unreadCount` by exactly one, and that only one handler is ever registered.
 
-`useConversations` installs a `message:new` listener every time the hook is mounted. The hook is used by multiple UI surfaces, including the messages page, mobile navigation, and floating/message UI.
+This does not address the ordering race with `useMessages` noted below (an open conversation being marked read while `useConversations` is also processing the same event) — that's a separate concern from the multiplied-listener bug this finding was about.
 
-Each listener updates the same React Query key. For an incoming message, each listener can increment `unreadCount`. The result depends on how many of those components are mounted at the same time.
-
-This can produce inflated unread counts. It also creates ordering races with `useMessages`, which may immediately mark an open conversation as read.
-
-**Relevant code:** `frontend/src/app/hooks/useConversations.ts`, the `subscribe('message:new', ...)` effect; callers include the messages page, mobile navigation, and floating message components.
-
-**Proposed direction:** install one global socket event-to-query-cache bridge in `SocketProvider` or a dedicated provider. Hooks should read/query state rather than each registering their own cache mutation listener. Add a test with two mounted consumers and one incoming event.
+**Relevant code:** `frontend/src/app/hooks/useConversations.ts` (`useConversationsCacheBridge`), `frontend/src/app/components/messages/ConversationsCacheBridge.tsx`, `frontend/src/app/layout.tsx`.
 
 ### Finding 4: Inbox ordering is not updated when a new message arrives
 
