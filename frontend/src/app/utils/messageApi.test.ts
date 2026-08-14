@@ -29,12 +29,11 @@ describe('messageApi', () => {
     expect(result).toEqual([{ id: 'c1' }]);
   });
 
-  it('getConversations returns an empty array on error', async () => {
-    mockedApi.get.mockRejectedValueOnce(new Error('network error'));
+  it('getConversations propagates errors to React Query', async () => {
+    const error = new Error('network error');
+    mockedApi.get.mockRejectedValueOnce(error);
 
-    const result = await getConversations();
-
-    expect(result).toEqual([]);
+    await expect(getConversations()).rejects.toBe(error);
   });
 
   it('getOrCreateConversation posts recipientId and returns the conversation id', async () => {
@@ -89,15 +88,11 @@ describe('messageApi', () => {
     expect(result.nextPage).toBeUndefined();
   });
 
-  it('getConversationMessages returns an empty page on error', async () => {
-    mockedApi.get.mockRejectedValueOnce(new Error('network error'));
+  it('getConversationMessages propagates errors to React Query', async () => {
+    const error = new Error('network error');
+    mockedApi.get.mockRejectedValueOnce(error);
 
-    const result = await getConversationMessages('conv-1', null);
-
-    expect(result).toEqual({
-      nextPage: undefined,
-      messages: [],
-    });
+    await expect(getConversationMessages('conv-1', null)).rejects.toBe(error);
   });
 
   it('markConversationRead patches the read endpoint and returns true', async () => {
