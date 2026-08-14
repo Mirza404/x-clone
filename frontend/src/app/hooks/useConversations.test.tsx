@@ -57,9 +57,7 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
 function makeWrapper(queryClient: QueryClient) {
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
   }
   return Wrapper;
@@ -106,7 +104,10 @@ describe('useConversations', () => {
     mockedUseSession.mockReturnValue({ status: 'unauthenticated', data: null });
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
     renderHook(() => useConversations(), { wrapper: makeWrapper(queryClient) });
 
@@ -115,7 +116,10 @@ describe('useConversations', () => {
 
   it('does not itself subscribe to message:new (the cache bridge owns that)', () => {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
     renderHook(() => useConversations(), { wrapper: makeWrapper(queryClient) });
 
