@@ -21,6 +21,8 @@ type MessageReadAck = { ok: boolean; error?: string };
 const originalConversationFindById = Conversation.findById;
 const originalConversationFindOne = Conversation.findOne;
 const originalConversationCreate = Conversation.create;
+const originalConversationFindOneAndUpdate = Conversation.findOneAndUpdate;
+const originalConversationFindByIdAndUpdate = Conversation.findByIdAndUpdate;
 const originalMessageCreate = Message.create;
 const originalMessageFindOne = Message.findOne;
 const originalMessageUpdateMany = Message.updateMany;
@@ -35,6 +37,16 @@ afterEach(() => {
   (
     Conversation as unknown as { create: typeof originalConversationCreate }
   ).create = originalConversationCreate;
+  (
+    Conversation as unknown as {
+      findOneAndUpdate: typeof originalConversationFindOneAndUpdate;
+    }
+  ).findOneAndUpdate = originalConversationFindOneAndUpdate;
+  (
+    Conversation as unknown as {
+      findByIdAndUpdate: typeof originalConversationFindByIdAndUpdate;
+    }
+  ).findByIdAndUpdate = originalConversationFindByIdAndUpdate;
   (Message as unknown as { create: typeof originalMessageCreate }).create =
     originalMessageCreate;
   (Message as unknown as { findOne: typeof originalMessageFindOne }).findOne =
@@ -47,6 +59,65 @@ afterEach(() => {
 function stubNoExistingMessage(): void {
   (Message as unknown as { findOne: () => Promise<unknown> }).findOne =
     async () => null;
+}
+
+function stubConversationUpdate(conversation: FakeConversation): void {
+  const findOneAndUpdate = async (
+    filter: Record<string, unknown>,
+    update: { $set?: Record<string, unknown>; $inc?: Record<string, number> },
+    options?: { arrayFilters?: Array<Record<string, unknown>> }
+  ) => {
+    const requiredUnreadUser = filter['unread.user'];
+    if (requiredUnreadUser) {
+      const hasEntry = conversation.unread.some(
+        (entry) =>
+          entry.user.toString() ===
+          (requiredUnreadUser as { toString(): string }).toString()
+      );
+      if (!hasEntry) {
+        return null;
+      }
+    }
+
+    if (update.$set) {
+      Object.assign(conversation, update.$set);
+    }
+    if (update.$inc) {
+      const elemUser = options?.arrayFilters?.[0]?.['elem.user'] as
+        { toString(): string } | undefined;
+      const entry = conversation.unread.find(
+        (candidate) => candidate.user.toString() === elemUser?.toString()
+      );
+      if (entry) {
+        entry.count += update.$inc['unread.$[elem].count'];
+      }
+    }
+
+    return conversation;
+  };
+
+  const findByIdAndUpdate = async (
+    _id: unknown,
+    update: {
+      $set?: Record<string, unknown>;
+      $push?: { unread: { user: mongoose.Types.ObjectId; count: number } };
+    }
+  ) => {
+    if (update.$set) {
+      Object.assign(conversation, update.$set);
+    }
+    if (update.$push) {
+      conversation.unread.push(update.$push.unread);
+    }
+    return conversation;
+  };
+
+  (
+    Conversation as unknown as { findOneAndUpdate: typeof findOneAndUpdate }
+  ).findOneAndUpdate = findOneAndUpdate;
+  (
+    Conversation as unknown as { findByIdAndUpdate: typeof findByIdAndUpdate }
+  ).findByIdAndUpdate = findByIdAndUpdate;
 }
 
 function createIo(): { io: Server; emissions: Emission[] } {
@@ -219,6 +290,7 @@ test('message:send persists, bumps recipient unread, emits to both rooms, and ac
   (Conversation as unknown as { findById: () => unknown }).findById = () =>
     conversation;
   stubNoExistingMessage();
+  stubConversationUpdate(conversation);
 
   const createdMessage = {
     _id: new mongoose.Types.ObjectId(),
@@ -261,6 +333,7 @@ test('message:send forwards images to the created message', async () => {
   (Conversation as unknown as { findById: () => unknown }).findById = () =>
     conversation;
   stubNoExistingMessage();
+  stubConversationUpdate(conversation);
 
   const createCalls: unknown[] = [];
   (
@@ -491,6 +564,7 @@ test('message:send reuses an existing conversation found via recipientId', async
   (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
     async () => existing;
   stubNoExistingMessage();
+  stubConversationUpdate(existing);
 
   const createdMessage = {
     _id: new mongoose.Types.ObjectId(),
@@ -532,6 +606,7 @@ test('message:send get-or-creates a conversation via recipientId', async () => {
     createArgs = args;
     return created;
   };
+  stubConversationUpdate(created);
 
   const createdMessage = {
     _id: new mongoose.Types.ObjectId(),

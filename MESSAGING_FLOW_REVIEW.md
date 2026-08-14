@@ -77,11 +77,9 @@ The server persists before emitting, which is a good ordering decision. The ackn
 
 ### Finding 1: Conversation summary updates can lose concurrent writes
 
-**Status: confirmed design risk; not proven by the current unit tests.**
+**Status: fixed.** `handleMessageSend` in `backend/src/socket/handlers.ts` no longer loads the conversation into memory, mutates it, and calls `conversation.save()`. It now issues an atomic `Conversation.findOneAndUpdate` with `$set` for `lastMessage`/`lastMessageAt` and `$inc` on `unread.$[elem].count` (scoped to the recipient via `arrayFilters`), so two concurrent sends each apply their own increment instead of one clobbering the other's read. A `findByIdAndUpdate` with `$push` fallback handles the (legacy-data) case where the recipient has no existing `unread` entry to match against. This does not cover `lastMessage`/`lastMessageAt` ordering under out-of-order writes (a slow request could still overwrite a newer `lastMessageAt` with an older one) — only the increment-loss race described below is closed.
 
-In `backend/src/socket/handlers.ts`, message sending loads a conversation, mutates `lastMessage`, `lastMessageAt`, and an unread entry in memory, and then calls `conversation.save()`.
-
-Two sends for the same conversation can interleave like this:
+Two sends for the same conversation used to interleave like this:
 
 ```text
 Request A reads conversation with unread = 0
@@ -90,13 +88,11 @@ Request A changes unread to 1 and saves
 Request B changes its stale copy to unread = 1 and saves
 ```
 
-Both `Message` documents may exist, but the conversation summary can reflect only one update. The same issue can affect `lastMessage` and `lastMessageAt`.
+Both `Message` documents existed, but the conversation summary reflected only one update.
 
-This matters because the conversation document is the source for inbox previews and unread counts. The messages themselves may be correct while the inbox is wrong.
+**Relevant code:** `backend/src/socket/handlers.ts`, `handleMessageSend`; test coverage in `backend/src/socket/handlers.test.ts` (`stubConversationUpdate`).
 
-**Relevant code:** `backend/src/socket/handlers.ts`, especially the conversation mutation before `conversation.save()`.
-
-**Proposed direction:** use atomic updates such as `$inc` for unread counts and `$set` for the last-message fields. If message creation and summary update must be all-or-nothing, use a MongoDB transaction. Add a concurrency test with two simultaneous sends.
+**Remaining work:** a concurrency test that actually races two simultaneous sends against a real/in-memory MongoDB instance (the current tests stub the atomic call rather than proving the race is closed end-to-end). `lastMessage`/`lastMessageAt` are still last-write-wins with no ordering guard.
 
 ### Finding 2: Message sending is not idempotent
 
