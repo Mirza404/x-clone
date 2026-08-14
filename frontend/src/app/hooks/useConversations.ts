@@ -50,16 +50,25 @@ function applyNewMessage(
 }
 
 function useConversations() {
-  const { status, data: session } = useSession();
-  const queryClient = useQueryClient();
-  const { subscribe } = useSocketContext();
-  const currentUserId = session?.user?.id ?? '';
+  const { status } = useSession();
 
-  const query = useQuery({
+  return useQuery({
     queryKey: QUERY_KEY,
     queryFn: getConversations,
     enabled: status === 'authenticated',
   });
+}
+
+/**
+ * Applies incoming `message:new` events to the conversations cache. Must be
+ * mounted exactly once (in SocketProvider) — mounting it per-consumer would
+ * process each event once per mounted consumer and inflate unreadCount.
+ */
+function useConversationsCacheBridge(): void {
+  const { status, data: session } = useSession();
+  const queryClient = useQueryClient();
+  const { subscribe } = useSocketContext();
+  const currentUserId = session?.user?.id ?? '';
 
   useEffect(() => {
     if (status !== 'authenticated') {
@@ -87,8 +96,10 @@ function useConversations() {
       }
     });
   }, [status, subscribe, queryClient, currentUserId]);
-
-  return query;
 }
 
-export { useConversations, CONVERSATIONS_QUERY_KEY };
+export {
+  useConversations,
+  useConversationsCacheBridge,
+  CONVERSATIONS_QUERY_KEY,
+};
