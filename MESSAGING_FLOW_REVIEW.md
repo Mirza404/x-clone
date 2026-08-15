@@ -293,15 +293,20 @@ This can create oversized documents or allow arbitrary external references, depe
 
 ### Finding 13: Read operations are optimistic and have weak failure handling
 
-**Status: confirmed.**
+**Status: fixed.**
 
-The frontend immediately sets the conversation unread count to zero after emitting `message:read`, without waiting for the acknowledgement or checking whether the REST fallback succeeds.
+The frontend now waits for the `message:read` acknowledgement before clearing
+the cached unread count. A rejected or timed-out socket operation falls back to
+REST; the cache changes only after either path confirms success, and a failure
+of both paths invalidates the conversations query so server state is reconciled.
 
-If the server update fails, the UI can remain marked read until a later refetch. The server also marks every message in the conversation as read by the current user, including messages sent by that user, which is harmless but unnecessarily broad.
+Both REST and Socket.IO now update only unread messages sent by another user,
+rather than also adding the reader to messages they authored.
 
 **Relevant code:** `frontend/src/app/hooks/useMessages.ts`, `markAsRead`; `backend/src/socket/handlers.ts`, `handleMessageRead`; REST equivalent in `message-controller.ts`.
 
-**Proposed direction:** acknowledge read operations, reconcile failure, and restrict the update to messages sent by the other participant if that matches the product semantics.
+Regression coverage exercises socket success, rejection, timeout, REST fallback,
+total failure reconciliation, and the narrower backend update filters.
 
 ### Finding 14: Presence is correct for one process but not horizontally scalable
 
