@@ -581,4 +581,13 @@ test('markConversationRead resets the unread counter and marks messages read', a
 
   assert.equal(response.statusCode, 200);
   assert.equal(calls.length, 2);
+  assert.deepEqual(calls[1], [
+    'Message.updateMany',
+    {
+      conversation: conversationId.toString(),
+      sender: { $ne: userId },
+      readBy: { $ne: userId },
+    },
+    { $addToSet: { readBy: userId } },
+  ]);
 });
