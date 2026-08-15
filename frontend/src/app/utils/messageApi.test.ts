@@ -58,43 +58,44 @@ describe('messageApi', () => {
     expect(result).toBeNull();
   });
 
-  it('getConversationMessages computes nextPage from totalPages', async () => {
+  it('getConversationMessages returns the next history cursor', async () => {
     mockedApi.get.mockResolvedValueOnce({
-      data: { messages: [{ _id: 'm1' }], totalPages: 3 },
+      data: { messages: [{ _id: 'm1' }], nextCursor: 'cursor-2' },
     });
 
-    const result = await getConversationMessages('conv-1', 1);
+    const result = await getConversationMessages('conv-1', null);
 
     expect(mockedApi.get).toHaveBeenCalledWith(
       '/api/message/conversations/conv-1/messages',
-      { params: { page: 1, limit: 20 } }
+      { params: { limit: 20 } }
     );
     expect(result).toEqual({
-      nextPage: 2,
-      previousPage: undefined,
+      nextPage: 'cursor-2',
       messages: [{ _id: 'm1' }],
     });
   });
 
-  it('getConversationMessages omits nextPage on the last page', async () => {
+  it('getConversationMessages sends a cursor and stops on the oldest page', async () => {
     mockedApi.get.mockResolvedValueOnce({
-      data: { messages: [], totalPages: 2 },
+      data: { messages: [], nextCursor: null },
     });
 
-    const result = await getConversationMessages('conv-1', 2);
+    const result = await getConversationMessages('conv-1', 'cursor-2');
 
+    expect(mockedApi.get).toHaveBeenCalledWith(
+      '/api/message/conversations/conv-1/messages',
+      { params: { cursor: 'cursor-2', limit: 20 } }
+    );
     expect(result.nextPage).toBeUndefined();
-    expect(result.previousPage).toBe(1);
   });
 
   it('getConversationMessages returns an empty page on error', async () => {
     mockedApi.get.mockRejectedValueOnce(new Error('network error'));
 
-    const result = await getConversationMessages('conv-1', 1);
+    const result = await getConversationMessages('conv-1', null);
 
     expect(result).toEqual({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [],
     });
   });

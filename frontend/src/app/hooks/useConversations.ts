@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { getConversations } from '../utils/messageApi';
@@ -9,6 +9,7 @@ import type { ConversationSummary } from '../types/Conversation';
 import type { Message } from '../types/Message';
 
 const CONVERSATIONS_QUERY_KEY = ['conversations'] as const;
+const MESSAGES_QUERY_KEY = ['messages'] as const;
 const QUERY_KEY = CONVERSATIONS_QUERY_KEY;
 
 interface NewMessageEvent {
@@ -46,6 +47,11 @@ function applyNewMessage(
     };
   });
 
+  updated.sort(
+    (a, b) =>
+      new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+  );
+
   return { updated, found };
 }
 
@@ -67,8 +73,19 @@ function useConversations() {
 function useConversationsCacheBridge(): void {
   const { status, data: session } = useSession();
   const queryClient = useQueryClient();
-  const { subscribe } = useSocketContext();
+  const { subscribe, connected } = useSocketContext();
   const currentUserId = session?.user?.id ?? '';
+  const wasConnected = useRef(connected);
+
+  useEffect(() => {
+    if (status === 'authenticated' && connected && !wasConnected.current) {
+      void queryClient.invalidateQueries({
+        queryKey: CONVERSATIONS_QUERY_KEY,
+      });
+      void queryClient.invalidateQueries({ queryKey: MESSAGES_QUERY_KEY });
+    }
+    wasConnected.current = connected;
+  }, [status, connected, queryClient]);
 
   useEffect(() => {
     if (status !== 'authenticated') {

@@ -126,7 +126,10 @@ This does not address the ordering race with `useMessages` noted below (an open 
 
 ### Finding 4: Inbox ordering is not updated when a new message arrives
 
-**Status: confirmed.**
+**Status: fixed.** `applyNewMessage` now re-sorts the cached inbox by
+`lastMessageAt` after updating a conversation, so a conversation with a new
+message immediately moves to its correct position without waiting for a
+refetch. The single global cache bridge remains the owner of this update.
 
 When `message:new` updates an existing conversation, `applyNewMessage` changes its preview, timestamp, and unread count but preserves the original array position. The server sorts the inbox by `lastMessageAt`, but the client-side live update does not reorder it.
 
@@ -134,74 +137,120 @@ The inbox can therefore show a conversation with a newly received message below 
 
 **Relevant code:** `frontend/src/app/hooks/useConversations.ts`, `applyNewMessage`.
 
-**Proposed direction:** update the conversation, remove it from its previous position, and insert it according to `lastMessageAt`. The same single global event bridge should own this behavior.
+**Relevant coverage:** `frontend/src/app/hooks/useConversations.test.tsx`
+verifies that an updated conversation moves ahead of older entries.
 
 ### Finding 5: Reconnect recovery is incomplete
 
-**Status: confirmed.**
+**Status: fixed at the query-recovery level.** The global conversations cache
+bridge now detects a disconnected-to-connected transition and invalidates both
+the inbox query and active message-history queries. React Query refetches those
+active views from the durable REST state, recovering application events missed
+while the socket was offline.
 
 Socket.IO reconnects the transport, but application events missed during the disconnected period are not replayed by the server.
 
 The active message thread attempts a refetch after a connection transition. The conversation list does not have equivalent global reconnect invalidation. If no thread is open, an incoming message during the outage can leave the inbox stale.
 
-There is also no server-side cursor or event sequence number that would allow the client to request exactly what it missed.
+There is still no server-side event sequence number for replaying only the
+missed events. Recovery intentionally uses authoritative query refetches.
 
 **Relevant code:** `frontend/src/app/hooks/useMessages.ts`, reconnect refetch effect; `frontend/src/app/hooks/useConversations.ts`, which has no corresponding reconnect backfill.
 
-**Proposed direction:** at minimum invalidate/refetch the inbox and active histories after reconnect. For stronger guarantees, add a message cursor/backfill endpoint and treat Socket.IO events as notifications rather than the only recovery mechanism.
+**Relevant coverage:** `frontend/src/app/hooks/useConversations.test.tsx`
+verifies that reconnect invalidates both query families.
 
 ### Finding 6: Delivery receipts are not implemented despite the data model suggesting they are
 
-**Status: confirmed.**
+**Status: resolved by deferring delivery receipts.** The unused `deliveredTo`
+field has been removed from the Mongoose schema and frontend `Message`
+contract. The application now exposes only the read state it actually
+implements, rather than suggesting that server emission is recipient delivery.
 
-`Message` contains a `deliveredTo` field, but the send flow never updates it. The sender acknowledgement occurs after database persistence and server emission; it is not an acknowledgement from the recipient socket.
+Before this change, `Message` contained a `deliveredTo` field that the send
+flow never updated. The sender acknowledgement still occurs after database
+persistence and server emission; it is not an acknowledgement from the
+recipient socket.
 
 The current implementation supports a form of read receipt through `readBy`, but not a true delivery receipt.
 
 **Relevant code:** `backend/src/models/Message.ts`, `backend/src/socket/handlers.ts`.
 
-**Proposed direction:** either remove/defer `deliveredTo` from the active contract or define delivery precisely. A real delivery state would require recipient-side acknowledgement, multi-device semantics, retry behavior, and a durable update policy.
+True delivery receipts remain deferred until recipient acknowledgement,
+multi-device semantics, retry behavior, and a durable update policy are defined.
 
 ### Finding 7: Offset pagination can produce gaps or duplicates during live use
 
-**Status: confirmed design risk.**
+**Status: fixed.** History now uses an opaque cursor backed by the stable
+`(createdAt, _id)` pair. The backend queries strictly before that boundary,
+orders by both fields, and fetches one extra record to determine whether an
+older page exists. New inserts at the newest end can no longer shift subsequent
+history boundaries.
 
-History is fetched with descending `createdAt`, `skip`, and `limit`, then reversed for display. New messages inserted at the newest end can shift page boundaries between requests.
+Previously, history was fetched with descending `createdAt`, `skip`, and
+`limit`, then reversed for display. New messages inserted at the newest end
+could shift page boundaries between requests.
 
-For example, page 1 is loaded, then several new messages arrive, and page 2 is fetched. Page 2’s offset now refers to a different slice than it did before the new messages arrived. Messages can overlap or be skipped.
+For example, page 1 could be loaded, several new messages could arrive, and
+page 2's offset would then refer to a different slice. Messages could overlap
+or be skipped.
 
-**Relevant code:** `backend/src/controllers/message-controller.ts`, message query using `skip` and `limit`; `frontend/src/app/utils/messageApi.ts`, page-based query handling.
+**Relevant code:** `backend/src/controllers/message-controller.ts`, cursor
+filter and serialization; `backend/src/models/Message.ts`, compound cursor
+index; `frontend/src/app/utils/messageApi.ts` and
+`frontend/src/app/hooks/useMessages.ts`, cursor-based infinite query handling.
 
-**Proposed direction:** use cursor pagination based on a stable `(createdAt, _id)` pair, or another monotonic server-side cursor. Add tests where messages arrive between page requests.
+**Relevant coverage:** `backend/src/controllers/message-controller.test.ts`
+inserts a newer message between page requests and verifies the older page has
+neither a gap nor overlap. Frontend API and hook tests cover cursor propagation.
 
 ### Finding 8: Socket-based conversation creation does not verify that the recipient exists
 
-**Status: confirmed.**
+**Status: fixed.** REST and Socket.IO now call the same
+`getOrCreateConversation` service. The service verifies the recipient in the
+users collection before looking up or creating the participant pair, so the
+socket path cannot create a conversation for a nonexistent user.
 
-The REST conversation-creation endpoint checks the users collection. The Socket.IO `recipientId` path only checks ObjectId validity before potentially creating a conversation.
+Previously, only the REST endpoint checked the users collection. The Socket.IO
+`recipientId` path checked ObjectId validity but could proceed directly to
+conversation creation.
 
-An authenticated client can therefore create a conversation referencing a valid-looking but nonexistent user ID.
+That difference between the two entry points has been removed.
 
-**Relevant code:** `backend/src/socket/handlers.ts`, `resolveConversation`; compare with `backend/src/controllers/message-controller.ts`, `createConversation`.
+**Relevant code:** `backend/src/services/conversation-service.ts`, used by
+`backend/src/socket/handlers.ts` and
+`backend/src/controllers/message-controller.ts`.
 
-**Proposed direction:** query the users collection before creating a conversation, or make Socket.IO call a shared get-or-create service used by REST and sockets. Handle duplicate-key races consistently.
+**Relevant coverage:** `backend/src/socket/handlers.test.ts` verifies that a
+nonexistent recipient is rejected before message creation.
 
 ### Finding 9: Conversation creation has a duplicate-key race
 
-**Status: confirmed design risk.**
+**Status: fixed.** Conversation creation is centralized in
+`getOrCreateConversation`, which performs `findOneAndUpdate` with `upsert` and
+`$setOnInsert` against the unique canonical `participantsKey`. REST and
+Socket.IO therefore share the same race-safe behavior. A duplicate-key fallback
+re-reads the winning conversation defensively.
 
-Both REST and Socket.IO use a read-then-create pattern for a canonical participant pair:
+Both REST and Socket.IO previously used a read-then-create pattern for a
+canonical participant pair:
 
 ```text
 findOne(participantsKey)
 if not found: create(...)
 ```
 
-Two simultaneous requests can both observe no conversation and race to create it. The unique index prevents two durable records, but the losing request currently falls into the generic error path rather than retrieving the record created by the winner.
+Two simultaneous requests could both observe no conversation and race to
+create it. The unique index prevented two durable records, but the losing
+request fell into the generic error path rather than retrieving the record
+created by the winner.
 
-**Relevant code:** `backend/src/controllers/message-controller.ts`, `createConversation`; `backend/src/socket/handlers.ts`, `resolveConversation`; unique `participantsKey` in `backend/src/models/Conversation.ts`.
+**Relevant code:** `backend/src/services/conversation-service.ts`; unique
+`participantsKey` in `backend/src/models/Conversation.ts`.
 
-**Proposed direction:** use an atomic upsert with `$setOnInsert`, or catch duplicate-key errors and re-read the canonical conversation. Centralize this logic.
+**Relevant coverage:** `backend/src/services/conversation-service.test.ts`
+races two calls and verifies both receive the same winning conversation;
+controller and socket tests verify both entry points use the shared path.
 
 ### Finding 10: REST helpers convert failures into successful empty results
 

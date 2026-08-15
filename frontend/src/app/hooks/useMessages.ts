@@ -17,11 +17,10 @@ import type { Message } from '../types/Message';
 import type { ConversationSummary } from '../types/Conversation';
 
 type MessagesPage = Awaited<ReturnType<typeof getConversationMessages>>;
-type MessagesData = InfiniteData<MessagesPage, number>;
+type MessagesData = InfiniteData<MessagesPage, string | null>;
 
 const EMPTY_PAGE: MessagesPage = {
   nextPage: undefined,
-  previousPage: undefined,
   messages: [],
 };
 
@@ -133,9 +132,9 @@ function useMessages(conversationId: string | null) {
 
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam }) =>
+    queryFn: ({ pageParam }: { pageParam: string | null }) =>
       getConversationMessages(conversationId as string, pageParam),
-    initialPageParam: 1,
+    initialPageParam: null,
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: Boolean(conversationId),
   });
@@ -256,7 +255,6 @@ function useMessages(conversationId: string | null) {
         content: trimmed,
         images,
         readBy: [],
-        deliveredTo: [],
         createdAt: new Date().toISOString(),
         status: 'sending',
       };
@@ -265,7 +263,7 @@ function useMessages(conversationId: string | null) {
         if (!current) {
           return {
             pages: [{ ...EMPTY_PAGE, messages: [optimisticMessage] }],
-            pageParams: [1],
+            pageParams: [null],
           };
         }
         const [latestPage, ...olderPages] = current.pages;

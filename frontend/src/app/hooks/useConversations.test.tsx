@@ -48,7 +48,6 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
     content: 'hello',
     images: [],
     readBy: [],
-    deliveredTo: [],
     createdAt: new Date(1).toISOString(),
     ...overrides,
   };
@@ -129,6 +128,7 @@ describe('useConversations', () => {
 
 describe('useConversationsCacheBridge', () => {
   let handlers: Map<string, (payload: unknown) => void>;
+  let connected: boolean;
 
   beforeEach(() => {
     mockedUseSession.mockReturnValue({
@@ -136,12 +136,14 @@ describe('useConversationsCacheBridge', () => {
       data: { user: { id: 'me' } },
     });
     handlers = new Map();
-    mockedUseSocketContext.mockReturnValue({
+    connected = true;
+    mockedUseSocketContext.mockImplementation(() => ({
+      connected,
       subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
         handlers.set(event, handler);
         return () => handlers.delete(event);
       }),
-    });
+    }));
   });
 
   afterEach(() => {
@@ -184,6 +186,57 @@ describe('useConversationsCacheBridge', () => {
       expect(result.current.data?.[0].lastMessage).not.toBeNull()
     );
     expect(result.current.data?.[0].unreadCount).toBe(0);
+  });
+
+  it('moves the updated conversation into lastMessageAt order', async () => {
+    mockedGetConversations.mockResolvedValueOnce([
+      makeConversation({
+        id: 'conv-2',
+        lastMessageAt: new Date(20).toISOString(),
+      }),
+      makeConversation({
+        id: 'conv-1',
+        lastMessageAt: new Date(10).toISOString(),
+      }),
+    ]);
+
+    const [{ result }] = mountBridgeAndConsumers(1);
+    await waitFor(() => expect(result.current.data).toHaveLength(2));
+
+    act(() => {
+      handlers.get('message:new')?.({
+        message: makeMessage({ createdAt: new Date(30).toISOString() }),
+      });
+    });
+
+    await waitFor(() => expect(result.current.data?.[0].id).toBe('conv-1'));
+    expect(result.current.data?.map((conversation) => conversation.id)).toEqual(
+      ['conv-1', 'conv-2']
+    );
+  });
+
+  it('invalidates the inbox and active histories after reconnect', () => {
+    connected = false;
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries');
+    const { rerender } = renderHook(() => useConversationsCacheBridge(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    connected = true;
+    rerender();
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['conversations'],
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['messages'],
+    });
   });
 
   it('refetches when message:new references a conversation not yet in the cache', async () => {

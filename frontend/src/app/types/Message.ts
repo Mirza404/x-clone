@@ -6,7 +6,6 @@ export interface Message {
   content: string;
   images: string[];
   readBy: string[];
-  deliveredTo: string[];
   createdAt: string;
   // Client-only: set while an optimistic send is in flight or has failed.
   // Never present on a message the backend returned.

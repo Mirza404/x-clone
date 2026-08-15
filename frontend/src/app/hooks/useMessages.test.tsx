@@ -36,7 +36,6 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
     content: 'hello',
     images: [],
     readBy: [],
-    deliveredTo: [],
     createdAt: new Date(0).toISOString(),
     ...overrides,
   };
@@ -83,7 +82,6 @@ describe('useMessages', () => {
   it('loads the initial page in chronological order', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' }), makeMessage({ _id: 'm2' })],
     });
 
@@ -91,12 +89,44 @@ describe('useMessages', () => {
 
     await waitFor(() => expect(result.current.messages).toHaveLength(2));
     expect(result.current.messages.map((m) => m._id)).toEqual(['m1', 'm2']);
+    expect(mockedGetConversationMessages).toHaveBeenCalledWith('conv-1', null);
+  });
+
+  it('uses the returned cursor to fetch older messages', async () => {
+    mockedGetConversationMessages
+      .mockResolvedValueOnce({
+        nextPage: 'older-than-m3',
+        messages: [makeMessage({ _id: 'm3' }), makeMessage({ _id: 'm4' })],
+      })
+      .mockResolvedValueOnce({
+        nextPage: undefined,
+        messages: [makeMessage({ _id: 'm1' }), makeMessage({ _id: 'm2' })],
+      });
+
+    const { result } = renderWithClient('conv-1');
+    await waitFor(() => expect(result.current.messages).toHaveLength(2));
+
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+
+    expect(mockedGetConversationMessages).toHaveBeenNthCalledWith(
+      2,
+      'conv-1',
+      'older-than-m3'
+    );
+    await waitFor(() => expect(result.current.messages).toHaveLength(4));
+    expect(result.current.messages.map((message) => message._id)).toEqual([
+      'm1',
+      'm2',
+      'm3',
+      'm4',
+    ]);
   });
 
   it('appends a live message:new event for the open conversation', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -116,7 +146,6 @@ describe('useMessages', () => {
   it('ignores message:new events for a different conversation', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -135,7 +164,6 @@ describe('useMessages', () => {
   it('does not duplicate a message already applied via message:new', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -165,7 +193,6 @@ describe('useMessages', () => {
     );
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -194,7 +221,6 @@ describe('useMessages', () => {
   it('marks the conversation read over the socket once loaded', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -219,7 +245,6 @@ describe('useMessages', () => {
     });
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -234,7 +259,6 @@ describe('useMessages', () => {
   it('marks the conversation read again when a live message arrives from the other user', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -262,7 +286,6 @@ describe('useMessages', () => {
   it('does not re-mark read for a live message the current user sent', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -286,7 +309,6 @@ describe('useMessages', () => {
   it('applies a message:read event by adding the reader to readBy', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1', sender: 'me', readBy: [] })],
     });
 
@@ -308,7 +330,6 @@ describe('useMessages', () => {
   it('ignores a message:read event for a different conversation', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1', sender: 'me', readBy: [] })],
     });
 
@@ -328,7 +349,6 @@ describe('useMessages', () => {
   it('sendMessage optimistically appends then reconciles with the ack', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [],
     });
 
@@ -361,7 +381,6 @@ describe('useMessages', () => {
   it('sendMessage marks the message failed when the ack reports an error', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [],
     });
 
@@ -390,7 +409,6 @@ describe('useMessages', () => {
   it('refetches on reconnect to backfill any gap, but not on the initial connect', async () => {
     mockedGetConversationMessages.mockResolvedValue({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
@@ -428,7 +446,6 @@ describe('useMessages', () => {
   it('does nothing for blank content', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
-      previousPage: undefined,
       messages: [],
     });
 

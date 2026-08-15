@@ -25,12 +25,10 @@ const originalDbDescriptor = Object.getOwnPropertyDescriptor(
   'db'
 );
 const originalConversationFind = Conversation.find;
-const originalConversationFindOne = Conversation.findOne;
 const originalConversationFindById = Conversation.findById;
-const originalConversationCreate = Conversation.create;
+const originalConversationFindOneAndUpdate = Conversation.findOneAndUpdate;
 const originalConversationUpdateOne = Conversation.updateOne;
 const originalMessageFind = Message.find;
-const originalMessageCountDocuments = Message.countDocuments;
 const originalMessageUpdateMany = Message.updateMany;
 
 function setReadyState(readyState: number) {
@@ -132,10 +130,8 @@ function mockConversationFindByIdSelect(conversation: unknown) {
 function mockMessageFind(messages: unknown[]) {
   (Message as unknown as { find: (filter: unknown) => unknown }).find = () => ({
     sort: () => ({
-      skip: () => ({
-        limit: () => ({
-          lean: async () => messages,
-        }),
+      limit: () => ({
+        lean: async () => messages,
       }),
     }),
   });
@@ -147,16 +143,15 @@ afterEach(() => {
   (Conversation as unknown as { find: typeof originalConversationFind }).find =
     originalConversationFind;
   (
-    Conversation as unknown as { findOne: typeof originalConversationFindOne }
-  ).findOne = originalConversationFindOne;
-  (
     Conversation as unknown as {
       findById: typeof originalConversationFindById;
     }
   ).findById = originalConversationFindById;
   (
-    Conversation as unknown as { create: typeof originalConversationCreate }
-  ).create = originalConversationCreate;
+    Conversation as unknown as {
+      findOneAndUpdate: typeof originalConversationFindOneAndUpdate;
+    }
+  ).findOneAndUpdate = originalConversationFindOneAndUpdate;
   (
     Conversation as unknown as {
       updateOne: typeof originalConversationUpdateOne;
@@ -164,11 +159,6 @@ afterEach(() => {
   ).updateOne = originalConversationUpdateOne;
   (Message as unknown as { find: typeof originalMessageFind }).find =
     originalMessageFind;
-  (
-    Message as unknown as {
-      countDocuments: typeof originalMessageCountDocuments;
-    }
-  ).countDocuments = originalMessageCountDocuments;
   (
     Message as unknown as { updateMany: typeof originalMessageUpdateMany }
   ).updateMany = originalMessageUpdateMany;
@@ -265,21 +255,26 @@ test('createConversation returns 404 when the recipient does not exist', async (
   assert.equal(response.statusCode, 404);
 });
 
-test('createConversation reuses an existing conversation for the pair', async () => {
+test('createConversation atomically gets or creates the participant pair', async () => {
   setReadyState(1);
   const userId = new mongoose.Types.ObjectId();
   const recipientId = new mongoose.Types.ObjectId();
   const existing = { _id: new mongoose.Types.ObjectId() };
 
   setUsersCollection([{ _id: recipientId }]);
-  (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
-    async () => existing;
-  let createCalled = false;
-  (Conversation as unknown as { create: () => Promise<unknown> }).create =
-    async () => {
-      createCalled = true;
-      return existing;
-    };
+  let upsertOptions: Record<string, unknown> | undefined;
+  (
+    Conversation as unknown as {
+      findOneAndUpdate: (
+        filter: unknown,
+        update: unknown,
+        options: Record<string, unknown>
+      ) => Promise<unknown>;
+    }
+  ).findOneAndUpdate = async (_filter, _update, options) => {
+    upsertOptions = options;
+    return existing;
+  };
 
   const response = createResponse();
 
@@ -292,7 +287,7 @@ test('createConversation reuses an existing conversation for the pair', async ()
   );
 
   assert.equal(response.statusCode, 200);
-  assert.equal(createCalled, false);
+  assert.equal(upsertOptions?.upsert, true);
   assert.deepEqual(response.body, { conversation: existing });
 });
 
@@ -332,9 +327,6 @@ test('getConversationMessages returns paginated history in chronological order',
     participants: [userId, new mongoose.Types.ObjectId()],
   });
   mockMessageFind([newer, older]);
-  (
-    Message as unknown as { countDocuments: () => Promise<number> }
-  ).countDocuments = async () => 2;
 
   const response = createResponse();
 
@@ -352,6 +344,120 @@ test('getConversationMessages returns paginated history in chronological order',
     body.messages.map((m) => m.content),
     ['first', 'second']
   );
+});
+
+test('getConversationMessages cursor is stable when newer messages arrive between requests', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  const makeStoredMessage = (content: string, timestamp: number) => ({
+    _id: new mongoose.Types.ObjectId(),
+    conversation: conversationId,
+    content,
+    createdAt: new Date(timestamp),
+  });
+  const first = makeStoredMessage('first', 1000);
+  const second = makeStoredMessage('second', 2000);
+  const third = makeStoredMessage('third', 3000);
+  const fourth = makeStoredMessage('fourth', 4000);
+  let storedMessages = [fourth, third, second, first];
+
+  mockConversationFindByIdSelectLean({
+    _id: conversationId,
+    participants: [userId, new mongoose.Types.ObjectId()],
+  });
+  (
+    Message as unknown as { find: (filter: Record<string, unknown>) => unknown }
+  ).find = (filter) => ({
+    sort: () => ({
+      limit: (limit: number) => ({
+        lean: async () => {
+          const boundary = filter.$or as
+            | [
+                { createdAt: { $lt: Date } },
+                { createdAt: Date; _id: { $lt: mongoose.Types.ObjectId } },
+              ]
+            | undefined;
+          const filtered = boundary
+            ? storedMessages.filter(
+                (message) =>
+                  message.createdAt < boundary[0].createdAt.$lt ||
+                  (message.createdAt.getTime() ===
+                    boundary[1].createdAt.getTime() &&
+                    message._id.toString() < boundary[1]._id.$lt.toString())
+              )
+            : storedMessages;
+          return filtered.slice(0, limit);
+        },
+      }),
+    }),
+  });
+
+  const newestPage = createResponse();
+  await getConversationMessages(
+    createRequest({
+      params: { id: conversationId.toString() },
+      query: { limit: '2' },
+      userId: userId.toString(),
+    }),
+    newestPage
+  );
+
+  const newestBody = newestPage.body as {
+    messages: Array<{ content: string }>;
+    nextCursor: string;
+  };
+  assert.deepEqual(
+    newestBody.messages.map((message) => message.content),
+    ['third', 'fourth']
+  );
+
+  storedMessages = [
+    makeStoredMessage('arrived while paging', 5000),
+    ...storedMessages,
+  ];
+
+  const olderPage = createResponse();
+  await getConversationMessages(
+    createRequest({
+      params: { id: conversationId.toString() },
+      query: { limit: '2', cursor: newestBody.nextCursor },
+      userId: userId.toString(),
+    }),
+    olderPage
+  );
+
+  const olderBody = olderPage.body as {
+    messages: Array<{ content: string }>;
+    nextCursor: null;
+  };
+  assert.deepEqual(
+    olderBody.messages.map((message) => message.content),
+    ['first', 'second']
+  );
+  assert.equal(olderBody.nextCursor, null);
+});
+
+test('getConversationMessages rejects a malformed cursor', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  mockConversationFindByIdSelectLean({
+    _id: conversationId,
+    participants: [userId, new mongoose.Types.ObjectId()],
+  });
+
+  const response = createResponse();
+  await getConversationMessages(
+    createRequest({
+      params: { id: conversationId.toString() },
+      query: { cursor: 'not-a-cursor' },
+      userId: userId.toString(),
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
 });
 
 test('markConversationRead returns 403 for a non-participant', async () => {

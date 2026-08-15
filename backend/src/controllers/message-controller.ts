@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import type {} from '../types/express';
-import Conversation, { participantsKey } from '../models/Conversation';
+import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { getUsersCollection } from '../db/connection';
 import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
+import { getOrCreateConversation } from '../services/conversation-service';
 
 function isParticipant(
   conversation: { participants: mongoose.Types.ObjectId[] },
@@ -18,6 +19,38 @@ function otherParticipant(
   userId: string
 ): mongoose.Types.ObjectId | undefined {
   return conversation.participants.find((p) => !equalsObjectId(p, userId));
+}
+
+interface MessageCursor {
+  createdAt: Date;
+  id: mongoose.Types.ObjectId;
+}
+
+function parseMessageCursor(value: unknown): MessageCursor | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const separator = value.lastIndexOf('_');
+  const createdAt = new Date(value.slice(0, separator));
+  const id = value.slice(separator + 1);
+
+  if (
+    separator === -1 ||
+    Number.isNaN(createdAt.getTime()) ||
+    !mongoose.Types.ObjectId.isValid(id)
+  ) {
+    return null;
+  }
+
+  return { createdAt, id: toObjectId(id) };
+}
+
+function serializeMessageCursor(message: {
+  _id: mongoose.Types.ObjectId;
+  createdAt: Date;
+}): string {
+  return `${message.createdAt.toISOString()}_${message._id.toString()}`;
 }
 
 async function listConversations(req: Request, res: Response): Promise<void> {
@@ -107,30 +140,11 @@ async function createConversation(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const recipient = await getUsersCollection().findOne(
-      { _id: toObjectId(recipientId) },
-      { projection: { _id: 1 } }
-    );
-
-    if (!recipient) {
-      res.status(404).json({ message: 'User not found' });
-      return;
-    }
-
-    const key = participantsKey(userId, recipientId);
-
-    let conversation = await Conversation.findOne({ participantsKey: key });
+    const conversation = await getOrCreateConversation(userId, recipientId);
 
     if (!conversation) {
-      conversation = await Conversation.create({
-        participants: [toObjectId(userId), toObjectId(recipientId)],
-        participantsKey: key,
-        lastMessageAt: new Date(),
-        unread: [
-          { user: toObjectId(userId), count: 0 },
-          { user: toObjectId(recipientId), count: 0 },
-        ],
-      });
+      res.status(404).json({ message: 'User not found' });
+      return;
     }
 
     res.status(200).json({ conversation });
@@ -182,24 +196,36 @@ async function getConversationMessages(
     }
 
     const limit = parseInt(req.query.limit as string) || 20;
-    const page = parseInt(req.query.page as string) || 1;
-    const skip = (page - 1) * limit;
+    const cursor = parseMessageCursor(req.query.cursor);
 
-    const messages = await Message.find({ conversation: id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
+    if (req.query.cursor !== undefined && !cursor) {
+      res.status(400).json({ message: 'Invalid message cursor' });
+      return;
+    }
+
+    const messageFilter: Record<string, unknown> = { conversation: id };
+    if (cursor) {
+      messageFilter.$or = [
+        { createdAt: { $lt: cursor.createdAt } },
+        { createdAt: cursor.createdAt, _id: { $lt: cursor.id } },
+      ];
+    }
+
+    const messages = await Message.find(messageFilter)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit + 1)
       .lean();
 
-    const totalMessages = await Message.countDocuments({ conversation: id });
-    const totalPages = Math.ceil(totalMessages / limit);
+    const hasMore = messages.length > limit;
+    const pageMessages = hasMore ? messages.slice(0, limit) : messages;
+    const oldestMessage = pageMessages[pageMessages.length - 1];
 
     res.status(200).json({
-      messages: messages
+      messages: pageMessages
         .reverse()
         .map((message) => ({ ...message, images: message.images ?? [] })),
-      totalPages,
-      currentPage: page,
+      nextCursor:
+        hasMore && oldestMessage ? serializeMessageCursor(oldestMessage) : null,
     });
   } catch (e) {
     console.error('Error fetching messages:', e);
