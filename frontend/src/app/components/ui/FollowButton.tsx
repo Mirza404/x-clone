@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import toast from 'react-hot-toast';
 import Button from './Button';
 import { useProfileMutations } from '@/app/utils/profileMutations';
 
@@ -14,6 +16,7 @@ export default function FollowButton({
   isFollowing,
 }: FollowButtonProps) {
   const [isHovering, setIsHovering] = useState(false);
+  const { status } = useSession();
   const { useToggleFollow } = useProfileMutations();
   const toggleFollow = useToggleFollow(profileId);
 
@@ -35,7 +38,14 @@ export default function FollowButton({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       disabled={toggleFollow.isPending}
-      onClick={() => toggleFollow.mutate()}
+      onClick={() => {
+        if (status !== 'authenticated') {
+          toast('Sign in to follow');
+          return;
+        }
+        if (toggleFollow.isPending) return;
+        toggleFollow.mutate();
+      }}
     >
       {label}
     </Button>
