@@ -7,6 +7,7 @@ import {
   markConversationRead,
 } from '../utils/messageApi';
 import { useSocketContext } from '../utils/SocketProvider';
+import { CONVERSATIONS_QUERY_KEY } from './useConversations';
 import { useMessages } from './useMessages';
 import type { Message } from '../types/Message';
 
@@ -63,7 +64,13 @@ describe('useMessages', () => {
   beforeEach(() => {
     mockedUseSession.mockReturnValue({ data: { user: { id: 'me' } } });
     handlers = new Map();
-    emit = jest.fn();
+    emit = jest.fn(
+      (event: string, _payload: unknown, ack?: (value: unknown) => void) => {
+        if (event === 'message:read') {
+          ack?.({ ok: true });
+        }
+      }
+    );
     mockedMarkConversationRead.mockResolvedValue(true);
     mockedUseSocketContext.mockReturnValue({
       emit,
@@ -227,11 +234,138 @@ describe('useMessages', () => {
     renderWithClient('conv-1');
 
     await waitFor(() =>
-      expect(emit).toHaveBeenCalledWith('message:read', {
-        conversationId: 'conv-1',
-      })
+      expect(emit).toHaveBeenCalledWith(
+        'message:read',
+        { conversationId: 'conv-1' },
+        expect.any(Function)
+      )
     );
     expect(mockedMarkConversationRead).not.toHaveBeenCalled();
+  });
+
+  it('keeps unread state until the socket acknowledges the read', async () => {
+    let acknowledgeRead: ((value: { ok: boolean }) => void) | undefined;
+    emit.mockImplementation(
+      (event: string, _payload: unknown, ack?: (value: unknown) => void) => {
+        if (event === 'message:read') {
+          acknowledgeRead = ack as (value: { ok: boolean }) => void;
+        }
+      }
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(CONVERSATIONS_QUERY_KEY, [
+      { id: 'conv-1', unreadCount: 3 },
+    ]);
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      messages: [makeMessage()],
+    });
+
+    renderWithClient('conv-1', queryClient);
+
+    await waitFor(() => expect(acknowledgeRead).toBeDefined());
+    expect(
+      (
+        queryClient.getQueryData(CONVERSATIONS_QUERY_KEY) as Array<{
+          unreadCount: number;
+        }>
+      )[0].unreadCount
+    ).toBe(3);
+
+    act(() => acknowledgeRead?.({ ok: true }));
+
+    await waitFor(() =>
+      expect(
+        (
+          queryClient.getQueryData(CONVERSATIONS_QUERY_KEY) as Array<{
+            unreadCount: number;
+          }>
+        )[0].unreadCount
+      ).toBe(0)
+    );
+  });
+
+  it('falls back to REST when the socket rejects the read', async () => {
+    emit.mockImplementation(
+      (event: string, _payload: unknown, ack?: (value: unknown) => void) => {
+        if (event === 'message:read') {
+          ack?.({ ok: false, error: 'socket persistence failed' });
+        }
+      }
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(CONVERSATIONS_QUERY_KEY, [
+      { id: 'conv-1', unreadCount: 3 },
+    ]);
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      messages: [makeMessage()],
+    });
+
+    renderWithClient('conv-1', queryClient);
+
+    await waitFor(() =>
+      expect(mockedMarkConversationRead).toHaveBeenCalledWith('conv-1')
+    );
+    await waitFor(() =>
+      expect(
+        (
+          queryClient.getQueryData(CONVERSATIONS_QUERY_KEY) as Array<{
+            unreadCount: number;
+          }>
+        )[0].unreadCount
+      ).toBe(0)
+    );
+  });
+
+  it('retains unread state and refetches it when socket and REST reads fail', async () => {
+    emit.mockImplementation(
+      (event: string, _payload: unknown, ack?: (value: unknown) => void) => {
+        if (event === 'message:read') {
+          ack?.({ ok: false, error: 'socket persistence failed' });
+        }
+      }
+    );
+    mockedMarkConversationRead.mockResolvedValueOnce(false);
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries');
+    queryClient.setQueryData(CONVERSATIONS_QUERY_KEY, [
+      { id: 'conv-1', unreadCount: 3 },
+    ]);
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      messages: [makeMessage()],
+    });
+
+    renderWithClient('conv-1', queryClient);
+
+    await waitFor(() =>
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: CONVERSATIONS_QUERY_KEY,
+      })
+    );
+    expect(
+      (
+        queryClient.getQueryData(CONVERSATIONS_QUERY_KEY) as Array<{
+          unreadCount: number;
+        }>
+      )[0].unreadCount
+    ).toBe(3);
   });
 
   it('falls back to the REST endpoint to mark read when the socket is disconnected', async () => {
@@ -264,9 +398,11 @@ describe('useMessages', () => {
 
     renderWithClient('conv-1');
     await waitFor(() =>
-      expect(emit).toHaveBeenCalledWith('message:read', {
-        conversationId: 'conv-1',
-      })
+      expect(emit).toHaveBeenCalledWith(
+        'message:read',
+        { conversationId: 'conv-1' },
+        expect.any(Function)
+      )
     );
     emit.mockClear();
 
@@ -277,9 +413,11 @@ describe('useMessages', () => {
     });
 
     await waitFor(() =>
-      expect(emit).toHaveBeenCalledWith('message:read', {
-        conversationId: 'conv-1',
-      })
+      expect(emit).toHaveBeenCalledWith(
+        'message:read',
+        { conversationId: 'conv-1' },
+        expect.any(Function)
+      )
     );
   });
 
@@ -291,9 +429,11 @@ describe('useMessages', () => {
 
     renderWithClient('conv-1');
     await waitFor(() =>
-      expect(emit).toHaveBeenCalledWith('message:read', {
-        conversationId: 'conv-1',
-      })
+      expect(emit).toHaveBeenCalledWith(
+        'message:read',
+        { conversationId: 'conv-1' },
+        expect.any(Function)
+      )
     );
     emit.mockClear();
 
@@ -452,9 +592,11 @@ describe('useMessages', () => {
     const { result } = renderWithClient('conv-1');
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     await waitFor(() =>
-      expect(emit).toHaveBeenCalledWith('message:read', {
-        conversationId: 'conv-1',
-      })
+      expect(emit).toHaveBeenCalledWith(
+        'message:read',
+        { conversationId: 'conv-1' },
+        expect.any(Function)
+      )
     );
 
     act(() => {
