@@ -49,20 +49,18 @@ general "microservices are better" advice.
 
 ## What This Test Should Answer
 1. At what concurrent user count does the current monolithic architecture
-   start to struggle, specifically for WebSocket messaging.
+   start to struggle, specifically for WebSocket messaging. (Later we will conduct testing for other shit as well)
 2. Whether the bottleneck is the app's own code/architecture or simply
-   Render's free tier limits (an important distinction before concluding
+   Render's free tier limits (an **important distinction** before concluding
    anything about the architecture itself).
 3. Whether, at the scale this app realistically operates at, a separate
    messaging service would provide meaningful benefit, or whether that
-   would be premature optimization for a small, non-enterprise project.
+   would be premature optimization for a small, non-enterprise project. (My opinion is microservice for websocket is overengineering)
 4. A secondary, informal observation: how well an agentic AI-assisted,
    "vibe coded" build of a genuinely complex app (a social media platform)
    holds up under real load testing, as a proxy for how reliable this
    development approach is for non-trivial systems.
 
 ## Notes
-- Keep this test isolated from production traffic patterns; run during
-  low-usage hours if the app has any real users at all.
 - Re-run this same test after any architecture change made in response to
   findings, to confirm improvement is real and not assumed.
