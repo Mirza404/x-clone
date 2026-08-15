@@ -732,7 +732,11 @@ test('message:read resets unread, marks messages read, and notifies the other pa
     (entry) => entry.user === userId
   );
   assert.equal(unreadEntry?.count, 0);
-  assert.ok(updateManyFilter);
+  assert.deepEqual(updateManyFilter, {
+    conversation: conversation._id.toString(),
+    sender: { $ne: userId },
+    readBy: { $ne: userId },
+  });
 
   assert.equal(emissions.length, 1);
   assert.equal(emissions[0].room, `user:${recipientId}`);
