@@ -15,7 +15,10 @@ jest.mock('react-hot-toast', () => ({
 }));
 
 const mockedApi = api as jest.Mocked<typeof api>;
-const mockedToast = toast as unknown as { success: jest.Mock; error: jest.Mock };
+const mockedToast = toast as unknown as {
+  success: jest.Mock;
+  error: jest.Mock;
+};
 
 function baseProfile(overrides: Partial<Profile> = {}): Profile {
   return {
@@ -34,9 +37,7 @@ function baseProfile(overrides: Partial<Profile> = {}): Profile {
 function makeWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
   };
 }

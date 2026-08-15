@@ -42,9 +42,7 @@ describe('TodaysNews', () => {
     render(<TodaysNews />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
-    fireEvent.click(
-      await screen.findByText('Dismiss for a day')
-    );
+    fireEvent.click(await screen.findByText('Dismiss for a day'));
 
     expect(screen.queryByText("Today's News")).not.toBeInTheDocument();
     expect(Number(localStorage.getItem(DISMISS_KEY))).toBeGreaterThan(

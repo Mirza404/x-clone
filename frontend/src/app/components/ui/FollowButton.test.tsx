@@ -37,9 +37,7 @@ describe('FollowButton', () => {
 
   it('shows "Follow" when not following', () => {
     mockedUseSession.mockReturnValue({ status: 'authenticated' });
-    renderWithClient(
-      <FollowButton profileId="user-1" isFollowing={false} />
-    );
+    renderWithClient(<FollowButton profileId="user-1" isFollowing={false} />);
 
     expect(screen.getByRole('button', { name: 'Follow' })).toBeInTheDocument();
   });
@@ -66,9 +64,7 @@ describe('FollowButton', () => {
 
   it('blocks the request and toasts when not authenticated', () => {
     mockedUseSession.mockReturnValue({ status: 'unauthenticated' });
-    renderWithClient(
-      <FollowButton profileId="user-1" isFollowing={false} />
-    );
+    renderWithClient(<FollowButton profileId="user-1" isFollowing={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
 
@@ -80,9 +76,7 @@ describe('FollowButton', () => {
     mockedUseSession.mockReturnValue({ status: 'authenticated' });
     mockedApi.post.mockResolvedValueOnce({ data: { following: true } });
 
-    renderWithClient(
-      <FollowButton profileId="user-1" isFollowing={false} />
-    );
+    renderWithClient(<FollowButton profileId="user-1" isFollowing={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
 

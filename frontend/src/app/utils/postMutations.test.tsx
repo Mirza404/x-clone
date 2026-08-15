@@ -23,7 +23,10 @@ const mockedApi = api as jest.Mocked<typeof api>;
 const mockedUsePathname = usePathname as jest.Mock;
 const mockedUseParams = useParams as jest.Mock;
 const mockedUseRouter = useRouter as jest.Mock;
-const mockedToast = toast as unknown as { success: jest.Mock; error: jest.Mock };
+const mockedToast = toast as unknown as {
+  success: jest.Mock;
+  error: jest.Mock;
+};
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const queryClient = new QueryClient({
@@ -51,10 +54,9 @@ describe('usePostMutations', () => {
       mockedUsePathname.mockReturnValue('/posts');
       mockedApi.delete.mockResolvedValueOnce({ data: {} });
 
-      const { result } = renderHook(
-        () => usePostMutations().useDeletePost(),
-        { wrapper }
-      );
+      const { result } = renderHook(() => usePostMutations().useDeletePost(), {
+        wrapper,
+      });
 
       act(() => result.current.mutate('post-1'));
 
@@ -72,10 +74,9 @@ describe('usePostMutations', () => {
       mockedUsePathname.mockReturnValue('/posts/post-1');
       mockedApi.delete.mockResolvedValueOnce({ data: {} });
 
-      const { result } = renderHook(
-        () => usePostMutations().useDeletePost(),
-        { wrapper }
-      );
+      const { result } = renderHook(() => usePostMutations().useDeletePost(), {
+        wrapper,
+      });
 
       act(() => result.current.mutate('post-1'));
 
@@ -87,10 +88,9 @@ describe('usePostMutations', () => {
       mockedUsePathname.mockReturnValue('/posts/post-1');
       mockedApi.delete.mockRejectedValueOnce(new Error('network error'));
 
-      const { result } = renderHook(
-        () => usePostMutations().useDeletePost(),
-        { wrapper }
-      );
+      const { result } = renderHook(() => usePostMutations().useDeletePost(), {
+        wrapper,
+      });
 
       act(() => result.current.mutate('post-1'));
 
@@ -105,10 +105,9 @@ describe('usePostMutations', () => {
       mockedUsePathname.mockReturnValue('/posts/post-1/editPost');
       mockedApi.patch.mockResolvedValueOnce({ data: {} });
 
-      const { result } = renderHook(
-        () => usePostMutations().useUpdatePost(),
-        { wrapper }
-      );
+      const { result } = renderHook(() => usePostMutations().useUpdatePost(), {
+        wrapper,
+      });
 
       act(() =>
         result.current.mutate({
@@ -133,10 +132,9 @@ describe('usePostMutations', () => {
       mockedUsePathname.mockReturnValue('/posts/post-1/editPost');
       mockedApi.patch.mockRejectedValueOnce(new Error('network error'));
 
-      const { result } = renderHook(
-        () => usePostMutations().useUpdatePost(),
-        { wrapper }
-      );
+      const { result } = renderHook(() => usePostMutations().useUpdatePost(), {
+        wrapper,
+      });
 
       act(() =>
         result.current.mutate({

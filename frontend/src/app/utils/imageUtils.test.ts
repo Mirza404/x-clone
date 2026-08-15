@@ -23,9 +23,7 @@ describe('uploadImages', () => {
     HTMLCanvasElement.prototype.getContext = jest
       .fn()
       .mockReturnValue({ drawImage: jest.fn() }) as typeof originalGetContext;
-    HTMLCanvasElement.prototype.toBlob = function (
-      callback: BlobCallback
-    ) {
+    HTMLCanvasElement.prototype.toBlob = function (callback: BlobCallback) {
       callback(new Blob(['resized'], { type: 'image/png' }));
     };
     global.fetch = jest.fn();
@@ -47,7 +45,8 @@ describe('uploadImages', () => {
 
   it('resizes and uploads each file, returning the secure URLs', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
-      json: () => Promise.resolve({ secure_url: 'https://cdn.example/img.png' }),
+      json: () =>
+        Promise.resolve({ secure_url: 'https://cdn.example/img.png' }),
     });
     const file = new File(['content'], 'photo.png', { type: 'image/png' });
 

@@ -69,7 +69,11 @@ describe('CommentItem', () => {
 
   it('renders author name, handle, and content', () => {
     renderWithClient(
-      <CommentItem comment={baseComment()} onDelete={jest.fn()} onEdit={jest.fn()} />
+      <CommentItem
+        comment={baseComment()}
+        onDelete={jest.fn()}
+        onEdit={jest.fn()}
+      />
     );
 
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
@@ -96,7 +100,11 @@ describe('CommentItem', () => {
 
   it('navigates to the comment thread when the body is clicked', () => {
     renderWithClient(
-      <CommentItem comment={baseComment()} onDelete={jest.fn()} onEdit={jest.fn()} />
+      <CommentItem
+        comment={baseComment()}
+        onDelete={jest.fn()}
+        onEdit={jest.fn()}
+      />
     );
 
     fireEvent.click(screen.getByText('Hello world'));
@@ -106,7 +114,11 @@ describe('CommentItem', () => {
 
   it('does not navigate when clicking the more-options button', () => {
     renderWithClient(
-      <CommentItem comment={baseComment()} onDelete={jest.fn()} onEdit={jest.fn()} />
+      <CommentItem
+        comment={baseComment()}
+        onDelete={jest.fn()}
+        onEdit={jest.fn()}
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
@@ -116,7 +128,11 @@ describe('CommentItem', () => {
 
   it('shows the dropdown menu only for the comment author', () => {
     renderWithClient(
-      <CommentItem comment={baseComment()} onDelete={jest.fn()} onEdit={jest.fn()} />
+      <CommentItem
+        comment={baseComment()}
+        onDelete={jest.fn()}
+        onEdit={jest.fn()}
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
@@ -125,9 +141,15 @@ describe('CommentItem', () => {
   });
 
   it('does not show the dropdown menu for other users comments', () => {
-    mockedUseSession.mockReturnValue({ data: { user: { id: 'someone-else' } } });
+    mockedUseSession.mockReturnValue({
+      data: { user: { id: 'someone-else' } },
+    });
     renderWithClient(
-      <CommentItem comment={baseComment()} onDelete={jest.fn()} onEdit={jest.fn()} />
+      <CommentItem
+        comment={baseComment()}
+        onDelete={jest.fn()}
+        onEdit={jest.fn()}
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));

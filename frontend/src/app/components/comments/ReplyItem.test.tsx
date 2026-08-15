@@ -124,7 +124,9 @@ describe('ReplyItem', () => {
   });
 
   it('does not show the dropdown menu for other users replies', () => {
-    mockedUseSession.mockReturnValue({ data: { user: { id: 'someone-else' } } });
+    mockedUseSession.mockReturnValue({
+      data: { user: { id: 'someone-else' } },
+    });
     render(
       <ReplyItem reply={baseReply()} onDelete={jest.fn()} onEdit={jest.fn()} />
     );

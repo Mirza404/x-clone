@@ -192,9 +192,7 @@ describe('getPostsByAuthorPaginated', () => {
       data: { posts: [{ id: 'p1' }], totalPages: 1 },
     });
 
-    await expect(
-      getPostsByAuthorPaginated('author-1', 1)
-    ).resolves.toEqual({
+    await expect(getPostsByAuthorPaginated('author-1', 1)).resolves.toEqual({
       nextPage: undefined,
       previousPage: undefined,
       posts: [{ id: 'p1' }],

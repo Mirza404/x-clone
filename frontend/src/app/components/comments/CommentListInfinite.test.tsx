@@ -173,9 +173,7 @@ describe('CommentListInfinite', () => {
       })
     );
 
-    expect(push).toHaveBeenCalledWith(
-      '/posts/post-1/comment/comment-1/edit'
-    );
+    expect(push).toHaveBeenCalledWith('/posts/post-1/comment/comment-1/edit');
   });
 
   it('shows "Nothing more to load" once there is no next page', () => {
