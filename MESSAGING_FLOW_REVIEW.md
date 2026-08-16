@@ -254,59 +254,92 @@ controller and socket tests verify both entry points use the shared path.
 
 ### Finding 10: REST helpers convert failures into successful empty results
 
-**Status: confirmed.**
+**Status: fixed.**
 
-`getConversations` catches errors and returns `[]`. `getConversationMessages` catches errors and returns an empty page. This means React Query receives a resolved promise and generally cannot expose the failure through `isError`.
-
-Users may see “no conversations” or an empty thread during an outage instead of a retry/error state.
+`getConversations` and `getConversationMessages` still log useful context, but
+now rethrow the original error. React Query receives a rejected promise and can
+expose, retry, and recover from the failure instead of treating an outage as a
+successful empty inbox or thread.
 
 **Relevant code:** `frontend/src/app/utils/messageApi.ts`.
 
-**Proposed direction:** log if useful, then rethrow. Let React Query manage error state and retries. Use an explicit empty result only for a successful response containing no data.
+Regression coverage verifies that both helpers reject with the original error.
 
 ### Finding 11: REST pagination parameters are not sufficiently bounded
 
-**Status: confirmed.**
+**Status: fixed.**
 
-The history endpoint parses `limit` and `page`, but does not enforce a safe maximum or reject invalid negative values. A caller can request an excessively large page or malformed pagination state.
+The cursor-based history endpoint now defaults `limit` to 20, accepts only a
+positive integer, caps it at 100, and returns `400` for malformed, fractional,
+zero, negative, array, or unsafe-integer values. The database fetch remains one
+record larger than the accepted limit so the endpoint can determine whether a
+next cursor exists.
 
 **Relevant code:** `backend/src/controllers/message-controller.ts`, pagination parsing.
 
-**Proposed direction:** clamp `limit` to a small maximum, require positive integers, and return `400` for invalid values.
+Regression coverage verifies invalid limits and the maximum database page size.
 
 ### Finding 12: Image input validation is shallow
 
-**Status: confirmed.**
+**Status: implementation complete; strict production cutover pending.**
 
-The socket handler checks only that `images` is an array of strings and contains no more than eight entries. It does not validate URL length, format, ownership, or whether the referenced asset is actually available to the current user.
+The shared upload path now requests an authenticated, rate-limited backend
+signature, uploads directly to the configured Cloudinary tenant with a
+server-generated user-scoped public ID, and completes the upload through the
+backend. Completion verifies Cloudinary's response signature and authoritative
+resource metadata before registering the canonical URL to that user. New post,
+comment, reply, and message writes all pass through the same ownership check;
+URLs are capped at 2,048 characters and image arrays at eight entries.
 
-This can create oversized documents or allow arbitrary external references, depending on how the frontend renders them.
+The rollout bridge `MEDIA_ALLOW_UNREGISTERED_CLOUDINARY` is intentionally a
+manually managed Render setting. Set it to `true` only while the old frontend is
+still live: that mode accepts unregistered URLs from the exact configured tenant
+so old unsigned-client uploads continue to work, but it still rejects external
+URLs and assets already registered to another user. After the signed frontend is
+verified, set it to `false` and disable the old `x_clone` unsigned preset. Strict
+registry-backed ownership—and therefore full closure of this finding—starts at
+that cutover.
 
-**Relevant code:** `backend/src/socket/handlers.ts`, image filtering; `backend/src/models/Message.ts`, image field.
+**Relevant code:** `backend/src/services/media-service.ts`,
+`backend/src/controllers/media-controller.ts`, `backend/src/socket/handlers.ts`,
+and `frontend/src/app/utils/imageUtils.ts`.
 
-**Proposed direction:** define the image contract explicitly. Prefer server-issued upload references, validate allowed formats and lengths, and enforce the same rules on REST and socket paths.
+Regression coverage exercises signing, response tampering, tenant and ownership
+rejection, authoritative size checks, legacy edit retention, and every write
+boundary. A live smoke test also completed and then cleaned up a signed upload in
+the `dhumjqe9v` tenant.
 
 ### Finding 13: Read operations are optimistic and have weak failure handling
 
-**Status: confirmed.**
+**Status: fixed.**
 
-The frontend immediately sets the conversation unread count to zero after emitting `message:read`, without waiting for the acknowledgement or checking whether the REST fallback succeeds.
+The frontend now waits for the `message:read` acknowledgement before clearing
+the cached unread count. A rejected or timed-out socket operation falls back to
+REST; the cache changes only after either path confirms success, and a failure
+of both paths invalidates the conversations query so server state is reconciled.
 
-If the server update fails, the UI can remain marked read until a later refetch. The server also marks every message in the conversation as read by the current user, including messages sent by that user, which is harmless but unnecessarily broad.
+Both REST and Socket.IO now update only unread messages sent by another user,
+rather than also adding the reader to messages they authored.
 
 **Relevant code:** `frontend/src/app/hooks/useMessages.ts`, `markAsRead`; `backend/src/socket/handlers.ts`, `handleMessageRead`; REST equivalent in `message-controller.ts`.
 
-**Proposed direction:** acknowledge read operations, reconcile failure, and restrict the update to messages sent by the other participant if that matches the product semantics.
+Regression coverage exercises socket success, rejection, timeout, REST fallback,
+total failure reconciliation, and the narrower backend update filters.
 
 ### Finding 14: Presence is correct for one process but not horizontally scalable
 
-**Status: confirmed and documented as a current limitation.**
+**Status: fixed for the current deployment topology.**
 
-Presence is stored in process memory and Socket.IO rooms are local to the process. With multiple backend instances, a user connected to instance A will not necessarily appear online to a user connected to instance B, and room broadcasts will not reach all instances.
+Presence remains process-local, but `render.yaml` now explicitly pins the
+backend to one instance. The deployed topology therefore matches the assumption
+made by presence tracking and Socket.IO rooms instead of relying on an implicit
+platform default.
 
 **Relevant code:** `backend/src/socket/presence.ts`; Socket.IO initialization in `backend/src/socket/index.ts`.
 
-**Proposed direction:** either explicitly enforce single-instance deployment for this feature or add a shared Socket.IO adapter and shared presence store, typically Redis. Presence should remain best-effort even after that.
+Horizontal scaling still requires a shared Socket.IO adapter and presence store,
+typically Redis. That infrastructure must be added before increasing
+`numInstances`; presence should remain best-effort even after that migration.
 
 ## Things that are not currently problems
 

@@ -5,6 +5,7 @@ import Message from '../models/Message';
 import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { getOrCreateConversation } from '../services/conversation-service';
 import { allow } from './rate-limit';
+import { MediaValidationError, mediaService } from '../services/media-service';
 
 interface MessageSendPayload {
   conversationId?: string;
@@ -213,7 +214,11 @@ async function handleMessageRead(
     }
 
     await Message.updateMany(
-      { conversation: conversationId, readBy: { $ne: toObjectId(userId) } },
+      {
+        conversation: conversationId,
+        sender: { $ne: toObjectId(userId) },
+        readBy: { $ne: toObjectId(userId) },
+      },
       { $addToSet: { readBy: toObjectId(userId) } }
     );
 
@@ -239,7 +244,7 @@ async function handleMessageRead(
 function registerMessageHandlers(io: Server, socket: Socket): void {
   socket.on(
     'message:send',
-    (raw: unknown, ack?: (response: MessageSendAck) => void) => {
+    async (raw: unknown, ack?: (response: MessageSendAck) => void) => {
       const respond = typeof ack === 'function' ? ack : () => {};
       const userId = socket.data.userId as string;
 
@@ -260,15 +265,6 @@ function registerMessageHandlers(io: Server, socket: Socket): void {
         return;
       }
 
-      const images = (
-        Array.isArray(payload.images) ? payload.images : []
-      ).filter((image): image is string => typeof image === 'string');
-
-      if (images.length > 8) {
-        respond({ ok: false, error: 'A message can have at most 8 images' });
-        return;
-      }
-
       if (
         typeof payload.clientId !== 'string' ||
         payload.clientId.length === 0 ||
@@ -278,15 +274,28 @@ function registerMessageHandlers(io: Server, socket: Socket): void {
         return;
       }
 
-      void handleMessageSend(
-        io,
-        userId,
-        payload,
-        content,
-        images,
-        payload.clientId,
-        respond
-      );
+      try {
+        const images = await mediaService.assertOwnedImageUrls(
+          userId,
+          payload.images ?? []
+        );
+        await handleMessageSend(
+          io,
+          userId,
+          payload,
+          content,
+          images,
+          payload.clientId,
+          respond
+        );
+      } catch (e) {
+        if (e instanceof MediaValidationError) {
+          respond({ ok: false, error: e.message });
+          return;
+        }
+        console.error('Error validating message images:', e);
+        respond({ ok: false, error: 'Internal server error' });
+      }
     }
   );
 

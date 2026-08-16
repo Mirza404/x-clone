@@ -8,6 +8,7 @@ import { LeanComment } from '../types/LeanComment';
 import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { collectCommentThreadIds } from '../utils/comment-tree';
 import { getUsersCollection } from '../db/connection';
+import { MediaValidationError, mediaService } from '../services/media-service';
 
 async function findCommentsByPost(req: Request, res: Response): Promise<void> {
   try {
@@ -232,10 +233,15 @@ async function createComment(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const validatedImages = await mediaService.assertOwnedImageUrls(
+      author.toString(),
+      images ?? []
+    );
+
     const name = await getUserNameByID(author.toString().trim());
     const newComment = new Comment({
       content,
-      images: images ?? [],
+      images: validatedImages,
       author,
       name,
       postId,
@@ -265,6 +271,10 @@ async function createComment(req: Request, res: Response): Promise<void> {
       comment: newComment,
     });
   } catch (e) {
+    if (e instanceof MediaValidationError) {
+      res.status(e.statusCode).json({ message: e.message });
+      return;
+    }
     console.error('Error adding comment:', e);
     res.status(500).json({ message: 'Internal server error' });
   }

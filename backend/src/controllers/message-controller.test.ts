@@ -346,6 +346,66 @@ test('getConversationMessages returns paginated history in chronological order',
   );
 });
 
+test('getConversationMessages rejects invalid limits', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  mockConversationFindByIdSelectLean({
+    _id: conversationId,
+    participants: [userId, new mongoose.Types.ObjectId()],
+  });
+
+  for (const limit of ['0', '-1', '1.5', 'invalid', '', ['20']]) {
+    const response = createResponse();
+    await getConversationMessages(
+      createRequest({
+        params: { id: conversationId.toString() },
+        query: { limit },
+        userId: userId.toString(),
+      }),
+      response
+    );
+
+    assert.equal(response.statusCode, 400);
+    assert.deepEqual(response.body, { message: 'Invalid message limit' });
+  }
+});
+
+test('getConversationMessages caps limits at 100 messages', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  let databaseLimit: number | undefined;
+  mockConversationFindByIdSelectLean({
+    _id: conversationId,
+    participants: [userId, new mongoose.Types.ObjectId()],
+  });
+  (
+    Message as unknown as { find: (filter: Record<string, unknown>) => unknown }
+  ).find = () => ({
+    sort: () => ({
+      limit: (limit: number) => {
+        databaseLimit = limit;
+        return { lean: async () => [] };
+      },
+    }),
+  });
+
+  const response = createResponse();
+  await getConversationMessages(
+    createRequest({
+      params: { id: conversationId.toString() },
+      query: { limit: '1000' },
+      userId: userId.toString(),
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 200);
+  // One extra record is fetched to determine whether another cursor exists.
+  assert.equal(databaseLimit, 101);
+});
+
 test('getConversationMessages cursor is stable when newer messages arrive between requests', async () => {
   setReadyState(1);
   const userId = new mongoose.Types.ObjectId();
@@ -521,4 +581,13 @@ test('markConversationRead resets the unread counter and marks messages read', a
 
   assert.equal(response.statusCode, 200);
   assert.equal(calls.length, 2);
+  assert.deepEqual(calls[1], [
+    'Message.updateMany',
+    {
+      conversation: conversationId.toString(),
+      sender: { $ne: userId },
+      readBy: { $ne: userId },
+    },
+    { $addToSet: { readBy: userId } },
+  ]);
 });

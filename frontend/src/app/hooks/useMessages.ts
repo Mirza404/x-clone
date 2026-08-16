@@ -41,6 +41,11 @@ interface MessageReadEvent {
   userId: string;
 }
 
+interface MessageReadAck {
+  ok: boolean;
+  error?: string;
+}
+
 function isNewMessageEvent(value: unknown): value is NewMessageEvent {
   return (
     typeof value === 'object' &&
@@ -139,14 +144,8 @@ function useMessages(conversationId: string | null) {
     enabled: Boolean(conversationId),
   });
 
-  const markAsRead = useCallback(
+  const confirmRead = useCallback(
     (id: string) => {
-      if (connected) {
-        emit('message:read', { conversationId: id });
-      } else {
-        void markConversationRead(id);
-      }
-
       queryClient.setQueryData<ConversationSummary[]>(
         CONVERSATIONS_QUERY_KEY,
         (current) =>
@@ -157,7 +156,62 @@ function useMessages(conversationId: string | null) {
           )
       );
     },
-    [connected, emit, queryClient]
+    [queryClient]
+  );
+
+  const reconcileReadFailure = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: CONVERSATIONS_QUERY_KEY,
+    });
+  }, [queryClient]);
+
+  const markAsRead = useCallback(
+    (id: string) => {
+      const fallBackToRest = async () => {
+        if (await markConversationRead(id)) {
+          confirmRead(id);
+          return;
+        }
+        await reconcileReadFailure();
+      };
+
+      if (!connected) {
+        void fallBackToRest();
+        return;
+      }
+
+      let socketSettled = false;
+      let fallbackStarted = false;
+      const startFallback = () => {
+        if (fallbackStarted) {
+          return;
+        }
+        fallbackStarted = true;
+        void fallBackToRest();
+      };
+      const timeout = setTimeout(() => {
+        socketSettled = true;
+        startFallback();
+      }, ACK_TIMEOUT_MS);
+
+      emit<{ conversationId: string }, MessageReadAck>(
+        'message:read',
+        { conversationId: id },
+        (ack) => {
+          if (socketSettled) {
+            return;
+          }
+          socketSettled = true;
+          clearTimeout(timeout);
+          if (ack.ok) {
+            confirmRead(id);
+            return;
+          }
+          startFallback();
+        }
+      );
+    },
+    [confirmRead, connected, emit, reconcileReadFailure]
   );
 
   useEffect(() => {
