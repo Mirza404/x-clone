@@ -281,19 +281,33 @@ Regression coverage verifies invalid limits and the maximum database page size.
 
 ### Finding 12: Image input validation is shallow
 
-**Status: confirmed and deferred to backlog item F7.**
+**Status: implementation complete; strict production cutover pending.**
 
-The socket handler checks only that `images` is an array of strings and contains no more than eight entries. It does not validate URL length, format, ownership, or whether the referenced asset is actually available to the current user.
+The shared upload path now requests an authenticated, rate-limited backend
+signature, uploads directly to the configured Cloudinary tenant with a
+server-generated user-scoped public ID, and completes the upload through the
+backend. Completion verifies Cloudinary's response signature and authoritative
+resource metadata before registering the canonical URL to that user. New post,
+comment, reply, and message writes all pass through the same ownership check;
+URLs are capped at 2,048 characters and image arrays at eight entries.
 
-This can create oversized documents or allow arbitrary external references, depending on how the frontend renders them.
+The rollout bridge `MEDIA_ALLOW_UNREGISTERED_CLOUDINARY` is intentionally a
+manually managed Render setting. Set it to `true` only while the old frontend is
+still live: that mode accepts unregistered URLs from the exact configured tenant
+so old unsigned-client uploads continue to work, but it still rejects external
+URLs and assets already registered to another user. After the signed frontend is
+verified, set it to `false` and disable the old `x_clone` unsigned preset. Strict
+registry-backed ownership—and therefore full closure of this finding—starts at
+that cutover.
 
-**Relevant code:** `backend/src/socket/handlers.ts`, image filtering; `backend/src/models/Message.ts`, image field.
+**Relevant code:** `backend/src/services/media-service.ts`,
+`backend/src/controllers/media-controller.ts`, `backend/src/socket/handlers.ts`,
+and `frontend/src/app/utils/imageUtils.ts`.
 
-**Decision (2026-08-15):** replace the shared unsigned Cloudinary upload flow
-with authenticated signed uploads rather than adding URL-only validation here.
-The staged, no-downtime migration and owned-media contract are tracked as F7 in
-`IDEAS.md`. Until F7 ships, the arbitrary-reference and ownership gaps described
-above remain open; this finding is not marked fixed.
+Regression coverage exercises signing, response tampering, tenant and ownership
+rejection, authoritative size checks, legacy edit retention, and every write
+boundary. A live smoke test also completed and then cleaned up a signed upload in
+the `dhumjqe9v` tenant.
 
 ### Finding 13: Read operations are optimistic and have weak failure handling
 
