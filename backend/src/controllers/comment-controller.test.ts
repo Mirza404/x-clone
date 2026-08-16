@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import test, { afterEach } from 'node:test';
+import test, { afterEach, beforeEach } from 'node:test';
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
+import { MediaValidationError, mediaService } from '../services/media-service';
 import {
   deleteComment,
   toggleLike,
@@ -36,6 +37,19 @@ const originalCommentCountDocuments = Comment.countDocuments;
 const originalCommentSave = Comment.prototype.save;
 const originalPostFindByIdAndUpdate = Post.findByIdAndUpdate;
 const originalPostFindById = Post.findById;
+const originalAssertOwnedImageUrls = mediaService.assertOwnedImageUrls;
+
+function rejectMediaValidation(message: string): void {
+  const error = new MediaValidationError(message);
+  mediaService.assertOwnedImageUrls = async () => {
+    throw error;
+  };
+}
+
+beforeEach(() => {
+  mediaService.assertOwnedImageUrls = async (_userId, images) =>
+    images as string[];
+});
 
 function setReadyState(readyState: number) {
   Object.defineProperty(mongoose.connection, 'readyState', {
@@ -140,6 +154,7 @@ afterEach(() => {
   ).findByIdAndUpdate = originalPostFindByIdAndUpdate;
   (Post as unknown as { findById: typeof originalPostFindById }).findById =
     originalPostFindById;
+  mediaService.assertOwnedImageUrls = originalAssertOwnedImageUrls;
 });
 
 test('deleteComment returns 400 when commentId is missing', async () => {
@@ -634,6 +649,43 @@ test('createComment creates a reply and pushes it onto the parent comment', asyn
   );
   assert.equal(calls.length, 1);
   assert.equal((calls[0] as unknown[])[0], 'Comment.findByIdAndUpdate');
+});
+
+test('createComment rejects unowned images before saving or linking', async () => {
+  const postId = new mongoose.Types.ObjectId().toString();
+  const authorId = new mongoose.Types.ObjectId().toString();
+  let saveCalled = false;
+  let linkCalled = false;
+
+  Comment.prototype.save = async function mockSave(this: unknown) {
+    saveCalled = true;
+    return this;
+  };
+  (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
+    async () => {
+      linkCalled = true;
+    };
+  rejectMediaValidation('Image is not owned by the authenticated user');
+
+  const response = createResponse();
+  await createComment(
+    createRequest({
+      params: { postId },
+      body: {
+        content: 'hello',
+        images: ['https://example.com/unowned.png'],
+      },
+      userId: authorId,
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, {
+    message: 'Image is not owned by the authenticated user',
+  });
+  assert.equal(saveCalled, false);
+  assert.equal(linkCalled, false);
 });
 
 test('createComment returns 500 when an unexpected error is thrown', async () => {
