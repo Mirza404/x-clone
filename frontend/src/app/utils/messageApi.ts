@@ -12,7 +12,7 @@ export async function getConversations(): Promise<ConversationSummary[]> {
       'Error fetching conversations:',
       getApiErrorMessage(error, 'Error')
     );
-    return [];
+    throw error;
   }
 }
 
@@ -69,9 +69,6 @@ export async function getConversationMessages(
       'Error fetching messages:',
       getApiErrorMessage(error, 'Error')
     );
-    return {
-      nextPage: undefined,
-      messages: [] as Message[],
-    };
+    throw error;
   }
 }
