@@ -213,7 +213,11 @@ async function handleMessageRead(
     }
 
     await Message.updateMany(
-      { conversation: conversationId, readBy: { $ne: toObjectId(userId) } },
+      {
+        conversation: conversationId,
+        sender: { $ne: toObjectId(userId) },
+        readBy: { $ne: toObjectId(userId) },
+      },
       { $addToSet: { readBy: toObjectId(userId) } }
     );
 
