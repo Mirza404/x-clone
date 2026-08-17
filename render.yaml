@@ -5,6 +5,8 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free
+    # Presence and Socket.IO rooms are process-local until a shared adapter is added.
+    numInstances: 1
     autoDeploy: false
     envVars:
       - key: MONGODB_URL
