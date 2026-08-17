@@ -254,25 +254,30 @@ controller and socket tests verify both entry points use the shared path.
 
 ### Finding 10: REST helpers convert failures into successful empty results
 
-**Status: confirmed.**
+**Status: fixed.**
 
-`getConversations` catches errors and returns `[]`. `getConversationMessages` catches errors and returns an empty page. This means React Query receives a resolved promise and generally cannot expose the failure through `isError`.
-
-Users may see “no conversations” or an empty thread during an outage instead of a retry/error state.
+`getConversations` and `getConversationMessages` still log useful context, but
+now rethrow the original error. React Query receives a rejected promise and can
+expose, retry, and recover from the failure instead of treating an outage as a
+successful empty inbox or thread.
 
 **Relevant code:** `frontend/src/app/utils/messageApi.ts`.
 
-**Proposed direction:** log if useful, then rethrow. Let React Query manage error state and retries. Use an explicit empty result only for a successful response containing no data.
+Regression coverage verifies that both helpers reject with the original error.
 
 ### Finding 11: REST pagination parameters are not sufficiently bounded
 
-**Status: confirmed.**
+**Status: fixed.**
 
-The history endpoint parses `limit` and `page`, but does not enforce a safe maximum or reject invalid negative values. A caller can request an excessively large page or malformed pagination state.
+The cursor-based history endpoint now defaults `limit` to 20, accepts only a
+positive integer, caps it at 100, and returns `400` for malformed, fractional,
+zero, negative, array, or unsafe-integer values. The database fetch remains one
+record larger than the accepted limit so the endpoint can determine whether a
+next cursor exists.
 
 **Relevant code:** `backend/src/controllers/message-controller.ts`, pagination parsing.
 
-**Proposed direction:** clamp `limit` to a small maximum, require positive integers, and return `400` for invalid values.
+Regression coverage verifies invalid limits and the maximum database page size.
 
 ### Finding 12: Image input validation is shallow
 
