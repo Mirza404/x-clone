@@ -303,7 +303,11 @@ async function markConversationRead(
     );
 
     await Message.updateMany(
-      { conversation: id, readBy: { $ne: toObjectId(userId) } },
+      {
+        conversation: id,
+        sender: { $ne: toObjectId(userId) },
+        readBy: { $ne: toObjectId(userId) },
+      },
       { $addToSet: { readBy: toObjectId(userId) } }
     );
 
