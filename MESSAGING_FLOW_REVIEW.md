@@ -281,7 +281,7 @@ Regression coverage verifies invalid limits and the maximum database page size.
 
 ### Finding 12: Image input validation is shallow
 
-**Status: confirmed.**
+**Status: confirmed and deferred to backlog item F7.**
 
 The socket handler checks only that `images` is an array of strings and contains no more than eight entries. It does not validate URL length, format, ownership, or whether the referenced asset is actually available to the current user.
 
@@ -289,7 +289,11 @@ This can create oversized documents or allow arbitrary external references, depe
 
 **Relevant code:** `backend/src/socket/handlers.ts`, image filtering; `backend/src/models/Message.ts`, image field.
 
-**Proposed direction:** define the image contract explicitly. Prefer server-issued upload references, validate allowed formats and lengths, and enforce the same rules on REST and socket paths.
+**Decision (2026-08-15):** replace the shared unsigned Cloudinary upload flow
+with authenticated signed uploads rather than adding URL-only validation here.
+The staged, no-downtime migration and owned-media contract are tracked as F7 in
+`IDEAS.md`. Until F7 ships, the arbitrary-reference and ownership gaps described
+above remain open; this finding is not marked fixed.
 
 ### Finding 13: Read operations are optimistic and have weak failure handling
 
