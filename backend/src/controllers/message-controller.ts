@@ -26,6 +26,26 @@ interface MessageCursor {
   id: mongoose.Types.ObjectId;
 }
 
+const DEFAULT_MESSAGE_LIMIT = 20;
+const MAX_MESSAGE_LIMIT = 100;
+
+function parseMessageLimit(value: unknown): number | null {
+  if (value === undefined) {
+    return DEFAULT_MESSAGE_LIMIT;
+  }
+
+  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) {
+    return null;
+  }
+
+  const limit = Number(value);
+  if (!Number.isSafeInteger(limit)) {
+    return null;
+  }
+
+  return Math.min(limit, MAX_MESSAGE_LIMIT);
+}
+
 function parseMessageCursor(value: unknown): MessageCursor | null {
   if (typeof value !== 'string') {
     return null;
@@ -195,7 +215,12 @@ async function getConversationMessages(
       return;
     }
 
-    const limit = parseInt(req.query.limit as string) || 20;
+    const limit = parseMessageLimit(req.query.limit);
+    if (limit === null) {
+      res.status(400).json({ message: 'Invalid message limit' });
+      return;
+    }
+
     const cursor = parseMessageCursor(req.query.cursor);
 
     if (req.query.cursor !== undefined && !cursor) {
