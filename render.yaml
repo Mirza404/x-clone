@@ -17,6 +17,16 @@ services:
         sync: false
       - key: NEXTAUTH_SECRET
         sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Set true only during the observed backend-to-frontend cutover, then false.
+      # Keeping this manually managed prevents a later Blueprint sync reopening it.
+      - key: MEDIA_ALLOW_UNREGISTERED_CLOUDINARY
+        sync: false
 
   - type: web
     name: x-clone-frontend

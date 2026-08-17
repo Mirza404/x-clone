@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import test, { afterEach } from 'node:test';
+import test, { afterEach, beforeEach } from 'node:test';
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
+import { MediaValidationError, mediaService } from '../services/media-service';
 import {
   deletePost,
   toggleLike,
@@ -33,6 +34,24 @@ const originalCountDocuments = Post.countDocuments;
 const originalDb = Object.getOwnPropertyDescriptor(mongoose.connection, 'db');
 const originalCommentFindById = Comment.findById;
 const originalPostSave = Post.prototype.save;
+const originalAssertOwnedImageUrls = mediaService.assertOwnedImageUrls;
+
+function stubMediaValidation(
+  implementation: typeof mediaService.assertOwnedImageUrls
+): void {
+  mediaService.assertOwnedImageUrls = implementation;
+}
+
+function rejectMediaValidation(message: string): void {
+  const error = new MediaValidationError(message);
+  stubMediaValidation(async () => {
+    throw error;
+  });
+}
+
+beforeEach(() => {
+  stubMediaValidation(async (_userId, images) => images as string[]);
+});
 
 function setReadyState(readyState: number) {
   Object.defineProperty(mongoose.connection, 'readyState', {
@@ -150,6 +169,7 @@ afterEach(() => {
     Comment as unknown as { findById: typeof originalCommentFindById }
   ).findById = originalCommentFindById;
   Post.prototype.save = originalPostSave;
+  mediaService.assertOwnedImageUrls = originalAssertOwnedImageUrls;
   if (originalDb) {
     Object.defineProperty(mongoose.connection, 'db', originalDb);
   }
@@ -608,6 +628,31 @@ test('createPost creates a post and returns it', async () => {
   );
 });
 
+test('createPost rejects unowned images before saving', async () => {
+  const authorId = new mongoose.Types.ObjectId().toString();
+  let saveCalled = false;
+  Post.prototype.save = async function mockSave(this: unknown) {
+    saveCalled = true;
+    return this;
+  };
+  rejectMediaValidation('Image is not owned by the authenticated user');
+
+  const response = createResponse();
+  await createPost(
+    createRequest(
+      { content: 'hello', images: ['https://res.cloudinary.com/unowned'] },
+      authorId
+    ),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, {
+    message: 'Image is not owned by the authenticated user',
+  });
+  assert.equal(saveCalled, false);
+});
+
 test('createPost returns 500 when an unexpected error is thrown', async () => {
   const authorId = new mongoose.Types.ObjectId().toString();
   setUsersDb({});
@@ -714,17 +759,32 @@ test('updatePost updates the post when the caller is the author', async () => {
   const authorId = new mongoose.Types.ObjectId();
   const postId = new mongoose.Types.ObjectId();
   const updated = { _id: postId, content: 'updated' };
+  const legacyImage = 'https://legacy.example/image.png';
+  const newImage = 'https://res.cloudinary.com/dhumjqe9v/image/upload/new.png';
+  let validationOptions: { allowExisting?: string[] } | undefined;
+  let persistedImages: string[] | undefined;
 
   (Post as unknown as { findById: unknown }).findById = () => ({
-    select: async () => ({ author: authorId }),
+    select: async () => ({ author: authorId, images: [legacyImage] }),
   });
   (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
-    async () => updated;
+    async (_id: unknown, update: { images: string[] }) => {
+      persistedImages = update.images;
+      return updated;
+    };
+  stubMediaValidation(async (_userId, images, options) => {
+    validationOptions = options;
+    return images as string[];
+  });
 
   const response = createResponse();
   await updatePost(
     createRequest(
-      { id: postId.toString(), content: 'updated', images: [] },
+      {
+        id: postId.toString(),
+        content: 'updated',
+        images: [legacyImage, newImage],
+      },
       authorId.toString()
     ),
     response
@@ -735,6 +795,45 @@ test('updatePost updates the post when the caller is the author', async () => {
     message: 'Post updated successfully',
     post: updated,
   });
+  assert.deepEqual(validationOptions, { allowExisting: [legacyImage] });
+  assert.deepEqual(persistedImages, [legacyImage, newImage]);
+});
+
+test('updatePost rejects an unowned new image before updating', async () => {
+  setReadyState(1);
+  const authorId = new mongoose.Types.ObjectId();
+  const postId = new mongoose.Types.ObjectId();
+  const legacyImage = 'https://legacy.example/image.png';
+  let updateCalled = false;
+
+  (Post as unknown as { findById: unknown }).findById = () => ({
+    select: async () => ({ author: authorId, images: [legacyImage] }),
+  });
+  (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
+    async () => {
+      updateCalled = true;
+      return null;
+    };
+  rejectMediaValidation('Image is not owned by the authenticated user');
+
+  const response = createResponse();
+  await updatePost(
+    createRequest(
+      {
+        id: postId.toString(),
+        content: 'updated',
+        images: [legacyImage, 'https://example.com/unowned.png'],
+      },
+      authorId.toString()
+    ),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, {
+    message: 'Image is not owned by the authenticated user',
+  });
+  assert.equal(updateCalled, false);
 });
 
 test('getLikes returns 400 when id is missing', async () => {

@@ -15,3 +15,13 @@ export const writeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Each image needs one signature request and one completion request. Keep
+// those authenticated requests out of the general mutation budget while the
+// global API limiter still provides a per-IP ceiling.
+export const mediaLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});

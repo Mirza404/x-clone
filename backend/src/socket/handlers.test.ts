@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import test, { afterEach } from 'node:test';
+import test, { afterEach, beforeEach } from 'node:test';
 import mongoose from 'mongoose';
 import { Server, Socket } from 'socket.io';
 import Conversation from '../models/Conversation';
 import Message from '../models/Message';
+import { MediaValidationError, mediaService } from '../services/media-service';
 import { registerMessageHandlers } from './handlers';
 import { MAX_EVENTS, reset as resetRateLimit } from './rate-limit';
 
@@ -28,6 +29,24 @@ const originalDbDescriptor = Object.getOwnPropertyDescriptor(
   mongoose.connection,
   'db'
 );
+const originalAssertOwnedImageUrls = mediaService.assertOwnedImageUrls;
+
+function stubMediaValidation(
+  implementation: typeof mediaService.assertOwnedImageUrls
+): void {
+  mediaService.assertOwnedImageUrls = implementation;
+}
+
+function rejectMediaValidation(message: string): void {
+  const error = new MediaValidationError(message);
+  stubMediaValidation(async () => {
+    throw error;
+  });
+}
+
+beforeEach(() => {
+  stubMediaValidation(async (_userId, images) => images as string[]);
+});
 
 function setRecipient(recipient: Record<string, unknown> | null): void {
   Object.defineProperty(mongoose.connection, 'db', {
@@ -62,6 +81,7 @@ afterEach(() => {
   if (originalDbDescriptor) {
     Object.defineProperty(mongoose.connection, 'db', originalDbDescriptor);
   }
+  mediaService.assertOwnedImageUrls = originalAssertOwnedImageUrls;
 });
 
 function stubNoExistingMessage(): void {
@@ -353,6 +373,7 @@ test('message:send forwards images to the created message', async () => {
 
   const { socket, emit } = createSocket(userId.toString());
   registerMessageHandlers(io, socket);
+  stubMediaValidation(async (_userId, images) => images as string[]);
 
   const ack = await emit('message:send', {
     conversationId: conversation._id.toString(),
@@ -381,15 +402,49 @@ test('message:send rejects more than 8 images without touching the database', as
 
   const { socket, emit } = createSocket(userId.toString());
   registerMessageHandlers(io, socket);
+  rejectMediaValidation('A message can have at most 8 images');
 
   const ack = await emit('message:send', {
     content: 'too many',
     images: Array.from({ length: 9 }, (_, i) => `https://example.com/${i}.png`),
+    clientId: 'too-many-images',
   });
 
   assert.equal(ack.ok, false);
   assert.match(ack.error ?? '', /at most 8 images/);
   assert.equal(createCalled, false);
+});
+
+test('message:send rejects an unowned image before conversation lookup', async () => {
+  const { io } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+  let conversationLookupCalled = false;
+  let messageCreated = false;
+
+  (Conversation as unknown as { findById: () => unknown }).findById = () => {
+    conversationLookupCalled = true;
+    return null;
+  };
+  (Message as unknown as { create: () => Promise<unknown> }).create =
+    async () => {
+      messageCreated = true;
+      return {};
+    };
+  rejectMediaValidation('Image is not owned by the authenticated user');
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+  const ack = await emit('message:send', {
+    conversationId: new mongoose.Types.ObjectId().toString(),
+    content: 'look',
+    images: ['https://example.com/unowned.png'],
+    clientId: 'unowned-image',
+  });
+
+  assert.equal(ack.ok, false);
+  assert.equal(ack.error, 'Image is not owned by the authenticated user');
+  assert.equal(conversationLookupCalled, false);
+  assert.equal(messageCreated, false);
 });
 
 test('message:send rejects a missing clientId without touching the database', async () => {

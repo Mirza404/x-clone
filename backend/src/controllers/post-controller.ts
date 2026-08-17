@@ -7,6 +7,7 @@ import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
 import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { getUsersCollection } from '../db/connection';
+import { MediaValidationError, mediaService } from '../services/media-service';
 
 async function allPosts(req: Request, res: Response): Promise<void> {
   try {
@@ -301,14 +302,19 @@ async function createPost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const name = await getUserNameByID(author.toString().trim());
-
     if (!content && (!images || images.length === 0)) {
       res
         .status(400)
         .json({ message: 'Post must have content or at least one image' });
       return;
     }
+
+    const validatedImages = await mediaService.assertOwnedImageUrls(
+      author.toString(),
+      images ?? []
+    );
+
+    const name = await getUserNameByID(author.toString().trim());
 
     if (mongoose.connection.readyState !== 1) {
       res.status(500).json({ message: 'Database not connected' });
@@ -326,7 +332,7 @@ async function createPost(req: Request, res: Response): Promise<void> {
       author,
       name,
       content,
-      images, // Store array of image URLs
+      images: validatedImages,
       createdAt: date,
       authorImage: user?.image || null,
       likes: [], //empty arr
@@ -339,6 +345,10 @@ async function createPost(req: Request, res: Response): Promise<void> {
       post: newPost, // Send full post object
     });
   } catch (e) {
+    if (e instanceof MediaValidationError) {
+      res.status(e.statusCode).json({ message: e.message });
+      return;
+    }
     console.error('Error creating post:', e);
     if (!res.headersSent) {
       res.status(500).json({ message: 'Internal server error' });
@@ -402,7 +412,7 @@ async function updatePost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const existingPost = await Post.findById(id).select('author');
+    const existingPost = await Post.findById(id).select('author images');
     if (!existingPost) {
       res.status(404).json({ message: 'Post not found' });
       return;
@@ -413,9 +423,15 @@ async function updatePost(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const validatedImages = await mediaService.assertOwnedImageUrls(
+      req.userId ?? '',
+      images,
+      { allowExisting: existingPost.images ?? [] }
+    );
+
     const updatedPost = await Post.findByIdAndUpdate(
       id,
-      { content, images },
+      { content, images: validatedImages },
       { new: true }
     );
 
@@ -428,6 +444,10 @@ async function updatePost(req: Request, res: Response): Promise<void> {
       .status(200)
       .json({ message: 'Post updated successfully', post: updatedPost });
   } catch (e) {
+    if (e instanceof MediaValidationError) {
+      res.status(e.statusCode).json({ message: e.message });
+      return;
+    }
     console.error('Error updating post:', e);
     if (!res.headersSent) {
       res.status(500).json({ message: 'Internal server error' });

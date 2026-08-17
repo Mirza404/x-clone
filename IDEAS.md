@@ -49,7 +49,7 @@ Messaging used to be crammed into the 600px center column, because `(navPages)/m
 
 **Shipped:** `bookmarks`, `communities`, `notifications`, `jobs`, `premium`, `verifiedorgs` all render a themed `EmptyState` ("Coming Soon" + a one-line explanation) instead of a plain-text stub. `explore` has the full F2 search-results view, plus its own `EmptyState` ("Search X Clone") for the no-query case. This shipped alongside the `(feed)` route-group move (`fix: correct EmptyState import path after (feed) route group move`) but this file wasn't updated at the time.
 
-### F7. Signed Cloudinary uploads and owned media references `[ ]`
+### F7. Signed Cloudinary uploads and owned media references `[~]`
 
 Replace the public unsigned `x_clone` upload-preset flow with authenticated,
 browser-direct signed uploads. The Cloudinary cloud name remains the public,
@@ -76,6 +76,36 @@ configuration.
   then the signed client, verify production uploads, and only then disable the
   old unsigned `x_clone` preset. Signed uploads do not make delivery URLs
   private; signed/private delivery is a separate decision.
+
+**Implemented 2026-08-16; production cutover remains:** the backend now owns
+signature creation and completion under `x_clone/users/<userId>/<uuid>`, proves
+the Cloudinary response against authoritative Admin API metadata, enforces the
+exact `dhumjqe9v` tenant, allowed formats, 5 MiB size, canonical URL, URL length,
+and ownership registry, and validates media at post/comment/reply/message write
+boundaries. The browser still transfers files directly to Cloudinary, but no
+longer reads a Cloudinary API secret or relies on the public cloud-name variable.
+
+The `x_clone_signed` preset is signed-only with overwrite disabled and the
+allowed format list. Cloudinary did not retain a preset-level maximum file-size
+setting, so the client rejects resized files over 5 MiB and completion checks the
+authoritative byte count, deleting an oversized asset before rejecting it.
+
+**Observed cutover runbook:**
+
+1. Configure backend `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and
+   `CLOUDINARY_API_SECRET` in Render. Set the manually managed
+   `MEDIA_ALLOW_UNREGISTERED_CLOUDINARY=true` bridge immediately before the
+   backend deployment.
+2. Deploy the backend, then the signed frontend, and verify a production upload
+   through signature, completion, persistence, and delivery.
+3. Set `MEDIA_ALLOW_UNREGISTERED_CLOUDINARY=false` and disable the old unsigned
+   `x_clone` preset. Retest new uploads and edits containing pre-migration media.
+4. After old frontend builds can no longer be served, remove the obsolete
+   frontend `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` build setting and Docker wiring.
+
+The bridge is `sync: false` in `render.yaml`, never a committed `true`, so a later
+Blueprint sync cannot silently reopen cross-user reuse of unregistered legacy
+URLs. Mark F7 complete only after steps 2 and 3 are verified in production.
 
 ---
 
