@@ -314,13 +314,18 @@ total failure reconciliation, and the narrower backend update filters.
 
 ### Finding 14: Presence is correct for one process but not horizontally scalable
 
-**Status: confirmed and documented as a current limitation.**
+**Status: fixed for the current deployment topology.**
 
-Presence is stored in process memory and Socket.IO rooms are local to the process. With multiple backend instances, a user connected to instance A will not necessarily appear online to a user connected to instance B, and room broadcasts will not reach all instances.
+Presence remains process-local, but `render.yaml` now explicitly pins the
+backend to one instance. The deployed topology therefore matches the assumption
+made by presence tracking and Socket.IO rooms instead of relying on an implicit
+platform default.
 
 **Relevant code:** `backend/src/socket/presence.ts`; Socket.IO initialization in `backend/src/socket/index.ts`.
 
-**Proposed direction:** either explicitly enforce single-instance deployment for this feature or add a shared Socket.IO adapter and shared presence store, typically Redis. Presence should remain best-effort even after that.
+Horizontal scaling still requires a shared Socket.IO adapter and presence store,
+typically Redis. That infrastructure must be added before increasing
+`numInstances`; presence should remain best-effort even after that migration.
 
 ## Things that are not currently problems
 
