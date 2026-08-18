@@ -197,6 +197,11 @@ function randomIntBetween(minInclusive, maxInclusive) {
 function pickPartner(tokenIndex) {
   const n = tokens.length;
   if (n < 2) return null;
+  if (n % 2 !== 0) {
+    throw new Error(
+      `TOKENS_FILE has an odd number of entries (${n}) - even/odd pairing requires an even count so every VU has a real reciprocal partner`
+    );
+  }
   const partnerIndex = tokenIndex % 2 === 0 ? (tokenIndex + 1) % n : (tokenIndex - 1 + n) % n;
   return tokens[partnerIndex];
 }

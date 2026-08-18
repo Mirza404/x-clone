@@ -56,9 +56,12 @@ other number this script produces.** A failed handshake shows up as
 
 - [k6](https://k6.io/) installed, with `k6/experimental/websockets` and
   `k6/experimental/timers` available (current k6 releases ship both).
-- `load-test/tokens.json` with at least 2 entries — VUs are paired up
-  (even/odd index) to message each other, and Phase 1 uses entry 0 as
-  sender / entry 1 as recipient. `getOrCreateConversation` (see
+- `load-test/tokens.json` with an even number of entries, at least 2 — VUs
+  are paired up (even/odd index) to message each other, and Phase 1 uses
+  entry 0 as sender / entry 1 as recipient. An odd count leaves one VU
+  without a reciprocal partner (it sends but nobody replies), so
+  `pickPartner` throws rather than silently skewing the stats.
+  `getOrCreateConversation` (see
   `backend/src/services/conversation-service.ts` via
   `backend/src/socket/handlers.ts`) creates the conversation on first send,
   matching real client behavior — no pre-existing conversation ids needed.
