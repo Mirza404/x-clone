@@ -78,14 +78,19 @@ import http from 'k6/http';
 // Configuration (all overridable via `-e VAR=value`)
 // ---------------------------------------------------------------------
 const PHASE = __ENV.PHASE || '1';
-const BASE_URL = (__ENV.BASE_URL || 'http://localhost:3001').replace(/\/+$/, '');
+const BASE_URL = (__ENV.BASE_URL || 'http://localhost:3001').replace(
+  /\/+$/,
+  ''
+);
 const WS_URL = `${BASE_URL.replace(/^http/, 'ws')}/socket.io/?EIO=4&transport=websocket`;
 const WARMUP_PATH = __ENV.WARMUP_PATH || '/api/post';
 
 const MSG_MIN_INTERVAL_S = Number(__ENV.MSG_MIN_INTERVAL_S || 2);
 const MSG_MAX_INTERVAL_S = Number(__ENV.MSG_MAX_INTERVAL_S || 6);
 const RECONNECT_PROBABILITY = Number(__ENV.RECONNECT_PROBABILITY || 0.05);
-const RECONNECT_CHECK_INTERVAL_S = Number(__ENV.RECONNECT_CHECK_INTERVAL_S || 45);
+const RECONNECT_CHECK_INTERVAL_S = Number(
+  __ENV.RECONNECT_CHECK_INTERVAL_S || 45
+);
 const SUSTAINED_VUS = Number(__ENV.SUSTAINED_VUS || 100);
 const SUSTAINED_DURATION = __ENV.SUSTAINED_DURATION || '12m';
 const PHASE4_MAX_VUS = Number(__ENV.PHASE4_MAX_VUS || 750);
@@ -115,7 +120,9 @@ const tokens = new SharedArray('tokens', function () {
     );
   }
   if (!Array.isArray(raw) || raw.length === 0) {
-    throw new Error(`TOKENS_FILE "${TOKENS_FILE}" must be a non-empty JSON array`);
+    throw new Error(
+      `TOKENS_FILE "${TOKENS_FILE}" must be a non-empty JSON array`
+    );
   }
   return raw;
 });
@@ -159,7 +166,13 @@ function parseFrame(data) {
     return { eioType, payload };
   }
 
-  if (eioType === '2' || eioType === '3' || eioType === '1' || eioType === '5' || eioType === '6') {
+  if (
+    eioType === '2' ||
+    eioType === '3' ||
+    eioType === '1' ||
+    eioType === '5' ||
+    eioType === '6'
+  ) {
     // ping / pong / close / upgrade / noop - no Socket.IO payload
     return { eioType };
   }
@@ -187,7 +200,9 @@ function parseFrame(data) {
 }
 
 function randomIntBetween(minInclusive, maxInclusive) {
-  return Math.floor(Math.random() * (maxInclusive - minInclusive + 1)) + minInclusive;
+  return (
+    Math.floor(Math.random() * (maxInclusive - minInclusive + 1)) + minInclusive
+  );
 }
 
 // Deterministic even/odd pairing so every VU always messages the same
@@ -201,7 +216,8 @@ function pickPartner(tokenIndex) {
       `TOKENS_FILE has an odd number of entries (${n}) - even/odd pairing requires an even count so every VU has a real reciprocal partner`
     );
   }
-  const partnerIndex = tokenIndex % 2 === 0 ? (tokenIndex + 1) % n : (tokenIndex - 1 + n) % n;
+  const partnerIndex =
+    tokenIndex % 2 === 0 ? (tokenIndex + 1) % n : (tokenIndex - 1 + n) % n;
   return tokens[partnerIndex];
 }
 
@@ -219,10 +235,14 @@ export function setup() {
       );
       return { warmedUp: true };
     }
-    console.log(`[warmup] attempt ${attempt}/${maxAttempts} failed (status=${res.status}), retrying...`);
+    console.log(
+      `[warmup] attempt ${attempt}/${maxAttempts} failed (status=${res.status}), retrying...`
+    );
     sleep(2);
   }
-  console.warn('[warmup] backend never returned a clean response - continuing anyway, expect skewed baseline numbers');
+  console.warn(
+    '[warmup] backend never returned a clean response - continuing anyway, expect skewed baseline numbers'
+  );
   return { warmedUp: false };
 }
 
@@ -231,7 +251,9 @@ export function setup() {
 // =======================================================================
 export function phase1() {
   if (tokens.length < 2) {
-    throw new Error('Phase 1 needs at least 2 tokens in TOKENS_FILE (sender + recipient)');
+    throw new Error(
+      'Phase 1 needs at least 2 tokens in TOKENS_FILE (sender + recipient)'
+    );
   }
 
   const sender = tokens[0];
@@ -266,7 +288,9 @@ export function phase1() {
     if (frame.eioType === '4' && frame.socketioType === '0') {
       connected = true;
       wsConnectLatency.add(Date.now() - connectStart);
-      console.log(`[phase1] Socket.IO CONNECT ack received in ${Date.now() - connectStart}ms - auth OK`);
+      console.log(
+        `[phase1] Socket.IO CONNECT ack received in ${Date.now() - connectStart}ms - auth OK`
+      );
 
       sendStart = Date.now();
       socket.send(
@@ -287,7 +311,11 @@ export function phase1() {
       return;
     }
 
-    if (frame.eioType === '4' && frame.socketioType === '3' && frame.ackId === '1') {
+    if (
+      frame.eioType === '4' &&
+      frame.socketioType === '3' &&
+      frame.ackId === '1'
+    ) {
       ackReceived = true;
       const rtt = Date.now() - sendStart;
       wsMessageAckLatency.add(rtt);
@@ -303,7 +331,9 @@ export function phase1() {
       // close cleanly ourselves (this is the one intentional close in
       // the whole script - Phase 1 is a single deliberate round trip).
       setTimeout(() => {
-        console.log('[phase1] connection held open post-ack as expected, closing intentionally');
+        console.log(
+          '[phase1] connection held open post-ack as expected, closing intentionally'
+        );
         socket.close();
       }, 2000);
     }
@@ -341,7 +371,9 @@ export function loadLoop() {
   const entry = tokens[tokenIndex];
   const partner = pickPartner(tokenIndex);
   if (!partner) {
-    throw new Error('loadLoop needs at least 2 tokens in TOKENS_FILE to pair VUs into conversations');
+    throw new Error(
+      'loadLoop needs at least 2 tokens in TOKENS_FILE to pair VUs into conversations'
+    );
   }
   openSession(entry, partner);
 }
@@ -401,13 +433,16 @@ function openSession(entry, partner) {
       wsConnectLatency.add(Date.now() - connectStart);
 
       // Random jitter on first send so VUs don't all fire in lockstep.
-      setTimeout(() => {
-        sendMessage();
-        sendTimer = setInterval(
-          sendMessage,
-          randomIntBetween(MSG_MIN_INTERVAL_S, MSG_MAX_INTERVAL_S) * 1000
-        );
-      }, randomIntBetween(0, MSG_MAX_INTERVAL_S) * 1000);
+      setTimeout(
+        () => {
+          sendMessage();
+          sendTimer = setInterval(
+            sendMessage,
+            randomIntBetween(MSG_MIN_INTERVAL_S, MSG_MAX_INTERVAL_S) * 1000
+          );
+        },
+        randomIntBetween(0, MSG_MAX_INTERVAL_S) * 1000
+      );
 
       // Occasionally force a disconnect/reconnect cycle to simulate flaky
       // clients (mobile network drops, tab backgrounding, etc).
@@ -430,7 +465,9 @@ function openSession(entry, partner) {
       if (sentAt !== undefined) {
         pendingAcks.delete(frame.ackId);
         wsMessageAckLatency.add(Date.now() - sentAt);
-        const ackPayload = Array.isArray(frame.payload) ? frame.payload[0] : null;
+        const ackPayload = Array.isArray(frame.payload)
+          ? frame.payload[0]
+          : null;
         wsAckFailureRate.add(!(ackPayload && ackPayload.ok === true));
       }
       return;
@@ -451,9 +488,12 @@ function openSession(entry, partner) {
     // for the rest of its scheduled stage/duration. k6 interrupts this
     // recursion itself once the scenario's stage/duration + gracefulStop
     // window elapses.
-    setTimeout(() => {
-      openSession(entry, partner);
-    }, randomIntBetween(500, 3000));
+    setTimeout(
+      () => {
+        openSession(entry, partner);
+      },
+      randomIntBetween(500, 3000)
+    );
   });
 
   socket.addEventListener('error', () => {
@@ -534,7 +574,9 @@ function buildOptions() {
         },
       };
     default:
-      throw new Error(`Unknown PHASE "${PHASE}" - expected 1, 2, 3, or 4 (see load-test/k6/README.md)`);
+      throw new Error(
+        `Unknown PHASE "${PHASE}" - expected 1, 2, 3, or 4 (see load-test/k6/README.md)`
+      );
   }
 }
 
