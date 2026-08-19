@@ -11,7 +11,8 @@ the full plan both suites' phases mirror.
 Both suites read a pool of pre-signed JWTs from `load-test/tokens.json`
 (repo root), produced by `backend/scripts/load-test/seed-and-mint.ts`
 (`npm run loadtest:seed` from `backend/`, `npm run loadtest:seed:wipe` to
-clean up). Contract:
+remove the generated users, conversations, messages, post likes, and token
+file). Contract:
 
 ```json
 [
@@ -46,20 +47,17 @@ own handshake and packet framing (Engine.IO v4 + Socket.IO protocol v4) on
 top of the WS connection. k6 has no built-in Socket.io client, so this
 script implements that framing by hand.
 
-**This framing has not been verified against a live backend + MongoDB** in
-the environment that wrote it (no server was available to test against
-end-to-end). It was written from the documented Engine.IO v4 / Socket.IO v4
-wire protocol, matches published k6 + Socket.io load-test patterns, and the
-code paths are internally consistent - but "should work" is not "verified
-working." **Run Phase 1 against a real local backend before trusting any
-other number this script produces.** A failed handshake shows up as
+This framing has been verified against the live local backend and MongoDB.
+**Run Phase 1 before every load-test session anyway.** It verifies the target
+environment, authentication, and protocol compatibility before any capacity
+number is trusted. A failed handshake shows up as
 `ws_connection_errors` incrementing and/or the Phase 1 result printing
 `FAIL` with `connected=false` - not as a silent zero.
 
 ### Requirements
 
-- [k6](https://k6.io/) installed, with `k6/experimental/websockets` and
-  `k6/experimental/timers` available (current k6 releases ship both).
+- [k6](https://k6.io/) v2.2.0 or newer, using `k6/websockets` and the global
+  timer APIs.
 - `load-test/tokens.json` with an even number of entries, at least 2 — VUs
   are paired up (even/odd index) to message each other, and Phase 1 uses
   entry 0 as sender / entry 1 as recipient. An odd count leaves one VU
@@ -69,6 +67,13 @@ other number this script produces.** A failed handshake shows up as
   `backend/src/services/conversation-service.ts` via
   `backend/src/socket/handlers.ts`) creates the conversation on first send,
   matching real client behavior — no pre-existing conversation ids needed.
+- The token pool must cover the phase's maximum VU count: 500 tokens for
+  Phase 2, at least `SUSTAINED_VUS` for Phase 3, and at least
+  `PHASE4_MAX_VUS` for Phase 4 (rounded up to an even count). The script
+  rejects smaller pools because reusing identities concentrates hundreds of
+  sockets onto a few conversation documents and no longer models that many
+  concurrent users. Generate a Phase 2 pool with
+  `npm run loadtest:seed -- --count=500` from `backend/`.
 
 ### Running a phase
 
@@ -98,6 +103,7 @@ VU starts.
 | `TOKENS_FILE`                               | `../tokens.json`        | Path to the token file, resolved relative to this script's own location (so it works the same whether you `cd load-test/k6 && k6 run ws-messaging.js` or run it from elsewhere) — not the current working directory. Pass an absolute path to sidestep that entirely. |
 | `WARMUP_PATH`                               | `/api/post`             | Lightweight GET hit a few times before real load starts. No dedicated `/health` route exists in `backend/src/app.ts`; `GET /api/post` (`backend/src/routes/post-routes.ts`, mounted at `/api/post` — see `backend/src/routes/index.ts`) is unauthenticated and cheap. |
 | `MSG_MIN_INTERVAL_S` / `MSG_MAX_INTERVAL_S` | `2` / `6`               | Randomized delay range between messages per connected VU (phases 2-4).                                                                                                                                                                                                |
+| `ACK_TIMEOUT_MS`                            | `10000`                 | Client-visible acknowledgement deadline. A send with no ack by this deadline counts as a failure, matching the frontend's 10-second send timeout.                                                                                                                     |
 | `RECONNECT_PROBABILITY`                     | `0.05`                  | Chance, checked every `RECONNECT_CHECK_INTERVAL_S`, that a VU deliberately drops and re-establishes its connection (simulates a flaky client).                                                                                                                        |
 | `RECONNECT_CHECK_INTERVAL_S`                | `45`                    | How often (seconds) the reconnect roll happens.                                                                                                                                                                                                                       |
 | `SUSTAINED_VUS`                             | `100`                   | Phase 3 only: concurrent VUs held for the whole sustained window.                                                                                                                                                                                                     |
@@ -113,9 +119,10 @@ Custom metrics, in addition to k6's built-in `ws_*`/`http_req_*` metrics
   connection to receiving the Socket.IO CONNECT ack (i.e. successful auth
   through `socketAuthMiddleware`).
 - `ws_message_ack_latency` (Trend, ms) — round trip from emitting
-  `message:send` to receiving its `43<id>[...]` ack.
-- `ws_ack_failure_rate` (Rate) — fraction of acks where `ok` was not
-  `true` (includes rate-limit rejections from the socket-side `allow()`
+  `message:send` to receiving its `43<id>[...]` ack before `ACK_TIMEOUT_MS`.
+- `ws_ack_failure_rate` (Rate) — fraction of settled sends that returned
+  `ok:false`, timed out, or lost their connection before the ack arrived.
+  This includes rate-limit rejections from the socket-side `allow()`
   limiter in `backend/src/socket/rate-limit.ts`, at 20 events / 10s per
   socket — expect this to climb at high VU counts if messages are sent
   faster than that per connection, which is intentional signal, not a bug
@@ -128,6 +135,11 @@ Custom metrics, in addition to k6's built-in `ws_*`/`http_req_*` metrics
   Socket.IO `CONNECT_ERROR` packet (e.g. bad/expired token).
 - `ws_messages_sent` (Counter) — total `message:send` emits, for
   sanity-checking throughput against the interval settings above.
+- `ws_acks_received` (Counter) — total acknowledgement frames received.
+  Compare this with `ws_messages_sent`; a large gap means sends did not
+  settle within the observed session.
+- `ws_ack_timeouts` / `ws_acks_abandoned` (Counter) — sends that exceeded
+  `ACK_TIMEOUT_MS`, or whose socket closed while their ack was pending.
 
 These map directly to the plan's "What This Test Should Answer" section:
 connect latency and ack failure rate distinguish app-level bottlenecks from
