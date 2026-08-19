@@ -267,3 +267,154 @@ buckling under the WS suite's load.
   an open item from the "Tooling" section); the `p(95)<2000ms` threshold
   used here was the script's existing default, not a value this plan
   formally agreed on.
+
+## Phase 3 Results (2026-08-19, local run)
+
+Same environment as Phase 2: a locally-run backend (`localhost:3001`, one
+Node process, `LOAD_TEST_DISABLE_RATE_LIMITS=true`), MongoDB Atlas free
+tier (no local `mongod` available in this environment either). **Still not
+a Render run** — everything below is local-machine capacity plus the same
+Atlas dependency Phase 2 used. Both suites ran the full default
+`SUSTAINED_DURATION` (12m), back to back, on the same backend process
+(REST ran second, so its "before" memory reading already includes the WS
+run's residual footprint).
+
+### Choosing `SUSTAINED_VUS`
+
+The plan's instruction is to hold Phase 3 at "whatever Phase 2 showed as
+comfortable." Phase 2's own writeup doesn't break latency out per stage,
+but its prose draws the line explicitly at 250 VUs: "acks that land in
+low-hundreds of ms at light load were taking multiple minutes by the
+**250-500 VU stages**." That phrasing treats 10/50/100 as the "light load"
+side of the split, and 100 is also the script's own default. On that
+basis, **`SUSTAINED_VUS=100`** was used for both suites.
+
+That reasoning turned out to be only half right — see the WS results
+below. 100 VUs was a defensible reading of the Phase 2 text going in, but
+the actual Phase 3 numbers show REST was genuinely comfortable at 100 VUs,
+while WS was not. Sustained duration surfaced that gap; a single ramp
+stage in Phase 2 didn't run long enough to.
+
+### Headline finding: no repeat of the full Atlas hang, but a shorter echo of it right as the WS run wound down
+
+`GET /api/post` was polled from a separate terminal every ~30-35s
+throughout both 12-minute runs specifically to catch a repeat of Phase 2's
+~10-minute DB stall. It did not recur in that form — the backend answered
+`200` on every check throughout both runs except two consecutive misses
+right at the tail of the WS run, as the 100 VUs were disconnecting
+(`19:24:47` and `19:25:27`, both `curl` timeouts at the 5s cap with no
+response). The very next check, taken immediately after the k6 process
+exited, came back `200` in 0.18s, and the entire following 12-minute REST
+run polled clean with sub-400ms responses throughout. So: a real, brief
+unresponsiveness window (at least ~40s, bounded by the polling interval)
+coincided with connection teardown at the end of the WS run, but it
+self-resolved without a backend restart — unlike Phase 2, where only
+killing the process fixed it. Treat this as a smaller-scale instance of the
+same failure mode (DB/connection-pool pressure spiking under WS load), not
+a clean bill of health, and not the same severity as Phase 2's finding.
+
+### WS-messaging suite (`ws-messaging.js`, PHASE=3, `SUSTAINED_VUS=100`, 12m hold)
+
+| Metric                                               | Result                                                          |
+| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| `ws_sessions`                                        | 180 (0.24/s)                                                    |
+| `ws_messages_sent`                                   | 21,783 (29.0/s)                                                 |
+| `ws_connect_latency`                                 | avg 61.9ms, p90 154ms, p95 162ms, max 174ms                     |
+| `ws_ack_failure_rate`                                | 0.00% (0 of 21,216 acks)                                        |
+| `ws_message_ack_latency`                             | avg **5.05s**, med 3.03s, p90 14.05s, **p95 15.42s**, max 2m21s |
+| `ws_session_duration`                                | avg 5m9s, p95 11m15s                                            |
+| `ws_unexpected_disconnects` / `ws_connection_errors` | 0 (metric never incremented)                                    |
+| Backend memory, end of run                           | ~363 MB RSS (371,548 K)                                         |
+
+Connections and acks themselves stayed structurally sound: zero failed
+acks out of 21,216, zero unexpected disconnects, zero connection errors,
+over the full 12 minutes at a flat 100 VUs. But message round-trip latency
+was already far past "comfortable" at steady state, not just at Phase 2's
+peak stages — median ack time was 3 seconds and p95 was over 15 seconds,
+against the 2-second bar used elsewhere in this plan. This is a materially
+different picture from what Phase 2's prose implied for "light load": 100
+VUs held steady for 12 minutes behaves like Phase 2's degraded 250+ VU
+stages, not its healthy 10-100 VU stages. The most likely explanation is
+the backlog effect Phase 2's headline finding already pointed at — message
+writes queuing up over a sustained window, rather than a live-concurrency
+ceiling that only shows up at high VU counts. **No windowed/time-bucketed
+latency data was captured for this run** (only the end-of-run summary), so
+whether ack latency stayed flat around this level or drifted upward over
+the 12 minutes cannot be answered from this run — a real gap in what Phase
+3 was supposed to check ("does latency stay flat or drift").
+
+### REST actions suite (`rest-actions.js`, PHASE=3, `SUSTAINED_VUS=100`, 12m hold)
+
+| Metric                      | Result                                                           |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `like_success_rate`         | 100.00% (34,134 of 34,134)                                      |
+| `like_rate_limited_429`     | 0 (bypass confirmed active)                                     |
+| `http_req_failed`           | 0.00% (0 of 34,138)                                              |
+| `like_latency_ms`           | avg 110.7ms, med 87.9ms, p90 150.1ms, **p95 203.2ms**, max 1.68s |
+| Throughput                  | 46.8 req/s sustained                                             |
+| k6 threshold `p(95)<2000ms` | **passed** (actual p95 203ms)                                    |
+| Backend memory, start->end   | ~382 MB -> ~421 MB RSS (391,208 K -> 431,616 K), plateaued after ~2m |
+
+REST at 100 VUs sustained was genuinely comfortable by every measure: the
+k6 threshold passed cleanly (p95 203ms, 10x under the 2s bar), 100%
+success across 34,134 requests, zero rate-limit rejections, and latency
+that never approached Phase 2's degraded numbers. Memory grew ~49MB in the
+first ~2 minutes (391MB -> ~430MB) then held flat within a few hundred KB
+for the remaining 10 minutes of the run (see samples in the caveats
+below) — consistent with one-time connection/buffer allocation settling
+into a steady state, not a leak. This is the strongest "comfortable at 100
+VUs" result of the whole test: REST held both throughput and latency
+completely flat for the entire 12-minute window.
+
+### Answering the plan's four questions, from this run
+
+1. **Where does it start to struggle?** At the REST/HTTP level, not yet at
+   100 VUs sustained — this suite passed cleanly. At the WS level, it's
+   already struggling at 100 VUs held for 12 minutes, even though Phase 2's
+   shorter 100-VU ramp stage didn't show this. Sustained duration, not just
+   VU count, is itself a variable that matters for the WS path.
+2. **App code/architecture vs. platform limits?** Same read as Phase 2:
+   the WS and REST code paths themselves didn't crash, drop connections,
+   or throw errors at 100 VUs for 12 minutes. The degradation is in
+   latency and (briefly, at the very end of the WS run) DB responsiveness,
+   not in application logic breaking.
+3. **Does a separate messaging service look justified?** This run adds a
+   new data point against a WS-specific split: REST, hitting the same
+   shared database, stayed fast and flat at the same VU count and duration
+   where WS degraded badly. That's more evidence the WS code path itself
+   isn't the bottleneck — the shared DB under sustained WS write volume is.
+4. **Informal reliability signal:** zero crashes, zero dropped connections,
+   zero unhandled errors across two full 12-minute sustained runs. The
+   weak points found (WS ack latency under sustained load, a ~40s DB
+   unresponsiveness window at WS teardown) are both DB/latency-tier issues,
+   not application logic breaking down.
+
+### Caveats
+
+- Local machine + local network only, same as Phase 2 — no Render
+  dashboard, no Render memory/CPU numbers, no Render free-tier behavior
+  observed.
+- Database was MongoDB Atlas (free tier), not local Mongo, same gap as
+  Phase 2 — this run cannot cleanly separate the app's own DB usage
+  pattern from Atlas's specific free-tier ceiling.
+- REST ran on a backend process that had just finished the WS run (same
+  process, not restarted between suites) — its "before" memory figure
+  (~382MB) already reflects the WS run's residual footprint, not a clean
+  baseline. The ~49MB growth-then-plateau reported for REST is relative to
+  that already-warmed baseline.
+- No time-bucketed/windowed metrics were captured for either suite —
+  only the end-of-run k6 summary and manually-sampled DB-health/memory
+  checks every ~30s from a separate terminal. This means "does latency
+  drift upward over the 12 minutes" cannot be answered precisely for the
+  WS suite from k6's own metrics; the memory samples (recorded in
+  `rest_mem.log` in the run environment, not committed to the repo) are
+  the only genuinely time-series data collected in this phase.
+- The two consecutive DB timeouts at the WS run's tail were caught by a
+  30-35s polling interval, so the true start/end of that unresponsive
+  window is only bounded, not precisely measured — it could have been as
+  short as ~10s or as long as ~70s.
+- `SUSTAINED_VUS=100` was chosen from Phase 2's prose, not from
+  fine-grained per-stage data (Phase 2 didn't record that breakdown either).
+  A dedicated stepped run at 100/150/200 VUs, each held for several
+  minutes, would pin down the WS suite's actual "comfortable" ceiling more
+  precisely than either Phase 2 or Phase 3 currently can.
