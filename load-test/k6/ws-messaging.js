@@ -68,8 +68,7 @@
  * "no data" result.
  */
 
-import { WebSocket } from 'k6/experimental/websockets';
-import { setTimeout, setInterval, clearInterval } from 'k6/experimental/timers';
+import { WebSocket } from 'k6/websockets';
 import { SharedArray } from 'k6/data';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { check, sleep } from 'k6';
