@@ -15,7 +15,11 @@ clean up). Contract:
 
 ```json
 [
-  { "userId": "<mongo ObjectId string>", "email": "user@example.com", "token": "<jwt>" }
+  {
+    "userId": "<mongo ObjectId string>",
+    "email": "user@example.com",
+    "token": "<jwt>"
+  }
 ]
 ```
 
@@ -76,29 +80,29 @@ k6 run -e PHASE=1 ws-messaging.js
 k6 run -e PHASE=1 -e BASE_URL=https://your-app.onrender.com -e TOKENS_FILE=/abs/path/tokens.json ws-messaging.js
 ```
 
-| Phase | Env var       | What it does                                                                 |
-|-------|---------------|-------------------------------------------------------------------------------|
-| 1     | `PHASE=1`     | 1 VU, 1 iteration. Connect, send one message, confirm ack `ok:true`, confirm the connection stays open. Prints an explicit `PASS`/`FAIL` block. Run this first, always. |
-| 2     | `PHASE=2`     | Ramp 10 → 50 → 100 → 250 → 500 VUs (fixed stage durations in the script). Each VU connects, messages a paired partner every 2-6s, and occasionally disconnects/reconnects. |
-| 3     | `PHASE=3`     | Sustained load: `SUSTAINED_VUS` VUs (default 100) held for `SUSTAINED_DURATION` (default `12m`). Set `SUSTAINED_VUS` to whatever Phase 2 showed as "comfortable." |
-| 4     | `PHASE=4`     | Same connect/send/reconnect pattern as Phase 2, but stages keep climbing past a comfortable ceiling, up to `PHASE4_MAX_VUS` (default 750), and hold there to observe the failure mode. Raise `PHASE4_MAX_VUS` without editing the script if 750 isn't enough to break it. |
+| Phase | Env var   | What it does                                                                                                                                                                                                                                                              |
+| ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `PHASE=1` | 1 VU, 1 iteration. Connect, send one message, confirm ack `ok:true`, confirm the connection stays open. Prints an explicit `PASS`/`FAIL` block. Run this first, always.                                                                                                   |
+| 2     | `PHASE=2` | Ramp 10 → 50 → 100 → 250 → 500 VUs (fixed stage durations in the script). Each VU connects, messages a paired partner every 2-6s, and occasionally disconnects/reconnects.                                                                                                |
+| 3     | `PHASE=3` | Sustained load: `SUSTAINED_VUS` VUs (default 100) held for `SUSTAINED_DURATION` (default `12m`). Set `SUSTAINED_VUS` to whatever Phase 2 showed as "comfortable."                                                                                                         |
+| 4     | `PHASE=4` | Same connect/send/reconnect pattern as Phase 2, but stages keep climbing past a comfortable ceiling, up to `PHASE4_MAX_VUS` (default 750), and hold there to observe the failure mode. Raise `PHASE4_MAX_VUS` without editing the script if 750 isn't enough to break it. |
 
 `PHASE` defaults to `1` if omitted; an unrecognized value throws before any
 VU starts.
 
 ### Other env vars
 
-| Var | Default | Meaning |
-|---|---|---|
-| `BASE_URL` | `http://localhost:3001` | Backend origin. WS URL is derived from this (`http`→`ws`, `https`→`wss`) plus `/socket.io/?EIO=4&transport=websocket`. |
-| `TOKENS_FILE` | `../tokens.json` | Path to the token file, resolved relative to this script's own location (so it works the same whether you `cd load-test/k6 && k6 run ws-messaging.js` or run it from elsewhere) — not the current working directory. Pass an absolute path to sidestep that entirely. |
-| `WARMUP_PATH` | `/api/post` | Lightweight GET hit a few times before real load starts. No dedicated `/health` route exists in `backend/src/app.ts`; `GET /api/post` (`backend/src/routes/post-routes.ts`, mounted at `/api/post` — see `backend/src/routes/index.ts`) is unauthenticated and cheap. |
-| `MSG_MIN_INTERVAL_S` / `MSG_MAX_INTERVAL_S` | `2` / `6` | Randomized delay range between messages per connected VU (phases 2-4). |
-| `RECONNECT_PROBABILITY` | `0.05` | Chance, checked every `RECONNECT_CHECK_INTERVAL_S`, that a VU deliberately drops and re-establishes its connection (simulates a flaky client). |
-| `RECONNECT_CHECK_INTERVAL_S` | `45` | How often (seconds) the reconnect roll happens. |
-| `SUSTAINED_VUS` | `100` | Phase 3 only: concurrent VUs held for the whole sustained window. |
-| `SUSTAINED_DURATION` | `12m` | Phase 3 only: how long to hold `SUSTAINED_VUS`. |
-| `PHASE4_MAX_VUS` | `750` | Phase 4 only: the ceiling the ramp climbs to and holds at. |
+| Var                                         | Default                 | Meaning                                                                                                                                                                                                                                                               |
+| ------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BASE_URL`                                  | `http://localhost:3001` | Backend origin. WS URL is derived from this (`http`→`ws`, `https`→`wss`) plus `/socket.io/?EIO=4&transport=websocket`.                                                                                                                                                |
+| `TOKENS_FILE`                               | `../tokens.json`        | Path to the token file, resolved relative to this script's own location (so it works the same whether you `cd load-test/k6 && k6 run ws-messaging.js` or run it from elsewhere) — not the current working directory. Pass an absolute path to sidestep that entirely. |
+| `WARMUP_PATH`                               | `/api/post`             | Lightweight GET hit a few times before real load starts. No dedicated `/health` route exists in `backend/src/app.ts`; `GET /api/post` (`backend/src/routes/post-routes.ts`, mounted at `/api/post` — see `backend/src/routes/index.ts`) is unauthenticated and cheap. |
+| `MSG_MIN_INTERVAL_S` / `MSG_MAX_INTERVAL_S` | `2` / `6`               | Randomized delay range between messages per connected VU (phases 2-4).                                                                                                                                                                                                |
+| `RECONNECT_PROBABILITY`                     | `0.05`                  | Chance, checked every `RECONNECT_CHECK_INTERVAL_S`, that a VU deliberately drops and re-establishes its connection (simulates a flaky client).                                                                                                                        |
+| `RECONNECT_CHECK_INTERVAL_S`                | `45`                    | How often (seconds) the reconnect roll happens.                                                                                                                                                                                                                       |
+| `SUSTAINED_VUS`                             | `100`                   | Phase 3 only: concurrent VUs held for the whole sustained window.                                                                                                                                                                                                     |
+| `SUSTAINED_DURATION`                        | `12m`                   | Phase 3 only: how long to hold `SUSTAINED_VUS`.                                                                                                                                                                                                                       |
+| `PHASE4_MAX_VUS`                            | `750`                   | Phase 4 only: the ceiling the ramp climbs to and holds at.                                                                                                                                                                                                            |
 
 ### Metrics to watch
 
@@ -188,16 +192,16 @@ k6 run -e PHASE=4 -e PHASE4_MAX_VUS=750 -e PHASE4_HOLD_DURATION=3m load-test/k6/
 
 Env vars, all optional:
 
-| Var | Default | Applies to | Meaning |
-|---|---|---|---|
-| `BASE_URL` | `http://localhost:3001` | all | Backend under test |
-| `TOKENS_FILE` | `../tokens.json` | all | Path to the pre-signed token pool |
-| `PHASE` | `1` | all | Which phase to run: `1`, `2`, `3`, `4` |
-| `POST_POOL_LIMIT` | `50` | all | How many posts to fetch in `setup()` for the like pool |
-| `SUSTAINED_VUS` | `100` | Phase 3 | VU count held for the sustained window |
-| `SUSTAINED_DURATION` | `12m` | Phase 3 | Length of the sustained hold |
-| `PHASE4_MAX_VUS` | `750` | Phase 4 | Top-end VU target for the push-past-ceiling ramp |
-| `PHASE4_HOLD_DURATION` | `3m` | Phase 4 | How long to hold at `PHASE4_MAX_VUS` before ramping down |
+| Var                    | Default                 | Applies to | Meaning                                                  |
+| ---------------------- | ----------------------- | ---------- | -------------------------------------------------------- |
+| `BASE_URL`             | `http://localhost:3001` | all        | Backend under test                                       |
+| `TOKENS_FILE`          | `../tokens.json`        | all        | Path to the pre-signed token pool                        |
+| `PHASE`                | `1`                     | all        | Which phase to run: `1`, `2`, `3`, `4`                   |
+| `POST_POOL_LIMIT`      | `50`                    | all        | How many posts to fetch in `setup()` for the like pool   |
+| `SUSTAINED_VUS`        | `100`                   | Phase 3    | VU count held for the sustained window                   |
+| `SUSTAINED_DURATION`   | `12m`                   | Phase 3    | Length of the sustained hold                             |
+| `PHASE4_MAX_VUS`       | `750`                   | Phase 4    | Top-end VU target for the push-past-ceiling ramp         |
+| `PHASE4_HOLD_DURATION` | `3m`                    | Phase 4    | How long to hold at `PHASE4_MAX_VUS` before ramping down |
 
 ### Warm-up
 
