@@ -1,6 +1,7 @@
 # Load Testing Plan: X-Clone Messaging (WebSocket) Scale Test
 
 ## Goal
+
 Determine the real-world breaking point of the current monolithic messaging
 feature (Socket.io based) when deployed on Render's free tier, and use the
 findings to evaluate whether splitting messaging into its own service is
@@ -8,6 +9,7 @@ actually justified for this app's scale, rather than assuming it based on
 general "microservices are better" advice.
 
 ## Prerequisites
+
 - Messaging flow code review fully completed and merged.
 - Confirm current Render free tier limits (memory, concurrent connections,
   idle spin-down behavior) documented before testing, as a baseline.
@@ -15,6 +17,7 @@ general "microservices are better" advice.
   self-hosted k6 avoids any cloud testing cost entirely.
 
 ## Tooling
+
 - **k6** (open source, self-hosted, free) chosen over Locust for this test
   due to more mature native WebSocket support and JavaScript scripting,
   which fits naturally with the existing Next.js/Express/TypeScript stack.
@@ -65,11 +68,13 @@ general "microservices are better" advice.
 ## Test Phases
 
 ### Phase 1: Baseline single-connection sanity check
+
 - One simulated user connects via WebSocket, sends/receives messages.
 - Confirms the test script and auth/session handling work correctly
   before scaling up.
 
 ### Phase 2: Gradual ramp-up
+
 - Start at 10 concurrent simulated users, then 50, then 100, then 250,
   then 500+.
 - At each step, simulate realistic behavior: connect, join a
@@ -80,17 +85,20 @@ general "microservices are better" advice.
   free tier starts throttling, spinning down, or rejecting connections.
 
 ### Phase 3: Sustained load
+
 - Hold the load steady at whatever level Phase 2 showed as "comfortable"
   for an extended period (10 to 15 minutes) to check for memory leaks or
   gradual degradation in the monolith over time, not just at peak.
 
 ### Phase 4: Failure point documentation
+
 - Push past the comfortable threshold until the app visibly degrades or
   crashes.
 - Document exactly what fails first: WebSocket connection limit, memory
   ceiling, CPU, or Render's platform-level caps.
 
 ## What This Test Should Answer
+
 1. At what concurrent user count does the current monolithic architecture
    start to struggle, specifically for WebSocket messaging. (Later we will conduct testing for other shit as well)
 2. Whether the bottleneck is the app's own code/architecture or simply
@@ -105,6 +113,7 @@ general "microservices are better" advice.
    development approach is for non-trivial systems.
 
 ## Notes
+
 - Re-run this same test after any architecture change made in response to
   findings, to confirm improvement is real and not assumed.
 
@@ -167,16 +176,16 @@ anything about which cloud tier breaks first in production.
 Ramp 10 -> 50 -> 100 -> 250 -> 500 VUs over 16 minutes (2m/3m/3m/3m/5m
 stages), each VU messaging a paired partner every 2-6s.
 
-| Metric | Result |
-|---|---|
-| `ws_sessions` | 687 (0.69/s) |
-| `ws_messages_sent` | 51,121 (51.6/s) |
-| `ws_connect_latency` | avg 10.8ms, p90 18ms, p95 52.7ms, max 257ms |
-| `ws_ack_failure_rate` | 0.00% (0 of 12,775 acks) |
-| `ws_message_ack_latency` | avg **57.5s**, med 4.4s, p90 3m27s, **p95 4m29s**, max 5m45s |
-| `ws_session_duration` | avg 3m32s, p95 9m0s |
-| `ws_unexpected_disconnects` / `ws_connection_errors` | 0 (metric never incremented) |
-| Backend memory after run | ~1.36 GB RSS (single Node process) |
+| Metric                                               | Result                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| `ws_sessions`                                        | 687 (0.69/s)                                                 |
+| `ws_messages_sent`                                   | 51,121 (51.6/s)                                              |
+| `ws_connect_latency`                                 | avg 10.8ms, p90 18ms, p95 52.7ms, max 257ms                  |
+| `ws_ack_failure_rate`                                | 0.00% (0 of 12,775 acks)                                     |
+| `ws_message_ack_latency`                             | avg **57.5s**, med 4.4s, p90 3m27s, **p95 4m29s**, max 5m45s |
+| `ws_session_duration`                                | avg 3m32s, p95 9m0s                                          |
+| `ws_unexpected_disconnects` / `ws_connection_errors` | 0 (metric never incremented)                                 |
+| Backend memory after run                             | ~1.36 GB RSS (single Node process)                           |
 
 Connections themselves stayed healthy the whole ramp — fast to establish,
 zero dropped, zero failed acks. But message round-trip latency degraded
@@ -195,15 +204,15 @@ repeatedly calling `POST /api/post/like`. Ran on a freshly restarted
 backend (see headline finding above) with rate limits disabled and
 confirmed at 0 throughout.
 
-| Metric | Result |
-|---|---|
-| `like_success_rate` | 100.00% (26,633 of 26,633) |
-| `like_rate_limited_429` | 0 (bypass confirmed active) |
-| `http_req_failed` | 0.00% (0 of 26,637) |
-| `like_latency_ms` | avg 1.55s, min 72ms, med 1.04s, p90 3.96s, **p95 4.34s**, max 6.03s |
-| Throughput | 43.7 req/s sustained across the ramp |
-| k6 threshold `p(95)<2000ms` | **failed** (actual p95 4.34s) |
-| Backend memory after run | ~395 MB RSS |
+| Metric                      | Result                                                              |
+| --------------------------- | ------------------------------------------------------------------- |
+| `like_success_rate`         | 100.00% (26,633 of 26,633)                                          |
+| `like_rate_limited_429`     | 0 (bypass confirmed active)                                         |
+| `http_req_failed`           | 0.00% (0 of 26,637)                                                 |
+| `like_latency_ms`           | avg 1.55s, min 72ms, med 1.04s, p90 3.96s, **p95 4.34s**, max 6.03s |
+| Throughput                  | 43.7 req/s sustained across the ramp                                |
+| k6 threshold `p(95)<2000ms` | **failed** (actual p95 4.34s)                                       |
+| Backend memory after run    | ~395 MB RSS                                                         |
 
 Zero failures and zero rate-limit rejections end to end — the write path
 itself (Mongoose update + Express route) never broke under 500 concurrent
@@ -220,9 +229,9 @@ buckling under the WS suite's load.
 
 1. **Where does it start to struggle?** Not at the app/code level up to
    500 VUs — both suites finished with 0% hard failures. It struggles at
-   the *latency* level well before 500 VUs (ack/like p95 both blow past a
+   the _latency_ level well before 500 VUs (ack/like p95 both blow past a
    2s bar by the 250-500 VU stages), and it fails outright at the
-   *database* level right after the WS ramp, independent of VU count by
+   _database_ level right after the WS ramp, independent of VU count by
    that point — a backlog effect from sustained write volume, not a
    live-concurrency ceiling.
 2. **App code/architecture vs. platform limits?** This run cannot speak to
