@@ -16,10 +16,7 @@ const LOAD_TEST_EMAIL_DOMAIN = '@load-test.x-clone.local';
 
 const TOKEN_EXPIRY = '24h';
 
-const OUTPUT_PATH = path.resolve(
-  __dirname,
-  '../../../load-test/tokens.json'
-);
+const OUTPUT_PATH = path.resolve(__dirname, '../../../load-test/tokens.json');
 
 const FIRST_NAMES = [
   'Ada',
