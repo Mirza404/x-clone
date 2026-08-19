@@ -135,12 +135,22 @@ The environment this test actually ran in only had a MongoDB Atlas
 connection string in `backend/.env` (`cluster0.vexrhsl.mongodb.net`) — no
 local `mongod` was available. So this run mixes "local app server" with
 "cloud database," not the fully-local setup the plan describes. That
-mismatch is directly responsible for the headline finding below.
+mismatch means the run cannot distinguish an Atlas free-tier ceiling from
+the application's Mongo connection-pool and write-contention behavior.
 
-### Headline finding: the database, not the app, was the first thing to fail
+A second methodology gap changes how the WebSocket numbers must be read. The
+run used the seed script's default 20-token pool. At the 500-VU stage,
+`ws-messaging.js` reused those identities, creating 25 sockets per account
+and concentrating all sends onto 10 paired conversation documents. This was
+a valid hot-document stress test, but it was **not 500 simulated users** and
+cannot establish a per-user capacity ceiling. The script now rejects a token
+pool smaller than the phase's maximum VU count so future runs do not silently
+repeat this topology.
 
-Immediately after the WS-messaging ramp finished (500 VUs, 51k+ message
-writes over 16 minutes), `GET /api/post` — a plain, unauthenticated,
+### Headline finding: the database path was the first observable bottleneck
+
+Immediately after the WS-messaging ramp finished (500 sockets, 51k+ message
+send attempts over 16 minutes), `GET /api/post` — a plain, unauthenticated,
 un-rate-limited read — started hanging indefinitely. Isolating it:
 
 - `GET /` (no DB access, plain Express 404) answered instantly. Express
@@ -152,8 +162,9 @@ un-rate-limited read — started hanging indefinitely. Isolating it:
   17:23:32-17:30:22) never got a `200` back. One earlier in-flight request
   (issued right as the ramp ended) did eventually complete, but only after
   roughly 10 minutes — meaning queries were queuing, not erroring, which
-  points at connection-pool exhaustion or a saturated Atlas free-tier
-  connection cap rather than a dropped connection.
+  is consistent with queued database work. The observation alone does not
+  distinguish application-side pool exhaustion, hot-document contention,
+  or an Atlas free-tier capacity limit.
 - The backend's own console log had zero errors, crashes, or Mongoose
   disconnect messages during this entire window — consistent with requests
   queuing silently rather than failing loudly.
@@ -161,15 +172,13 @@ un-rate-limited read — started hanging indefinitely. Isolating it:
   (fresh Mongo connection). It came back healthy within seconds and stayed
   healthy through the entire REST Phase 2 run that followed.
 
-**Read on this**: this is a database-tier failure, not an app-code bug —
-Express, Socket.io, and the route handlers themselves never threw or
-crashed. It's exactly the kind of ceiling Phase 2 exists to find, just one
-layer over from where the plan expected to find it (Render's app-server
-limits, not MongoDB Atlas's free-tier connection limits). It is **not**
-evidence about Render's own capacity — Render was not involved in this run
-at all. A dedicated Atlas-vs-Render confirmation run (already flagged as a
-follow-up in this plan's "Tooling" notes) is needed before concluding
-anything about which cloud tier breaks first in production.
+**Read on this**: the first visible failure was on the database path while
+Express and Socket.io remained responsive. This run does not prove whether
+the limiting factor was Atlas itself or the application's behavior under a
+highly concentrated write workload. It is also **not** evidence about
+Render's capacity — Render was not involved. Repeat against local MongoDB
+with one identity per VU, then run a shorter Atlas comparison before
+assigning the bottleneck to either the application or the database tier.
 
 ### WS-messaging suite (`ws-messaging.js`, PHASE=2)
 
@@ -181,21 +190,26 @@ stages), each VU messaging a paired partner every 2-6s.
 | `ws_sessions`                                        | 687 (0.69/s)                                                 |
 | `ws_messages_sent`                                   | 51,121 (51.6/s)                                              |
 | `ws_connect_latency`                                 | avg 10.8ms, p90 18ms, p95 52.7ms, max 257ms                  |
-| `ws_ack_failure_rate`                                | 0.00% (0 of 12,775 acks)                                     |
+| Ack responses received                               | 12,775 of 51,121 sends (25.0%)                               |
+| Rejected acknowledgements                            | 0 of the 12,775 responses received                           |
 | `ws_message_ack_latency`                             | avg **57.5s**, med 4.4s, p90 3m27s, **p95 4m29s**, max 5m45s |
 | `ws_session_duration`                                | avg 3m32s, p95 9m0s                                          |
 | `ws_unexpected_disconnects` / `ws_connection_errors` | 0 (metric never incremented)                                 |
 | Backend memory after run                             | ~1.36 GB RSS (single Node process)                           |
 
-Connections themselves stayed healthy the whole ramp — fast to establish,
-zero dropped, zero failed acks. But message round-trip latency degraded
-severely as VUs climbed: acks that land in low-hundreds of ms at light load
-were taking multiple minutes by the 250-500 VU stages. The connections
-didn't fail; they just got very slow, well past anything a real chat UI
-could present as "sent." Three VUs hit a harmless `InvalidStateError` in
-the k6 script itself (a timing race between the reconnect-simulation timer
-and `socket.send` on an already-closing socket) — a script quirk, not a
-backend issue, and it didn't block the run.
+Connections themselves stayed open through the ramp, but the original
+instrumentation did not support a claim of zero failed sends. It recorded
+`ws_ack_failure_rate` only when an ack arrived, with no timeout or accounting
+for pending sends on shutdown. Only 12,775 of 51,121 sends produced an
+observed ack before the run ended; the remaining 38,346 may have been queued,
+dropped, or acknowledged after their VU stopped. The p95 latency therefore
+describes only received acks, not all sends. The script now applies the same
+10-second acknowledgement deadline as the frontend and records received,
+timed-out, and abandoned acknowledgements separately.
+
+Three VUs also hit `InvalidStateError` when a timer called `socket.send` on a
+closing socket. The script now cancels its initial-send timer, marks the
+session disconnected before cleanup, and checks `readyState` before sending.
 
 ### REST actions suite (`rest-actions.js`, PHASE=2)
 
@@ -221,37 +235,32 @@ VUs. But it was not fast: median latency crossed 1 second and p95 crossed
 console log was clean throughout (no errors, no crash signatures), and
 unlike the WS suite, the backend stayed responsive to plain reads the
 entire time — this suite's write volume (26,633 single-document updates)
-was far lighter than the WS suite's (51,121 message inserts plus
-per-message conversation upserts), which is consistent with the DB only
-buckling under the WS suite's load.
+was far lighter than the WS suite's 51,121 send attempts. At least 12,775
+WS sends are confirmed persisted by their acknowledgements; the original
+metrics cannot prove how many of the remaining attempts became message
+inserts.
 
 ### Answering the plan's four questions, as far as a local run can
 
-1. **Where does it start to struggle?** Not at the app/code level up to
-   500 VUs — both suites finished with 0% hard failures. It struggles at
-   the _latency_ level well before 500 VUs (ack/like p95 both blow past a
-   2s bar by the 250-500 VU stages), and it fails outright at the
-   _database_ level right after the WS ramp, independent of VU count by
-   that point — a backlog effect from sustained write volume, not a
-   live-concurrency ceiling.
+1. **Where does it start to struggle?** The REST suite exceeded its 2s p95
+   target during the 250-500 VU stages. The WS suite accumulated a large ack
+   backlog and left the database path unresponsive after the ramp, but the
+   reused identities and missing ack-timeout accounting prevent assigning a
+   reliable concurrent-user threshold from this run.
 2. **App code/architecture vs. platform limits?** This run cannot speak to
-   Render's own platform limits at all (no Render involved). It CAN say
-   the app's own Socket.io and Express code held up structurally (no
-   crashes, no dropped connections, no unhandled errors) — the failure
-   that did occur was a dependency (MongoDB Atlas free tier), not this
-   codebase's own logic.
+   Render's own platform limits at all (no Render involved), and it also
+   cannot separate Atlas limits from application-side connection pooling or
+   contention on 10 hot conversation documents. It does show that the Node
+   process and established sockets stayed alive while database work queued.
 3. **Does a separate messaging service look justified?** Nothing here
-   supports it. The WS code path itself never failed; the shared database
-   did. Splitting messaging into its own service without also giving it
-   its own database wouldn't have prevented this run's actual failure,
-   which weakens the case for a WS-specific microservice split at this
-   app's current scale.
-4. **Informal reliability signal:** the hand-written Socket.io framing,
-   auth middleware, and REST mutation paths handled a 500-VU ramp without
-   throwing, crashing, or dropping a single connection or request. The
-   weak point found was operational (free-tier DB capacity), not
-   application logic — a reasonable result for an agentic, "vibe coded"
-   build under real concurrency.
+   supports it. Splitting messaging into its own service without addressing
+   the shared database path, backpressure, and hot-document contention would
+   not address the bottleneck observed in this run.
+4. **Informal reliability signal:** the hand-written Socket.io framing and
+   auth path established the intended connections, and the REST mutation
+   path returned every response. The WS delivery result remains
+   inconclusive because 75% of sends had no observed ack and the workload
+   concentrated 500 sockets onto 20 accounts.
 
 ### Caveats
 
@@ -263,6 +272,10 @@ buckling under the WS suite's load.
   app's own DB usage pattern" from "Atlas's specific free-tier ceiling."
   The dedicated Atlas-vs-local confirmation run flagged elsewhere in this
   plan becomes more important in light of this result, not less.
+- The WS token pool contained 20 identities, so the 500-VU stage measured
+  many sockets sharing a small number of accounts and conversations. Repeat
+  with at least one token per VU before describing the result as a
+  concurrent-user capacity test.
 - Numeric pass/fail thresholds were not pinned down before this run (still
   an open item from the "Tooling" section); the `p(95)<2000ms` threshold
   used here was the script's existing default, not a value this plan
