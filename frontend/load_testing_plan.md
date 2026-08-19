@@ -107,3 +107,154 @@ general "microservices are better" advice.
 ## Notes
 - Re-run this same test after any architecture change made in response to
   findings, to confirm improvement is real and not assumed.
+
+## Phase 2 Results (2026-08-19, local run)
+
+Both suites ran to completion against a locally-run backend
+(`localhost:3001`, one Node process, `LOAD_TEST_DISABLE_RATE_LIMITS=true`).
+**This was not a Render run.** No Render dashboard, no Render CPU/memory
+graph, no Render spin-down behavior was observed. Everything below is
+local-machine + local-network capacity, plus one cloud dependency
+(MongoDB Atlas, see the headline finding). Treat every number as "what this
+app and this database do under load," not "what Render's free tier can
+survive" — the plan's original Phase 2 design assumed the latter, and this
+run cannot answer that part.
+
+One environment gap worth flagging before the numbers: the plan's own
+"Tooling" section calls for a **local MongoDB** instance for these runs.
+The environment this test actually ran in only had a MongoDB Atlas
+connection string in `backend/.env` (`cluster0.vexrhsl.mongodb.net`) — no
+local `mongod` was available. So this run mixes "local app server" with
+"cloud database," not the fully-local setup the plan describes. That
+mismatch is directly responsible for the headline finding below.
+
+### Headline finding: the database, not the app, was the first thing to fail
+
+Immediately after the WS-messaging ramp finished (500 VUs, 51k+ message
+writes over 16 minutes), `GET /api/post` — a plain, unauthenticated,
+un-rate-limited read — started hanging indefinitely. Isolating it:
+
+- `GET /` (no DB access, plain Express 404) answered instantly. Express
+  itself, and the Node process, stayed up and responsive.
+- `GET /api/post` (a Mongoose query) hung with no response and no error
+  logged. Not a crash, not a thrown exception — a silent stall on the DB
+  path specifically.
+- A bounded recovery check (polling every ~10s for about 7 minutes,
+  17:23:32-17:30:22) never got a `200` back. One earlier in-flight request
+  (issued right as the ramp ended) did eventually complete, but only after
+  roughly 10 minutes — meaning queries were queuing, not erroring, which
+  points at connection-pool exhaustion or a saturated Atlas free-tier
+  connection cap rather than a dropped connection.
+- The backend's own console log had zero errors, crashes, or Mongoose
+  disconnect messages during this entire window — consistent with requests
+  queuing silently rather than failing loudly.
+- The only fix that worked was killing and restarting the backend process
+  (fresh Mongo connection). It came back healthy within seconds and stayed
+  healthy through the entire REST Phase 2 run that followed.
+
+**Read on this**: this is a database-tier failure, not an app-code bug —
+Express, Socket.io, and the route handlers themselves never threw or
+crashed. It's exactly the kind of ceiling Phase 2 exists to find, just one
+layer over from where the plan expected to find it (Render's app-server
+limits, not MongoDB Atlas's free-tier connection limits). It is **not**
+evidence about Render's own capacity — Render was not involved in this run
+at all. A dedicated Atlas-vs-Render confirmation run (already flagged as a
+follow-up in this plan's "Tooling" notes) is needed before concluding
+anything about which cloud tier breaks first in production.
+
+### WS-messaging suite (`ws-messaging.js`, PHASE=2)
+
+Ramp 10 -> 50 -> 100 -> 250 -> 500 VUs over 16 minutes (2m/3m/3m/3m/5m
+stages), each VU messaging a paired partner every 2-6s.
+
+| Metric | Result |
+|---|---|
+| `ws_sessions` | 687 (0.69/s) |
+| `ws_messages_sent` | 51,121 (51.6/s) |
+| `ws_connect_latency` | avg 10.8ms, p90 18ms, p95 52.7ms, max 257ms |
+| `ws_ack_failure_rate` | 0.00% (0 of 12,775 acks) |
+| `ws_message_ack_latency` | avg **57.5s**, med 4.4s, p90 3m27s, **p95 4m29s**, max 5m45s |
+| `ws_session_duration` | avg 3m32s, p95 9m0s |
+| `ws_unexpected_disconnects` / `ws_connection_errors` | 0 (metric never incremented) |
+| Backend memory after run | ~1.36 GB RSS (single Node process) |
+
+Connections themselves stayed healthy the whole ramp — fast to establish,
+zero dropped, zero failed acks. But message round-trip latency degraded
+severely as VUs climbed: acks that land in low-hundreds of ms at light load
+were taking multiple minutes by the 250-500 VU stages. The connections
+didn't fail; they just got very slow, well past anything a real chat UI
+could present as "sent." Three VUs hit a harmless `InvalidStateError` in
+the k6 script itself (a timing race between the reconnect-simulation timer
+and `socket.send` on an already-closing socket) — a script quirk, not a
+backend issue, and it didn't block the run.
+
+### REST actions suite (`rest-actions.js`, PHASE=2)
+
+Ramp 10 -> 50 -> 100 -> 250 -> 500 -> 0 VUs over 10 minutes, each VU
+repeatedly calling `POST /api/post/like`. Ran on a freshly restarted
+backend (see headline finding above) with rate limits disabled and
+confirmed at 0 throughout.
+
+| Metric | Result |
+|---|---|
+| `like_success_rate` | 100.00% (26,633 of 26,633) |
+| `like_rate_limited_429` | 0 (bypass confirmed active) |
+| `http_req_failed` | 0.00% (0 of 26,637) |
+| `like_latency_ms` | avg 1.55s, min 72ms, med 1.04s, p90 3.96s, **p95 4.34s**, max 6.03s |
+| Throughput | 43.7 req/s sustained across the ramp |
+| k6 threshold `p(95)<2000ms` | **failed** (actual p95 4.34s) |
+| Backend memory after run | ~395 MB RSS |
+
+Zero failures and zero rate-limit rejections end to end — the write path
+itself (Mongoose update + Express route) never broke under 500 concurrent
+VUs. But it was not fast: median latency crossed 1 second and p95 crossed
+4 seconds, well past the 2-second threshold set for this run. Backend
+console log was clean throughout (no errors, no crash signatures), and
+unlike the WS suite, the backend stayed responsive to plain reads the
+entire time — this suite's write volume (26,633 single-document updates)
+was far lighter than the WS suite's (51,121 message inserts plus
+per-message conversation upserts), which is consistent with the DB only
+buckling under the WS suite's load.
+
+### Answering the plan's four questions, as far as a local run can
+
+1. **Where does it start to struggle?** Not at the app/code level up to
+   500 VUs — both suites finished with 0% hard failures. It struggles at
+   the *latency* level well before 500 VUs (ack/like p95 both blow past a
+   2s bar by the 250-500 VU stages), and it fails outright at the
+   *database* level right after the WS ramp, independent of VU count by
+   that point — a backlog effect from sustained write volume, not a
+   live-concurrency ceiling.
+2. **App code/architecture vs. platform limits?** This run cannot speak to
+   Render's own platform limits at all (no Render involved). It CAN say
+   the app's own Socket.io and Express code held up structurally (no
+   crashes, no dropped connections, no unhandled errors) — the failure
+   that did occur was a dependency (MongoDB Atlas free tier), not this
+   codebase's own logic.
+3. **Does a separate messaging service look justified?** Nothing here
+   supports it. The WS code path itself never failed; the shared database
+   did. Splitting messaging into its own service without also giving it
+   its own database wouldn't have prevented this run's actual failure,
+   which weakens the case for a WS-specific microservice split at this
+   app's current scale.
+4. **Informal reliability signal:** the hand-written Socket.io framing,
+   auth middleware, and REST mutation paths handled a 500-VU ramp without
+   throwing, crashing, or dropping a single connection or request. The
+   weak point found was operational (free-tier DB capacity), not
+   application logic — a reasonable result for an agentic, "vibe coded"
+   build under real concurrency.
+
+### Caveats
+
+- Local machine + local network only. No Render dashboard, no Render
+  memory/CPU numbers, no Render free-tier spin-down behavior was observed
+  or can be inferred from this run.
+- Database was MongoDB Atlas (free tier), not local Mongo as the plan's
+  "Tooling" section specifies — this run cannot cleanly separate "the
+  app's own DB usage pattern" from "Atlas's specific free-tier ceiling."
+  The dedicated Atlas-vs-local confirmation run flagged elsewhere in this
+  plan becomes more important in light of this result, not less.
+- Numeric pass/fail thresholds were not pinned down before this run (still
+  an open item from the "Tooling" section); the `p(95)<2000ms` threshold
+  used here was the script's existing default, not a value this plan
+  formally agreed on.
