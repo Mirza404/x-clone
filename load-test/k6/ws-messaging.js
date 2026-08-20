@@ -89,6 +89,8 @@ const RECONNECT_CHECK_INTERVAL_S = Number(
 const SUSTAINED_VUS = Number(__ENV.SUSTAINED_VUS || 100);
 const SUSTAINED_DURATION = __ENV.SUSTAINED_DURATION || '12m';
 const PHASE4_MAX_VUS = Number(__ENV.PHASE4_MAX_VUS || 750);
+const STEPPED_RAMP_DURATION = __ENV.STEPPED_RAMP_DURATION || '1m';
+const STEPPED_HOLD_DURATION = __ENV.STEPPED_HOLD_DURATION || '5m';
 
 // Path is resolved relative to THIS script file (not the invocation cwd),
 // because k6's `open()` resolves relative paths against the script's own
@@ -596,6 +598,20 @@ function buildPhase4Stages() {
   ];
 }
 
+// Phase 3 held SUSTAINED_VUS (chosen from Phase 2's prose, not fine-grained
+// per-stage data) for one long window. This steps through 100/150/200 VUs
+// instead, each ramped up then held, so the WS suite's actual "comfortable"
+// ceiling can be read off per-level rather than inferred from a single
+// sustained run - see the Phase 3 Results caveats in
+// frontend/load_testing_plan.md.
+function buildSteppedStages() {
+  const levels = [100, 150, 200];
+  return levels.flatMap((target) => [
+    { duration: STEPPED_RAMP_DURATION, target },
+    { duration: STEPPED_HOLD_DURATION, target },
+  ]);
+}
+
 function buildOptions() {
   switch (PHASE) {
     case '1':
@@ -655,9 +671,21 @@ function buildOptions() {
           },
         },
       };
+    case '3-stepped':
+      return {
+        scenarios: {
+          phase3_stepped: {
+            executor: 'ramping-vus',
+            startVUs: 0,
+            stages: buildSteppedStages(),
+            gracefulRampDown: '30s',
+            exec: 'loadLoop',
+          },
+        },
+      };
     default:
       throw new Error(
-        `Unknown PHASE "${PHASE}" - expected 1, 2, 3, or 4 (see load-test/k6/README.md)`
+        `Unknown PHASE "${PHASE}" - expected 1, 2, 3, 3-stepped, or 4 (see load-test/k6/README.md)`
       );
   }
 }
