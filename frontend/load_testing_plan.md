@@ -418,3 +418,24 @@ completely flat for the entire 12-minute window.
   A dedicated stepped run at 100/150/200 VUs, each held for several
   minutes, would pin down the WS suite's actual "comfortable" ceiling more
   precisely than either Phase 2 or Phase 3 currently can.
+
+## Phase 3 Stepped VU Run (planned, not yet executed)
+
+Addresses the `SUSTAINED_VUS=100` caveat above: `ws-messaging.js` now has a
+`PHASE=3-stepped` scenario (see
+[`load-test/k6/README.md`](../load-test/k6/README.md)) that ramps through
+100, 150, and 200 VUs in turn, holding at each level for
+`STEPPED_HOLD_DURATION` (default 5m), instead of a single sustained level
+chosen from Phase 2's prose.
+
+```bash
+# from load-test/k6/
+k6 run -e PHASE=3-stepped ws-messaging.js
+```
+
+This needs to run on real local-machine hardware (same reasoning as
+Phase 2/3 — see Tooling), not a CI runner or container, so results aren't
+recorded yet. TODO once run: per-level `ws_connect_latency`,
+`ws_message_ack_latency`, `ws_ack_failure_rate`, and
+`ws_unexpected_disconnects`, to identify which of 100/150/200 is the first
+level where the WS suite stops being "comfortable."
