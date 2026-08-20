@@ -7,6 +7,7 @@ coverage/
 *.log
 .claude/settings.local.json
 load-test/tokens.json
+.localtools/
 Handoff.md
 DELIVERABLE.md
 bugs_reported/
