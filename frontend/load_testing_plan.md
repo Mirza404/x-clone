@@ -439,3 +439,39 @@ recorded yet. TODO once run: per-level `ws_connect_latency`,
 `ws_message_ack_latency`, `ws_ack_failure_rate`, and
 `ws_unexpected_disconnects`, to identify which of 100/150/200 is the first
 level where the WS suite stops being "comfortable."
+
+## Local-Mongo Confirmation Run (planned, not yet executed)
+
+Addresses the "Database was MongoDB Atlas, not local Mongo" caveat shared
+by Phase 2 and Phase 3: both runs so far used the free-tier Atlas cluster
+from `backend/.env`'s `MONGODB_URL`, not local Mongo as the Tooling section
+originally intended, so neither run can cleanly separate the app's own DB
+usage pattern from Atlas's specific free-tier ceiling (connection cap,
+storage, or otherwise).
+
+### Runbook
+
+1. Start a local MongoDB instance (`mongod` or equivalent) — no code
+   changes needed, `backend/src/db/connection.ts` only reads whatever
+   `MONGODB_URL` is set to.
+2. Point the backend at it for the duration of this run, e.g.:
+   ```
+   MONGODB_URL="mongodb://localhost:27017/xclone-loadtest" LOAD_TEST_DISABLE_RATE_LIMITS=true npm run dev
+   ```
+   (from `backend/`) — swap back to the Atlas URL afterward; don't commit
+   this value to `backend/.env`.
+3. Re-seed tokens against the local database (`npm run loadtest:seed` from
+   `backend/`) — the Atlas-seeded users/tokens from prior runs don't exist
+   in a fresh local database.
+4. Re-run the same suites already used for Phase 2/3: `rest-actions.js` and
+   `ws-messaging.js` at `PHASE=3` (and `PHASE=3-stepped`, once that's been
+   run once already), against local Mongo instead of Atlas.
+5. Compare against the existing Phase 2/3 Results sections above,
+   specifically the DB-timeout/unresponsiveness findings — if those don't
+   reproduce against local Mongo, that's confirmation the bottleneck really
+   is Atlas's free tier, not the app's own DB usage pattern.
+
+TODO once run: same metrics as Phase 3 Results, plus an explicit
+side-by-side of local-Mongo vs. Atlas numbers for the metrics that showed
+the DB-tier weak points in Phase 3 (WS ack latency under sustained load,
+the DB-unresponsiveness window at WS teardown).
