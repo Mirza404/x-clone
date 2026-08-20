@@ -135,7 +135,9 @@ function likeOnce(token, postId) {
 // ---------------------------------------------------------------------------
 
 export function setup() {
-  console.log(`[SETUP] Warming up ${BASE_URL} (Render free-tier cold start mitigation)`);
+  console.log(
+    `[SETUP] Warming up ${BASE_URL} (Render free-tier cold start mitigation)`
+  );
   for (let i = 1; i <= 3; i++) {
     const res = http.get(`${BASE_URL}/api/post?limit=1`, {
       tags: { name: 'warmup GET /api/post' },
@@ -155,24 +157,32 @@ export function setup() {
     tags: { name: 'setup GET /api/post' },
   });
   if (res.status !== 200) {
-    throw new Error(`[SETUP] GET /api/post failed: status ${res.status}, body ${res.body}`);
+    throw new Error(
+      `[SETUP] GET /api/post failed: status ${res.status}, body ${res.body}`
+    );
   }
 
   let body;
   try {
     body = JSON.parse(res.body);
   } catch (e) {
-    throw new Error(`[SETUP] GET /api/post returned non-JSON body: ${res.body}`);
+    throw new Error(
+      `[SETUP] GET /api/post returned non-JSON body: ${res.body}`
+    );
   }
 
   // allPosts (backend/src/controllers/post-controller.ts) returns
   // { posts: [{ id, content, images, name, createdAt, likes, author, authorImage, comments }], totalPages, currentPage }
   const postIds = (body.posts || []).map((p) => p.id).filter(Boolean);
   if (postIds.length === 0) {
-    throw new Error('[SETUP] GET /api/post returned no posts - seed the database before running load tests.');
+    throw new Error(
+      '[SETUP] GET /api/post returned no posts - seed the database before running load tests.'
+    );
   }
 
-  console.log(`[SETUP] Loaded ${postIds.length} post id(s) and ${tokens.length} token(s) for the like pool`);
+  console.log(
+    `[SETUP] Loaded ${postIds.length} post id(s) and ${tokens.length} token(s) for the like pool`
+  );
   return { postIds };
 }
 
@@ -288,7 +298,9 @@ function buildScenarios() {
     }
 
     default:
-      throw new Error(`Unknown PHASE "${PHASE}" - expected one of "1", "2", "3", "4"`);
+      throw new Error(
+        `Unknown PHASE "${PHASE}" - expected one of "1", "2", "3", "4"`
+      );
   }
 }
 

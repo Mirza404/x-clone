@@ -7,6 +7,9 @@ import {
   disconnectFromDatabase,
   getUsersCollection,
 } from '../../src/db/connection';
+import Conversation from '../../src/models/Conversation';
+import Message from '../../src/models/Message';
+import Post from '../../src/models/Post';
 
 // Load-test users are tagged with this email suffix so `--wipe` can find and
 // remove exactly the accounts this script created, without touching real
@@ -16,10 +19,7 @@ const LOAD_TEST_EMAIL_DOMAIN = '@load-test.x-clone.local';
 
 const TOKEN_EXPIRY = '24h';
 
-const OUTPUT_PATH = path.resolve(
-  __dirname,
-  '../../../load-test/tokens.json'
-);
+const OUTPUT_PATH = path.resolve(__dirname, '../../../load-test/tokens.json');
 
 const FIRST_NAMES = [
   'Ada',
@@ -107,13 +107,36 @@ async function wipeLoadTestData(): Promise<void> {
     .toArray();
 
   if (existing.length === 0) {
+    fs.rmSync(OUTPUT_PATH, { force: true });
     console.info('No previously seeded load-test users to wipe.');
     return;
   }
 
   const ids = existing.map((user) => user._id);
+  const loadTestConversations = await Conversation.find(
+    { participants: { $in: ids } },
+    { _id: 1 }
+  ).lean();
+  const conversationIds = loadTestConversations.map(
+    (conversation) => conversation._id
+  );
+  const deletedMessages = await Message.deleteMany({
+    $or: [{ sender: { $in: ids } }, { conversation: { $in: conversationIds } }],
+  });
+  const deletedConversations = await Conversation.deleteMany({
+    _id: { $in: conversationIds },
+  });
+  const cleanedPosts = await Post.updateMany(
+    { likes: { $in: ids } },
+    { $pull: { likes: { $in: ids } } }
+  );
   await usersCollection.deleteMany({ _id: { $in: ids } });
-  console.info(`Wiped ${ids.length} previously seeded load-test users.`);
+  fs.rmSync(OUTPUT_PATH, { force: true });
+  console.info(
+    `Wiped ${ids.length} load-test users, ${deletedConversations.deletedCount} ` +
+      `conversations, ${deletedMessages.deletedCount} messages, and load-test ` +
+      `likes from ${cleanedPosts.modifiedCount} posts.`
+  );
 }
 
 async function seedUsers(count: number): Promise<LoadTestUser[]> {

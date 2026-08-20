@@ -6,7 +6,7 @@
  * =====================================================================
  * The backend uses Socket.io, not raw WebSocket. Socket.io layers its own
  * handshake and packet framing (Engine.IO v4 + Socket.IO protocol v4) on
- * top of a plain WS connection. k6's `k6/experimental/websockets` module
+ * top of a plain WS connection. k6's `k6/websockets` module
  * only speaks raw WS frames - it does NOT perform the Socket.IO handshake.
  * If we just opened a WS connection and started sending JSON, the server's
  * `io.on('connection', ...)` handler (backend/src/socket/index.ts) would
@@ -54,22 +54,15 @@
  *      compute ack round-trip latency and success/failure.
  *
  * ==========================================================================
- * CONFIDENCE / VERIFICATION CAVEAT (also repeated in load-test/k6/README.md)
+ * LIVE VERIFICATION (also repeated in load-test/k6/README.md)
  * ==========================================================================
- * This framing was written from the documented Engine.IO v4 / Socket.IO v4
- * wire protocol and matches the pattern used in several published k6 +
- * Socket.io load-test writeups. It has NOT been exercised against a live
- * running backend + MongoDB in this environment (no server was available to
- * verify against). Before trusting any numbers this script produces, run
- * Phase 1 against a real local backend first and confirm the ack really
- * comes back `ok: true` and the connect-latency metric is populated - if
- * the handshake is wrong you will see `ws_connection_errors` increment
- * and/or the socket close immediately with no CONNECT ack, not a clean
- * "no data" result.
+ * This framing has been exercised against the live local backend and MongoDB.
+ * Phase 1 must still be run before every load-test session so authentication,
+ * protocol compatibility, and the target environment are verified before
+ * any capacity number is trusted.
  */
 
-import { WebSocket } from 'k6/experimental/websockets';
-import { setTimeout, setInterval, clearInterval } from 'k6/experimental/timers';
+import { WebSocket } from 'k6/websockets';
 import { SharedArray } from 'k6/data';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { check, sleep } from 'k6';
@@ -79,14 +72,20 @@ import http from 'k6/http';
 // Configuration (all overridable via `-e VAR=value`)
 // ---------------------------------------------------------------------
 const PHASE = __ENV.PHASE || '1';
-const BASE_URL = (__ENV.BASE_URL || 'http://localhost:3001').replace(/\/+$/, '');
+const BASE_URL = (__ENV.BASE_URL || 'http://localhost:3001').replace(
+  /\/+$/,
+  ''
+);
 const WS_URL = `${BASE_URL.replace(/^http/, 'ws')}/socket.io/?EIO=4&transport=websocket`;
 const WARMUP_PATH = __ENV.WARMUP_PATH || '/api/post';
 
 const MSG_MIN_INTERVAL_S = Number(__ENV.MSG_MIN_INTERVAL_S || 2);
 const MSG_MAX_INTERVAL_S = Number(__ENV.MSG_MAX_INTERVAL_S || 6);
+const ACK_TIMEOUT_MS = Number(__ENV.ACK_TIMEOUT_MS || 10000);
 const RECONNECT_PROBABILITY = Number(__ENV.RECONNECT_PROBABILITY || 0.05);
-const RECONNECT_CHECK_INTERVAL_S = Number(__ENV.RECONNECT_CHECK_INTERVAL_S || 45);
+const RECONNECT_CHECK_INTERVAL_S = Number(
+  __ENV.RECONNECT_CHECK_INTERVAL_S || 45
+);
 const SUSTAINED_VUS = Number(__ENV.SUSTAINED_VUS || 100);
 const SUSTAINED_DURATION = __ENV.SUSTAINED_DURATION || '12m';
 const PHASE4_MAX_VUS = Number(__ENV.PHASE4_MAX_VUS || 750);
@@ -116,7 +115,9 @@ const tokens = new SharedArray('tokens', function () {
     );
   }
   if (!Array.isArray(raw) || raw.length === 0) {
-    throw new Error(`TOKENS_FILE "${TOKENS_FILE}" must be a non-empty JSON array`);
+    throw new Error(
+      `TOKENS_FILE "${TOKENS_FILE}" must be a non-empty JSON array`
+    );
   }
   return raw;
 });
@@ -126,7 +127,10 @@ const tokens = new SharedArray('tokens', function () {
 // ---------------------------------------------------------------------
 const wsConnectLatency = new Trend('ws_connect_latency', true); // ms, WS open -> Socket.IO CONNECT ack
 const wsMessageAckLatency = new Trend('ws_message_ack_latency', true); // ms, emit -> ack received
-const wsAckFailureRate = new Rate('ws_ack_failure_rate'); // fraction of acks with ok:false or timeout
+const wsAckFailureRate = new Rate('ws_ack_failure_rate'); // ok:false, timeout, or disconnect before ack
+const wsAcksReceived = new Counter('ws_acks_received');
+const wsAckTimeouts = new Counter('ws_ack_timeouts');
+const wsAcksAbandoned = new Counter('ws_acks_abandoned');
 const wsUnexpectedDisconnects = new Counter('ws_unexpected_disconnects'); // close not initiated by the script
 const wsConnectionErrors = new Counter('ws_connection_errors'); // transport errors / CONNECT_ERROR packets
 const wsMessagesSent = new Counter('ws_messages_sent');
@@ -160,7 +164,13 @@ function parseFrame(data) {
     return { eioType, payload };
   }
 
-  if (eioType === '2' || eioType === '3' || eioType === '1' || eioType === '5' || eioType === '6') {
+  if (
+    eioType === '2' ||
+    eioType === '3' ||
+    eioType === '1' ||
+    eioType === '5' ||
+    eioType === '6'
+  ) {
     // ping / pong / close / upgrade / noop - no Socket.IO payload
     return { eioType };
   }
@@ -188,7 +198,9 @@ function parseFrame(data) {
 }
 
 function randomIntBetween(minInclusive, maxInclusive) {
-  return Math.floor(Math.random() * (maxInclusive - minInclusive + 1)) + minInclusive;
+  return (
+    Math.floor(Math.random() * (maxInclusive - minInclusive + 1)) + minInclusive
+  );
 }
 
 // Deterministic even/odd pairing so every VU always messages the same
@@ -197,8 +209,29 @@ function randomIntBetween(minInclusive, maxInclusive) {
 function pickPartner(tokenIndex) {
   const n = tokens.length;
   if (n < 2) return null;
-  const partnerIndex = tokenIndex % 2 === 0 ? (tokenIndex + 1) % n : (tokenIndex - 1 + n) % n;
+  if (n % 2 !== 0) {
+    throw new Error(
+      `TOKENS_FILE has an odd number of entries (${n}) - even/odd pairing requires an even count so every VU has a real reciprocal partner`
+    );
+  }
+  const partnerIndex =
+    tokenIndex % 2 === 0 ? (tokenIndex + 1) % n : (tokenIndex - 1 + n) % n;
   return tokens[partnerIndex];
+}
+
+function requiredTokenCount() {
+  switch (PHASE) {
+    case '1':
+      return 2;
+    case '2':
+      return 500;
+    case '3':
+      return SUSTAINED_VUS + (SUSTAINED_VUS % 2);
+    case '4':
+      return PHASE4_MAX_VUS + (PHASE4_MAX_VUS % 2);
+    default:
+      return 0;
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -206,6 +239,19 @@ function pickPartner(tokenIndex) {
 // free-tier cold start doesn't contaminate Phase 1's baseline numbers.
 // ---------------------------------------------------------------------
 export function setup() {
+  const required = requiredTokenCount();
+  if (tokens.length < required) {
+    throw new Error(
+      `PHASE=${PHASE} needs at least ${required} tokens, but TOKENS_FILE contains ${tokens.length}. ` +
+        'Reusing identities would concentrate the run onto a few conversations and invalidate per-user capacity results.'
+    );
+  }
+  if (tokens.length % 2 !== 0) {
+    throw new Error(
+      `TOKENS_FILE has an odd number of entries (${tokens.length}) - even/odd pairing requires an even count`
+    );
+  }
+
   const maxAttempts = 8;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const res = http.get(`${BASE_URL}${WARMUP_PATH}`, { timeout: '15s' });
@@ -215,10 +261,14 @@ export function setup() {
       );
       return { warmedUp: true };
     }
-    console.log(`[warmup] attempt ${attempt}/${maxAttempts} failed (status=${res.status}), retrying...`);
+    console.log(
+      `[warmup] attempt ${attempt}/${maxAttempts} failed (status=${res.status}), retrying...`
+    );
     sleep(2);
   }
-  console.warn('[warmup] backend never returned a clean response - continuing anyway, expect skewed baseline numbers');
+  console.warn(
+    '[warmup] backend never returned a clean response - continuing anyway, expect skewed baseline numbers'
+  );
   return { warmedUp: false };
 }
 
@@ -227,7 +277,9 @@ export function setup() {
 // =======================================================================
 export function phase1() {
   if (tokens.length < 2) {
-    throw new Error('Phase 1 needs at least 2 tokens in TOKENS_FILE (sender + recipient)');
+    throw new Error(
+      'Phase 1 needs at least 2 tokens in TOKENS_FILE (sender + recipient)'
+    );
   }
 
   const sender = tokens[0];
@@ -237,6 +289,8 @@ export function phase1() {
   let messageSent = false;
   let ackReceived = false;
   let ackOk = false;
+  let ackSettled = false;
+  let ackTimeout = null;
   let sendStart = 0;
   const clientId = `phase1-${Date.now()}`;
 
@@ -262,7 +316,9 @@ export function phase1() {
     if (frame.eioType === '4' && frame.socketioType === '0') {
       connected = true;
       wsConnectLatency.add(Date.now() - connectStart);
-      console.log(`[phase1] Socket.IO CONNECT ack received in ${Date.now() - connectStart}ms - auth OK`);
+      console.log(
+        `[phase1] Socket.IO CONNECT ack received in ${Date.now() - connectStart}ms - auth OK`
+      );
 
       sendStart = Date.now();
       socket.send(
@@ -274,6 +330,16 @@ export function phase1() {
       );
       messageSent = true;
       wsMessagesSent.add(1);
+      ackTimeout = setTimeout(() => {
+        if (ackSettled) return;
+        ackSettled = true;
+        wsAckFailureRate.add(true);
+        wsAckTimeouts.add(1);
+        console.error(
+          `[phase1] message ack timed out after ${ACK_TIMEOUT_MS}ms`
+        );
+        socket.close();
+      }, ACK_TIMEOUT_MS);
       return;
     }
 
@@ -283,8 +349,16 @@ export function phase1() {
       return;
     }
 
-    if (frame.eioType === '4' && frame.socketioType === '3' && frame.ackId === '1') {
+    if (
+      frame.eioType === '4' &&
+      frame.socketioType === '3' &&
+      frame.ackId === '1'
+    ) {
+      if (ackSettled) return;
+      ackSettled = true;
+      if (ackTimeout) clearTimeout(ackTimeout);
       ackReceived = true;
+      wsAcksReceived.add(1);
       const rtt = Date.now() - sendStart;
       wsMessageAckLatency.add(rtt);
       const ackPayload = Array.isArray(frame.payload) ? frame.payload[0] : null;
@@ -299,13 +373,21 @@ export function phase1() {
       // close cleanly ourselves (this is the one intentional close in
       // the whole script - Phase 1 is a single deliberate round trip).
       setTimeout(() => {
-        console.log('[phase1] connection held open post-ack as expected, closing intentionally');
+        console.log(
+          '[phase1] connection held open post-ack as expected, closing intentionally'
+        );
         socket.close();
       }, 2000);
     }
   });
 
   socket.addEventListener('close', () => {
+    if (messageSent && !ackSettled) {
+      ackSettled = true;
+      if (ackTimeout) clearTimeout(ackTimeout);
+      wsAckFailureRate.add(true);
+      wsAcksAbandoned.add(1);
+    }
     const passed = connected && messageSent && ackReceived && ackOk;
     console.log(
       `\n===== PHASE 1 RESULT: ${passed ? 'PASS' : 'FAIL'} =====\n` +
@@ -333,11 +415,13 @@ export function phase1() {
 // PHASES 2/3/4 - shared "realistic user" connect/send/reconnect loop
 // =======================================================================
 export function loadLoop() {
-  const tokenIndex = (__VU - 1) % tokens.length;
+  const tokenIndex = __VU - 1;
   const entry = tokens[tokenIndex];
   const partner = pickPartner(tokenIndex);
   if (!partner) {
-    throw new Error('loadLoop needs at least 2 tokens in TOKENS_FILE to pair VUs into conversations');
+    throw new Error(
+      'loadLoop needs at least 2 tokens in TOKENS_FILE to pair VUs into conversations'
+    );
   }
   openSession(entry, partner);
 }
@@ -349,11 +433,16 @@ function openSession(entry, partner) {
   let ackCounter = 1;
   const pendingAcks = new Map();
   let sendTimer = null;
+  let firstSendTimer = null;
   let reconnectCheckTimer = null;
 
   const socket = new WebSocket(WS_URL);
 
   function clearTimers() {
+    if (firstSendTimer) {
+      clearTimeout(firstSendTimer);
+      firstSendTimer = null;
+    }
     if (sendTimer) {
       clearInterval(sendTimer);
       sendTimer = null;
@@ -364,18 +453,41 @@ function openSession(entry, partner) {
     }
   }
 
+  function abandonPendingAcks() {
+    for (const pending of pendingAcks.values()) {
+      clearTimeout(pending.timeout);
+      wsAckFailureRate.add(true);
+      wsAcksAbandoned.add(1);
+    }
+    pendingAcks.clear();
+  }
+
   function sendMessage() {
-    if (!connected) return;
+    if (!connected || socket.readyState !== WebSocket.OPEN) return;
     const ackId = ackCounter++;
     const clientId = `${__VU}-${__ITER}-${ackId}-${Date.now()}`;
-    pendingAcks.set(String(ackId), Date.now());
-    socket.send(
-      encodeEventPacket(ackId, 'message:send', {
-        recipientId: partner.userId,
-        content: `k6 load test message ${clientId}`,
-        clientId,
-      })
-    );
+    const ackKey = String(ackId);
+    const sentAt = Date.now();
+    try {
+      socket.send(
+        encodeEventPacket(ackId, 'message:send', {
+          recipientId: partner.userId,
+          content: `k6 load test message ${clientId}`,
+          clientId,
+        })
+      );
+    } catch (error) {
+      wsConnectionErrors.add(1);
+      console.error(`[load] message send failed: ${error}`);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      if (!pendingAcks.delete(ackKey)) return;
+      wsAckFailureRate.add(true);
+      wsAckTimeouts.add(1);
+    }, ACK_TIMEOUT_MS);
+    pendingAcks.set(ackKey, { sentAt, timeout });
     wsMessagesSent.add(1);
   }
 
@@ -397,13 +509,18 @@ function openSession(entry, partner) {
       wsConnectLatency.add(Date.now() - connectStart);
 
       // Random jitter on first send so VUs don't all fire in lockstep.
-      setTimeout(() => {
-        sendMessage();
-        sendTimer = setInterval(
-          sendMessage,
-          randomIntBetween(MSG_MIN_INTERVAL_S, MSG_MAX_INTERVAL_S) * 1000
-        );
-      }, randomIntBetween(0, MSG_MAX_INTERVAL_S) * 1000);
+      firstSendTimer = setTimeout(
+        () => {
+          firstSendTimer = null;
+          sendMessage();
+          if (!connected || socket.readyState !== WebSocket.OPEN) return;
+          sendTimer = setInterval(
+            sendMessage,
+            randomIntBetween(MSG_MIN_INTERVAL_S, MSG_MAX_INTERVAL_S) * 1000
+          );
+        },
+        randomIntBetween(0, MSG_MAX_INTERVAL_S) * 1000
+      );
 
       // Occasionally force a disconnect/reconnect cycle to simulate flaky
       // clients (mobile network drops, tab backgrounding, etc).
@@ -422,11 +539,15 @@ function openSession(entry, partner) {
     }
 
     if (frame.eioType === '4' && frame.socketioType === '3' && frame.ackId) {
-      const sentAt = pendingAcks.get(frame.ackId);
-      if (sentAt !== undefined) {
+      const pending = pendingAcks.get(frame.ackId);
+      if (pending !== undefined) {
         pendingAcks.delete(frame.ackId);
-        wsMessageAckLatency.add(Date.now() - sentAt);
-        const ackPayload = Array.isArray(frame.payload) ? frame.payload[0] : null;
+        clearTimeout(pending.timeout);
+        wsAcksReceived.add(1);
+        wsMessageAckLatency.add(Date.now() - pending.sentAt);
+        const ackPayload = Array.isArray(frame.payload)
+          ? frame.payload[0]
+          : null;
         wsAckFailureRate.add(!(ackPayload && ackPayload.ok === true));
       }
       return;
@@ -437,7 +558,9 @@ function openSession(entry, partner) {
   });
 
   socket.addEventListener('close', () => {
+    connected = false;
     clearTimers();
+    abandonPendingAcks();
     if (!intentionalClose) {
       wsUnexpectedDisconnects.add(1);
     }
@@ -447,9 +570,12 @@ function openSession(entry, partner) {
     // for the rest of its scheduled stage/duration. k6 interrupts this
     // recursion itself once the scenario's stage/duration + gracefulStop
     // window elapses.
-    setTimeout(() => {
-      openSession(entry, partner);
-    }, randomIntBetween(500, 3000));
+    setTimeout(
+      () => {
+        openSession(entry, partner);
+      },
+      randomIntBetween(500, 3000)
+    );
   });
 
   socket.addEventListener('error', () => {
@@ -530,7 +656,9 @@ function buildOptions() {
         },
       };
     default:
-      throw new Error(`Unknown PHASE "${PHASE}" - expected 1, 2, 3, or 4 (see load-test/k6/README.md)`);
+      throw new Error(
+        `Unknown PHASE "${PHASE}" - expected 1, 2, 3, or 4 (see load-test/k6/README.md)`
+      );
   }
 }
 
