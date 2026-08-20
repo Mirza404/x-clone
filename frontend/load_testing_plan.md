@@ -316,7 +316,7 @@ a clean bill of health, and not the same severity as Phase 2's finding.
 ### WS-messaging suite (`ws-messaging.js`, PHASE=3, `SUSTAINED_VUS=100`, 12m hold)
 
 | Metric                                               | Result                                                          |
-| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| ---------------------------------------------------- | --------------------------------------------------------------- |
 | `ws_sessions`                                        | 180 (0.24/s)                                                    |
 | `ws_messages_sent`                                   | 21,783 (29.0/s)                                                 |
 | `ws_connect_latency`                                 | avg 61.9ms, p90 154ms, p95 162ms, max 174ms                     |
@@ -345,15 +345,15 @@ the 12 minutes cannot be answered from this run — a real gap in what Phase
 
 ### REST actions suite (`rest-actions.js`, PHASE=3, `SUSTAINED_VUS=100`, 12m hold)
 
-| Metric                      | Result                                                           |
-| ---------------------------- | ------------------------------------------------------------------ |
-| `like_success_rate`         | 100.00% (34,134 of 34,134)                                      |
-| `like_rate_limited_429`     | 0 (bypass confirmed active)                                     |
-| `http_req_failed`           | 0.00% (0 of 34,138)                                              |
-| `like_latency_ms`           | avg 110.7ms, med 87.9ms, p90 150.1ms, **p95 203.2ms**, max 1.68s |
-| Throughput                  | 46.8 req/s sustained                                             |
-| k6 threshold `p(95)<2000ms` | **passed** (actual p95 203ms)                                    |
-| Backend memory, start->end   | ~382 MB -> ~421 MB RSS (391,208 K -> 431,616 K), plateaued after ~2m |
+| Metric                      | Result                                                               |
+| --------------------------- | -------------------------------------------------------------------- |
+| `like_success_rate`         | 100.00% (34,134 of 34,134)                                           |
+| `like_rate_limited_429`     | 0 (bypass confirmed active)                                          |
+| `http_req_failed`           | 0.00% (0 of 34,138)                                                  |
+| `like_latency_ms`           | avg 110.7ms, med 87.9ms, p90 150.1ms, **p95 203.2ms**, max 1.68s     |
+| Throughput                  | 46.8 req/s sustained                                                 |
+| k6 threshold `p(95)<2000ms` | **passed** (actual p95 203ms)                                        |
+| Backend memory, start->end  | ~382 MB -> ~421 MB RSS (391,208 K -> 431,616 K), plateaued after ~2m |
 
 REST at 100 VUs sustained was genuinely comfortable by every measure: the
 k6 threshold passed cleanly (p95 203ms, 10x under the 2s bar), 100%
