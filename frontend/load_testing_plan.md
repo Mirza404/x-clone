@@ -432,37 +432,126 @@ completely flat for the entire 12-minute window.
   minutes, would pin down the WS suite's actual "comfortable" ceiling more
   precisely than either Phase 2 or Phase 3 currently can.
 
-## Phase 3 Stepped VU Run (planned, not yet executed)
+## Script bug found during the runs below: `WebSocket.OPEN` is `undefined` in k6 v2.2.0
 
-Addresses the `SUSTAINED_VUS=100` caveat above: `ws-messaging.js` now has a
+Before the results below are trustworthy, one thing had to be fixed. The
+local `k6 v2.2.0` binary used for every run on this page does not expose the
+`WebSocket.OPEN` static constant that `k6/experimental/websockets`'
+`WebSocket` class is documented as providing (confirmed directly: `console.log(WebSocket.OPEN)`
+prints `undefined`). `ws-messaging.js`'s `sendMessage()` guarded on
+`socket.readyState !== WebSocket.OPEN` — since the right-hand side was always
+`undefined` and `readyState` is always a number, that comparison was always
+`true`, so `sendMessage()` returned immediately on every call, for every VU,
+for the entire run. The first attempt at the Local-Mongo Confirmation Run's
+WS phases (Phase 2, Phase 3, Phase 3-stepped) connected every VU
+successfully but recorded `ws_messages_sent=0` across all three — the
+connect/auth path was being tested, but zero messages were ever sent.
+Fixed in `load-test/k6/ws-messaging.js` by comparing against the literal
+WHATWG readyState value (`1`) instead of the undefined constant, verified
+with a 45s smoke run (0 → 3,459 messages sent/acked), then all three WS
+phases below were re-run with the fix. The **Phase 2 and Phase 3 Results**
+sections above predate this fix but are unaffected by it — the `ws_messages_sent`
+counts recorded there (51,121 and 21,783) are real, non-zero sends, so
+whatever k6 build produced those results did not hit this same undefined-constant
+issue. This appears to be a build/version-specific gap in k6's experimental
+websockets API, not a mistake in the original script logic — the fix is
+version-agnostic either way and should not need revisiting.
+
+## Phase 3 Stepped VU Run (2026-08-20, local Mongo)
+
+Addresses the `SUSTAINED_VUS=100` caveat above: `ws-messaging.js`'s
 `PHASE=3-stepped` scenario (see
-[`load-test/k6/README.md`](../load-test/k6/README.md)) that ramps through
-100, 150, and 200 VUs in turn, holding at each level for
-`STEPPED_HOLD_DURATION` (default 5m), instead of a single sustained level
-chosen from Phase 2's prose.
+[`load-test/k6/README.md`](../load-test/k6/README.md)) ramps through 100,
+150, and 200 VUs in turn, holding each level for `STEPPED_HOLD_DURATION`
+(5m default), instead of a single sustained level chosen from Phase 2's
+prose. Run against **local MongoDB** (see the Local-Mongo Confirmation Run
+section below for the full environment) after the `WebSocket.OPEN` fix
+above.
 
 ```bash
 # from load-test/k6/
 k6 run -e PHASE=3-stepped ws-messaging.js
 ```
 
-This needs to run on real local-machine hardware (same reasoning as
-Phase 2/3 — see Tooling), not a CI runner or container, so results aren't
-recorded yet. TODO once run: per-level `ws_connect_latency`,
-`ws_message_ack_latency`, `ws_ack_failure_rate`, and
-`ws_unexpected_disconnects`, to identify which of 100/150/200 is the first
-level where the WS suite stops being "comfortable."
+| Metric                                               | Result                                          |
+| ---------------------------------------------------- | ----------------------------------------------- |
+| `ws_sessions`                                        | 382 (0.34/s)                                    |
+| `ws_messages_sent`                                   | 46,972 (42.3/s)                                 |
+| `ws_connect_latency`                                 | avg 2ms, p90 2ms, p95 3ms, max 10ms             |
+| `ws_ack_failure_rate`                                | 0.00% (0 of 46,971 acks)                        |
+| `ws_message_ack_latency`                             | avg 3.34ms, med 3ms, p90 5ms, p95 6ms, max 47ms |
+| `ws_session_duration`                                | avg 5m32s, p95 14m12s, max 17m15s               |
+| `ws_unexpected_disconnects` / `ws_connection_errors` | 0 (metric never incremented)                    |
 
-## Local-Mongo Confirmation Run (planned, not yet executed)
+Flat, fast, and clean across the whole 18-minute climb through 100/150/200
+VUs — nothing here resembles the Atlas-run Phase 3 Results above (p95 ack
+latency there was 15.42s; here it's 6ms, a ~2,500x difference). Zero failed
+acks, zero unexpected disconnects, zero connection errors at the top step
+(200 VUs, the highest WS concurrency tested anywhere in this plan). As with
+Phase 3, the k6 end-of-run summary only gives one aggregate across all three
+VU levels, not a per-level breakdown, so this run cannot say which of
+100/150/200 (if any) is a "first" degradation point — at local-Mongo speeds,
+none of the three levels showed any sign of struggling. **Read together with
+the Local-Mongo Confirmation Run below: this result is itself the strongest
+evidence in the whole plan that Atlas, not the WS code path, was the actual
+constraint in Phase 2/3.**
+
+## Local-Mongo Confirmation Run (2026-08-20, executed)
 
 Addresses the "Database was MongoDB Atlas, not local Mongo" caveat shared
-by Phase 2 and Phase 3: both runs so far used the free-tier Atlas cluster
+by Phase 2 and Phase 3: both of those runs used the free-tier Atlas cluster
 from `backend/.env`'s `MONGODB_URL`, not local Mongo as the Tooling section
-originally intended, so neither run can cleanly separate the app's own DB
+originally intended, so neither could cleanly separate the app's own DB
 usage pattern from Atlas's specific free-tier ceiling (connection cap,
-storage, or otherwise).
+storage, or otherwise). This run does, by re-running the same suites against
+a local MongoDB instance instead.
 
-### Runbook
+### Environment
+
+- Local MongoDB 8.0.4 (portable binary, no service install — `choco` and
+  Docker Desktop were both unavailable in this environment), `mongod
+--dbpath ./data --port 27017 --bind_ip 127.0.0.1`, no auth.
+- Backend started with
+  `MONGODB_URL="mongodb://127.0.0.1:27017/xclone-loadtest" LOAD_TEST_DISABLE_RATE_LIMITS=true npm run dev`.
+- 600 fresh load-test tokens minted against this database
+  (`npm run loadtest:seed -- --count=600`), well above the 500-VU peak used
+  by Phase 2 and Phase 3-stepped, avoiding Phase 2's original "20 tokens
+  shared across 500 VUs" hot-document problem entirely.
+- `npm run seed` run once to populate posts for the REST suite's post pool.
+- Same suites, same phases, same VU counts/durations as the Atlas-based
+  Phase 2 and Phase 3 runs above, plus the Phase 3-stepped run.
+
+### Results vs. the Atlas runs above
+
+| Suite / Phase              | Metric                                               | Atlas (documented above)            | Local Mongo (this run) |
+| -------------------------- | ---------------------------------------------------- | ----------------------------------- | ---------------------- |
+| REST Phase 2 (500 VU ramp) | `like_latency_ms` avg/p95                            | 1.55s / **4.34s**                   | 2.61ms / 4.68ms        |
+| REST Phase 2               | success rate / 429s                                  | 100% / 0                            | 100% / 0               |
+| REST Phase 2               | k6 `p(95)<2000ms`                                    | **failed**                          | **passed**             |
+| REST Phase 3 (100 VU, 12m) | `like_latency_ms` avg/p95                            | 110.7ms / 203.2ms                   | 2.98ms / 3.98ms        |
+| WS Phase 2 (500 VU ramp)   | `ws_message_ack_latency` avg/p95                     | 57.5s / **4m29s**                   | 4.03ms / 7ms           |
+| WS Phase 2                 | `ws_messages_sent`                                   | 51,121                              | 52,637                 |
+| WS Phase 3 (100 VU, 12m)   | `ws_message_ack_latency` avg/p95                     | 5.05s / **15.42s**                  | 3.51ms / 6ms           |
+| WS Phase 3                 | `ws_ack_failure_rate`                                | 0.00%                               | 0.00%                  |
+| Both suites, both phases   | crashes / unexpected disconnects / connection errors | 0 / 0 / 0                           | 0 / 0 / 0              |
+| WS Phase 2                 | DB unresponsiveness after ramp                       | ~10min hang, needed backend restart | none observed          |
+
+Every latency number drops by two to four orders of magnitude once Atlas
+is removed from the path — REST's p95 goes from seconds to single-digit
+milliseconds, and WS's ack latency goes from tens of seconds (Phase 2) or
+double-digit seconds (Phase 3) down to single-digit milliseconds. Phase 2's
+headline finding — `GET /api/post` hanging for ~10 minutes after the WS ramp,
+fixed only by restarting the backend — did not recur here at all under the
+same 500-VU WS load against local Mongo. Connection-level health was already
+clean in the Atlas runs (zero unexpected disconnects/connection errors
+there too), so this isn't "the app got more stable" — it's that the
+**database tier itself, specifically Atlas's free tier**, was the dominant
+cost in every prior latency number and the direct cause of the Phase 2 DB
+hang. This directly answers the plan's question 2 ("app code/architecture
+vs. platform limits"): the WS and REST code paths were never the bottleneck;
+Atlas's free tier was.
+
+### Runbook (for future re-runs)
 
 1. Start a local MongoDB instance (`mongod` or equivalent) — no code
    changes needed, `backend/src/db/connection.ts` only reads whatever
@@ -473,9 +562,10 @@ storage, or otherwise).
    ```
    (from `backend/`) — swap back to the Atlas URL afterward; don't commit
    this value to `backend/.env`.
-3. Re-seed tokens against the local database (`npm run loadtest:seed` from
-   `backend/`) — the Atlas-seeded users/tokens from prior runs don't exist
-   in a fresh local database.
+3. Re-seed tokens against the local database (`npm run loadtest:seed -- --count=<at least the highest VU count you'll run>`
+   from `backend/`) — the Atlas-seeded users/tokens from prior runs don't
+   exist in a fresh local database, and a token pool smaller than the peak
+   VU count reintroduces Phase 2's original hot-document problem.
 4. Re-run the same suites already used for Phase 2/3: `rest-actions.js` and
    `ws-messaging.js` at `PHASE=3` (and `PHASE=3-stepped`, once that's been
    run once already), against local Mongo instead of Atlas.
@@ -484,7 +574,7 @@ storage, or otherwise).
    reproduce against local Mongo, that's confirmation the bottleneck really
    is Atlas's free tier, not the app's own DB usage pattern.
 
-TODO once run: same metrics as Phase 3 Results, plus an explicit
-side-by-side of local-Mongo vs. Atlas numbers for the metrics that showed
-the DB-tier weak points in Phase 3 (WS ack latency under sustained load,
-the DB-unresponsiveness window at WS teardown).
+Done — see the "Results vs. the Atlas runs above" table earlier in this
+section. The DB-timeout/unresponsiveness findings from Phase 2 and Phase 3
+did not reproduce against local Mongo; the bottleneck really is Atlas's free
+tier, not the app's own DB usage pattern.
