@@ -13,6 +13,21 @@ Both suites read a pool of pre-signed JWTs from `load-test/tokens.json`
 (`npm run loadtest:seed` from `backend/`, `npm run loadtest:seed:wipe` to
 clean up). Contract:
 
+`npm run loadtest:seed` defaults to seeding only **20** users
+(`--count=20`) if not overridden — fine for Phase 1-3, but too small for
+Phase 4's ramp up to `PHASE4_MAX_VUS` (default 750): with only 20 tokens,
+VUs wrap around and reuse the same handful of backing users
+(`tokenIndex = (__VU - 1) % tokens.length` in `ws-messaging.js`), which
+concentrates DB writes onto far fewer conversations/rows than a real
+750-user run would and can make a DB-contention artifact look like a
+connection-count ceiling, or vice versa. Before a Phase 4 run, reseed with
+a count comfortably above whatever `PHASE4_MAX_VUS` you're using, e.g.:
+
+```bash
+# from backend/
+npm run loadtest:seed -- --count=800
+```
+
 ```json
 [
   {
