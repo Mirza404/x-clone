@@ -67,7 +67,7 @@ function useConversations() {
 
 /**
  * Applies incoming `message:new` events to the conversations cache. Must be
- * mounted exactly once (in SocketProvider) — mounting it per-consumer would
+ * mounted exactly once (in SocketProvider), mounting it per-consumer would
  * process each event once per mounted consumer and inflate unreadCount.
  */
 function useConversationsCacheBridge(): void {

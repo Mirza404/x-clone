@@ -28,7 +28,7 @@ export default function BackendWakingBanner() {
     <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-yellow-500/10 px-4 py-2 text-[13px] text-yellow-600">
       <span>
         {status === 'waking'
-          ? 'Waking the server up — free hosting sleeps after inactivity, this can take up to a minute.'
+          ? 'Waking the server up, free hosting sleeps after inactivity, this can take up to a minute.'
           : "Can't reach the server right now. Some actions may not work."}
       </span>
       <button
