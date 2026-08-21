@@ -1,264 +1,73 @@
-# k6 Load Testing Suite
+# Load testing
 
-This directory holds x-clone's k6 load tests. Each suite targets a
-different part of the stack, kept separate on purpose: a failure in one
-suite should point at a specific subsystem, not the whole app. See
-[`frontend/load_testing_plan.md`](../../frontend/load_testing_plan.md) for
-the full plan both suites' phases mirror.
+This directory contains separate k6 suites for realtime messages and ordinary HTTP writes. Run them separately so their results identify the affected path.
 
-## Shared setup
+Historical results are in [frontend/load_testing_plan.md](../../frontend/load_testing_plan.md).
 
-Both suites read a pool of pre-signed JWTs from `load-test/tokens.json`
-(repo root), produced by `backend/scripts/load-test/seed-and-mint.ts`
-(`npm run loadtest:seed` from `backend/`, `npm run loadtest:seed:wipe` to
-remove the generated users, conversations, messages, post likes, and token
-file). Contract:
+## Requirements
 
-`npm run loadtest:seed` defaults to seeding only **20** users
-(`--count=20`) if not overridden — fine for Phase 1-3, but too small for
-Phase 4's ramp up to `PHASE4_MAX_VUS` (default 750): with only 20 tokens,
-VUs wrap around and reuse the same handful of backing users
-(`tokenIndex = (__VU - 1) % tokens.length` in `ws-messaging.js`), which
-concentrates DB writes onto far fewer conversations/rows than a real
-750-user run would and can make a DB-contention artifact look like a
-connection-count ceiling, or vice versa. Before a Phase 4 run, reseed with
-a count comfortably above whatever `PHASE4_MAX_VUS` you're using, e.g.:
+1. Install k6 version 2.2.0 or newer.
+2. Start MongoDB and the backend.
+3. Seed a few posts with `npm run seed` from `backend` before running the HTTP suite.
+4. Create load test users and tokens with `npm run loadtest:seed -- --count=500` from `backend`.
+5. Run phase 1 before every larger run.
+6. Remove generated data afterward with `npm run loadtest:seed:wipe` from `backend`.
 
-```bash
-# from backend/
-npm run loadtest:seed -- --count=800
-```
+The seed command writes `load-test/tokens.json`. Each entry contains `userId`, `email`, and `token`. Tokens expire after 24 hours. The file is ignored by Git.
 
-```json
-[
-  {
-    "userId": "<mongo ObjectId string>",
-    "email": "user@example.com",
-    "token": "<jwt>"
-  }
-]
-```
+Use an even user count for the WebSocket suite. Phase 1 needs 2 users. Phase 2 needs 500. Phase 3 needs at least `SUSTAINED_VUS`. Phase `3-stepped` needs 200. Phase 4 needs at least `PHASE4_MAX_VUS`.
 
-If `load-test/tokens.json` doesn't exist yet, either suite fails
-immediately at script load with a clear error from k6's `open()`.
+## WebSocket suite
 
-Both suites take `-e BASE_URL=...` (default `http://localhost:3001`) and
-`-e PHASE=1|2|3|4` selecting which `options.scenarios` entry gets built —
-only one phase runs per `k6 run` invocation. Both fire a short plain-HTTP
-warm-up before any timed phase, to burn off Render free-tier cold-start
-latency so it doesn't contaminate Phase 1's baseline reading.
+`ws-messaging.js` connects users in fixed pairs, sends messages, records acknowledgements, and occasionally reconnects a client.
 
----
+The backend speaks Socket.IO rather than plain WebSocket. k6 provides a plain WebSocket client, so the script implements the required Engine.IO and Socket.IO frames. It connects to `/socket.io/?EIO=4&transport=websocket`, waits for the Engine.IO open packet, sends a Socket.IO connect packet containing the JWT, answers Engine.IO ping packets, and matches Socket.IO acknowledgement ids to sent messages.
 
-## WebSocket messaging suite (`ws-messaging.js`)
+Socket.IO packets used by the script are `40` for connect, `42` for an event, and `43` for an acknowledgement. Engine.IO ping `2` receives pong `3`.
 
-Tests the Socket.io messaging feature.
+The script compares `readyState` with numeric value `1`. The k6 build used for the recorded runs did not expose `WebSocket.OPEN`, which caused an earlier version of the test to connect without sending messages.
 
-### Before you run this
-
-Read the big comment block at the top of `ws-messaging.js` first. Short
-version: the backend uses Socket.io, not raw WebSocket. Socket.io runs its
-own handshake and packet framing (Engine.IO v4 + Socket.IO protocol v4) on
-top of the WS connection. k6 has no built-in Socket.io client, so this
-script implements that framing by hand.
-
-This framing has been verified against the live local backend and MongoDB.
-**Run Phase 1 before every load-test session anyway.** It verifies the target
-environment, authentication, and protocol compatibility before any capacity
-number is trusted. A failed handshake shows up as
-`ws_connection_errors` incrementing and/or the Phase 1 result printing
-`FAIL` with `connected=false` - not as a silent zero.
-
-### Requirements
-
-- [k6](https://k6.io/) v2.2.0 or newer, using `k6/websockets` and the global
-  timer APIs.
-- `load-test/tokens.json` with an even number of entries, at least 2 — VUs
-  are paired up (even/odd index) to message each other, and Phase 1 uses
-  entry 0 as sender / entry 1 as recipient. An odd count leaves one VU
-  without a reciprocal partner (it sends but nobody replies), so
-  `pickPartner` throws rather than silently skewing the stats.
-  `getOrCreateConversation` (see
-  `backend/src/services/conversation-service.ts` via
-  `backend/src/socket/handlers.ts`) creates the conversation on first send,
-  matching real client behavior — no pre-existing conversation ids needed.
-- The token pool must cover the phase's maximum VU count: 500 tokens for
-  Phase 2, at least `SUSTAINED_VUS` for Phase 3, and at least
-  `PHASE4_MAX_VUS` for Phase 4 (rounded up to an even count). The script
-  rejects smaller pools because reusing identities concentrates hundreds of
-  sockets onto a few conversation documents and no longer models that many
-  concurrent users. Generate a Phase 2 pool with
-  `npm run loadtest:seed -- --count=500` from `backend/`.
-
-### Running a phase
+Run from `load-test/k6`:
 
 ```bash
-# from load-test/k6/
 k6 run -e PHASE=1 ws-messaging.js
-
-# against a deployed backend, with a non-default token file location
-k6 run -e PHASE=1 -e BASE_URL=https://your-app.onrender.com -e TOKENS_FILE=/abs/path/tokens.json ws-messaging.js
+k6 run -e PHASE=2 ws-messaging.js
+k6 run -e PHASE=3 -e SUSTAINED_VUS=100 -e SUSTAINED_DURATION=12m ws-messaging.js
+k6 run -e PHASE=3-stepped ws-messaging.js
+k6 run -e PHASE=4 -e PHASE4_MAX_VUS=750 ws-messaging.js
 ```
 
-| Phase     | Env var           | What it does                                                                                                                                                                                                                                                                                       |
-| --------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1         | `PHASE=1`         | 1 VU, 1 iteration. Connect, send one message, confirm ack `ok:true`, confirm the connection stays open. Prints an explicit `PASS`/`FAIL` block. Run this first, always.                                                                                                                            |
-| 2         | `PHASE=2`         | Ramp 10 → 50 → 100 → 250 → 500 VUs (fixed stage durations in the script). Each VU connects, messages a paired partner every 2-6s, and occasionally disconnects/reconnects.                                                                                                                         |
-| 3         | `PHASE=3`         | Sustained load: `SUSTAINED_VUS` VUs (default 100) held for `SUSTAINED_DURATION` (default `12m`). Set `SUSTAINED_VUS` to whatever Phase 2 showed as "comfortable."                                                                                                                                  |
-| 3-stepped | `PHASE=3-stepped` | Ramps to 100, 150, then 200 VUs in turn (`STEPPED_RAMP_DURATION` each, default `1m`), holding at each level for `STEPPED_HOLD_DURATION` (default `5m`) before stepping up. Pins the WS suite's actual "comfortable" ceiling per-level instead of inferring it from a single Phase 3 sustained run. |
-| 4         | `PHASE=4`         | Same connect/send/reconnect pattern as Phase 2, but stages keep climbing past a comfortable ceiling, up to `PHASE4_MAX_VUS` (default 750), and hold there to observe the failure mode. Raise `PHASE4_MAX_VUS` without editing the script if 750 isn't enough to break it.                          |
+Phase 1 connects one sender, sends one message, verifies the acknowledgement, and prints a result. Phase 2 ramps through 10, 50, 100, 250, and 500 virtual users. Phase 3 holds a configured number of users. Phase `3-stepped` holds 100, 150, and 200 users in sequence. Phase 4 continues to a configurable ceiling.
 
-`PHASE` defaults to `1` if omitted; an unrecognized value throws before any
-VU starts.
+Common settings are `BASE_URL`, `TOKENS_FILE`, `WARMUP_PATH`, `MSG_MIN_INTERVAL_S`, `MSG_MAX_INTERVAL_S`, `ACK_TIMEOUT_MS`, `RECONNECT_PROBABILITY`, `RECONNECT_CHECK_INTERVAL_S`, `SUSTAINED_VUS`, `SUSTAINED_DURATION`, `PHASE4_MAX_VUS`, `STEPPED_RAMP_DURATION`, and `STEPPED_HOLD_DURATION`.
 
-### Other env vars
+The default backend address is `http://localhost:3001`. The default token path is `../tokens.json`, resolved relative to the script.
 
-| Var                                         | Default                 | Meaning                                                                                                                                                                                                                                                               |
-| ------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BASE_URL`                                  | `http://localhost:3001` | Backend origin. WS URL is derived from this (`http`→`ws`, `https`→`wss`) plus `/socket.io/?EIO=4&transport=websocket`.                                                                                                                                                |
-| `TOKENS_FILE`                               | `../tokens.json`        | Path to the token file, resolved relative to this script's own location (so it works the same whether you `cd load-test/k6 && k6 run ws-messaging.js` or run it from elsewhere) — not the current working directory. Pass an absolute path to sidestep that entirely. |
-| `WARMUP_PATH`                               | `/api/post`             | Lightweight GET hit a few times before real load starts. No dedicated `/health` route exists in `backend/src/app.ts`; `GET /api/post` (`backend/src/routes/post-routes.ts`, mounted at `/api/post` — see `backend/src/routes/index.ts`) is unauthenticated and cheap. |
-| `MSG_MIN_INTERVAL_S` / `MSG_MAX_INTERVAL_S` | `2` / `6`               | Randomized delay range between messages per connected VU (phases 2-4).                                                                                                                                                                                                |
-| `ACK_TIMEOUT_MS`                            | `10000`                 | Client-visible acknowledgement deadline. A send with no ack by this deadline counts as a failure, matching the frontend's 10-second send timeout.                                                                                                                     |
-| `RECONNECT_PROBABILITY`                     | `0.05`                  | Chance, checked every `RECONNECT_CHECK_INTERVAL_S`, that a VU deliberately drops and re-establishes its connection (simulates a flaky client).                                                                                                                        |
-| `RECONNECT_CHECK_INTERVAL_S`                | `45`                    | How often (seconds) the reconnect roll happens.                                                                                                                                                                                                                       |
-| `SUSTAINED_VUS`                             | `100`                   | Phase 3 only: concurrent VUs held for the whole sustained window.                                                                                                                                                                                                     |
-| `SUSTAINED_DURATION`                        | `12m`                   | Phase 3 only: how long to hold `SUSTAINED_VUS`.                                                                                                                                                                                                                       |
-| `PHASE4_MAX_VUS`                            | `750`                   | Phase 4 only: the ceiling the ramp climbs to and holds at.                                                                                                                                                                                                            |
-| `STEPPED_RAMP_DURATION`                     | `1m`                    | Phase 3-stepped only: how long each ramp between VU levels (100→150→200) takes.                                                                                                                                                                                       |
-| `STEPPED_HOLD_DURATION`                     | `5m`                    | Phase 3-stepped only: how long each VU level (100, 150, 200) is held before stepping up.                                                                                                                                                                              |
+Watch `ws_connect_latency`, `ws_message_ack_latency`, `ws_ack_failure_rate`, `ws_messages_sent`, `ws_acks_received`, `ws_ack_timeouts`, `ws_acks_abandoned`, `ws_unexpected_disconnects`, and `ws_connection_errors`.
 
-### Metrics to watch
+## HTTP suite
 
-Custom metrics, in addition to k6's built-in `ws_*`/`http_req_*` metrics
-(the warm-up step uses plain `k6/http`, so it reports separately):
+`rest-actions.js` repeatedly calls `POST /api/post/like` with real user tokens and post ids. It obtains the post pool from `GET /api/post` during setup.
 
-- `ws_connect_latency` (Trend, ms) — time from opening the raw WS
-  connection to receiving the Socket.IO CONNECT ack (i.e. successful auth
-  through `socketAuthMiddleware`).
-- `ws_message_ack_latency` (Trend, ms) — round trip from emitting
-  `message:send` to receiving its `43<id>[...]` ack before `ACK_TIMEOUT_MS`.
-- `ws_ack_failure_rate` (Rate) — fraction of settled sends that returned
-  `ok:false`, timed out, or lost their connection before the ack arrived.
-  This includes rate-limit rejections from the socket-side `allow()`
-  limiter in `backend/src/socket/rate-limit.ts`, at 20 events / 10s per
-  socket — expect this to climb at high VU counts if messages are sent
-  faster than that per connection, which is intentional signal, not a bug
-  in the script).
-- `ws_unexpected_disconnects` (Counter) — close events not initiated by
-  the script's own reconnect-simulation logic. This is the metric most
-  directly answering "where does Render's free tier start dropping
-  connections."
-- `ws_connection_errors` (Counter) — transport-level WS errors or a
-  Socket.IO `CONNECT_ERROR` packet (e.g. bad/expired token).
-- `ws_messages_sent` (Counter) — total `message:send` emits, for
-  sanity-checking throughput against the interval settings above.
-- `ws_acks_received` (Counter) — total acknowledgement frames received.
-  Compare this with `ws_messages_sent`; a large gap means sends did not
-  settle within the observed session.
-- `ws_ack_timeouts` / `ws_acks_abandoned` (Counter) — sends that exceeded
-  `ACK_TIMEOUT_MS`, or whose socket closed while their ack was pending.
+The HTTP rate limiters use source IP by default. All k6 users normally share one IP, so phases 2 through 4 would measure the limiter instead of backend capacity. For local capacity tests, start the backend with `LOAD_TEST_DISABLE_RATE_LIMITS=true`. This setting is ignored when `NODE_ENV` is `production`.
 
-These map directly to the plan's "What This Test Should Answer" section:
-connect latency and ack failure rate distinguish app-level bottlenecks from
-platform limits, and unexpected disconnects mark the point Render's free
-tier stops holding connections open.
+Run from the repository root:
 
----
-
-## REST actions suite (`rest-actions.js`)
-
-Tests plain HTTP app actions — currently `POST /api/post/like`
-(`backend/src/routes/post-routes.ts`, mounted at `/api/post` per
-`backend/src/routes/index.ts`, handled by `toggleLike` in
-`backend/src/controllers/post-controller.ts`). Kept separate from the
-WebSocket suite so a failure here reads as "the app itself" — DB write
-contention, Mongoose, Express — rather than "WebSocket infra."
-
-### Required backend setup
-
-`backend/src/middleware/rate-limit.ts` rate-limits `apiLimiter` (300
-req/15min) and `writeLimiter` (60 req/15min) **per source IP**. k6 runs
-from one machine, so every simulated VU shares one IP — without disabling
-these limits, Phase 2-4 results measure the rate limiter's ceiling, not
-real app concurrency.
-
-Start the backend with:
-
-```
-LOAD_TEST_DISABLE_RATE_LIMITS=true npm run dev
-```
-
-`NODE_ENV` must not be `production` for this to take effect. **This is
-required for Phase 2, 3, and 4 to produce meaningful concurrency data.**
-Phase 1 is a single request, so it is informative either way.
-
-### Post pool
-
-The script does not hardcode post ids. At `setup()` time it calls the
-public `GET /api/post` and builds a pool of real post ids from the
-response (`{ posts: [{ id, ... }], totalPages, currentPage }`). Seed the
-database with at least a few posts before running any phase (`npm run
-seed` in `backend/` covers this).
-
-### Running each phase
-
-All commands run from the repo root (adjust the path if run from
-elsewhere) with the backend already up:
-
-```
-# Phase 1 — single VU, single call, sanity check (works with or without rate-limit bypass)
-k6 run -e PHASE=1 -e BASE_URL=http://localhost:3001 load-test/k6/rest-actions.js
-
-# Phase 2 — ramp 10 -> 50 -> 100 -> 250 -> 500 VUs
-k6 run -e PHASE=2 -e BASE_URL=http://localhost:3001 load-test/k6/rest-actions.js
-
-# Phase 3 — sustained hold, default 100 VUs for 12 minutes
+```bash
+k6 run -e PHASE=1 load-test/k6/rest-actions.js
+k6 run -e PHASE=2 load-test/k6/rest-actions.js
 k6 run -e PHASE=3 -e SUSTAINED_VUS=100 -e SUSTAINED_DURATION=12m load-test/k6/rest-actions.js
-
-# Phase 4 — push past the comfortable ceiling, default top-end 750 VUs
 k6 run -e PHASE=4 -e PHASE4_MAX_VUS=750 -e PHASE4_HOLD_DURATION=3m load-test/k6/rest-actions.js
 ```
 
-Env vars, all optional:
+Common settings are `BASE_URL`, `TOKENS_FILE`, `PHASE`, `POST_POOL_LIMIT`, `SUSTAINED_VUS`, `SUSTAINED_DURATION`, `PHASE4_MAX_VUS`, and `PHASE4_HOLD_DURATION`.
 
-| Var                    | Default                 | Applies to | Meaning                                                  |
-| ---------------------- | ----------------------- | ---------- | -------------------------------------------------------- |
-| `BASE_URL`             | `http://localhost:3001` | all        | Backend under test                                       |
-| `TOKENS_FILE`          | `../tokens.json`        | all        | Path to the pre-signed token pool                        |
-| `PHASE`                | `1`                     | all        | Which phase to run: `1`, `2`, `3`, `4`                   |
-| `POST_POOL_LIMIT`      | `50`                    | all        | How many posts to fetch in `setup()` for the like pool   |
-| `SUSTAINED_VUS`        | `100`                   | Phase 3    | VU count held for the sustained window                   |
-| `SUSTAINED_DURATION`   | `12m`                   | Phase 3    | Length of the sustained hold                             |
-| `PHASE4_MAX_VUS`       | `750`                   | Phase 4    | Top-end VU target for the push-past-ceiling ramp         |
-| `PHASE4_HOLD_DURATION` | `3m`                    | Phase 4    | How long to hold at `PHASE4_MAX_VUS` before ramping down |
+Watch `like_success_rate`, `like_latency_ms`, `like_rate_limited_429`, `like_infra_errors_5xx_or_timeout`, and `like_other_client_errors_4xx`.
 
-### Warm-up
+A `429` response means the application rate limiter handled the request. A `5xx` response or status `0` indicates a server response or connection failure. Other `4xx` responses usually indicate invalid test data or expired authentication.
 
-Before any timed phase, `setup()` fires a few plain `GET /api/post`
-requests with short delays, same reasoning as the WS suite's warm-up step.
+## Reading results
 
-### Metrics: 429 vs 5xx
+Do not treat aggregate phase metrics as a precise capacity boundary. A ramping scenario combines every stage in one summary unless output is sent to a time series system. Record backend CPU, memory, database behavior, and the exact environment beside the k6 summary.
 
-This is the whole reason this suite is split from the WS suite, so it's
-tracked explicitly rather than folded into one generic error rate:
-
-- `like_rate_limited_429` — count of `429` responses. This is
-  **this app's own `writeLimiter`** doing its job (or, if
-  `LOAD_TEST_DISABLE_RATE_LIMITS` wasn't set correctly, a false signal —
-  check this counter first if Phase 2-4 numbers look capped at a suspiciously
-  round number).
-- `like_infra_errors_5xx_or_timeout` — count of `5xx` responses or
-  connection-level failures (`status === 0`, e.g. timeouts). This is
-  **Render's infra ceiling**, not the app's own code.
-- `like_other_client_errors_4xx` — count of other `4xx` (400/401/404).
-  Not a capacity signal — indicates a test/data problem (bad token, stale
-  post id) rather than a load-related failure.
-- `like_success_rate` — fraction of calls returning `200`.
-- `like_latency_ms` — request latency (k6 reports avg/p95/etc. automatically
-  in the end-of-run summary for any `Trend` metric).
-
-Read the end-of-run k6 summary for all of the above; no external log
-processing needed. If `like_rate_limited_429` is nonzero during Phase 2-4,
-the backend was not started with `LOAD_TEST_DISABLE_RATE_LIMITS=true` —
-fix that and rerun before trusting the rest of the numbers.
+The recorded local runs show a large difference between MongoDB Atlas free tier and local MongoDB. See the [load test results](../../frontend/load_testing_plan.md) before comparing a new run.
