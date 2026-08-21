@@ -18,7 +18,15 @@ const POST_POOL_LIMIT = parseInt(__ENV.POST_POOL_LIMIT, 10) || 50;
 const likeLatency = new Trend('like_latency_ms', true);
 const likeSuccessRate = new Rate('like_success_rate');
 const rateLimited429 = new Counter('like_rate_limited_429');
-const infraErrors5xxOrTimeout = new Counter('like_infra_errors_5xx_or_timeout');
+// status === 0 (connection-level failure/timeout, no response at all) is the
+// only signal k6 gets that isn't also produced by the app's own code -
+// tracked separately from 5xx, since post-controller.ts returns 500 for
+// ordinary caught application errors (e.g. "Database not connected"), not
+// just Render-level infra failures. A 5xx with a parseable JSON body is an
+// app-level error responding normally; treat only genuine no-response
+// timeouts as the platform/infra signal.
+const infraTimeouts = new Counter('like_infra_timeouts');
+const appLevel5xxErrors = new Counter('like_app_5xx_errors');
 const otherClientErrors = new Counter('like_other_client_errors_4xx');
 
 const tokens = new SharedArray('tokens', function () {
@@ -27,6 +35,21 @@ const tokens = new SharedArray('tokens', function () {
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function requiredTokenCount() {
+  switch (PHASE) {
+    case '1':
+      return 1;
+    case '2':
+      return 500;
+    case '3':
+      return SUSTAINED_VUS;
+    case '4':
+      return PHASE4_MAX_VUS;
+    default:
+      return 0;
+  }
 }
 
 function likeOnce(token, postId) {
@@ -48,8 +71,10 @@ function likeOnce(token, postId) {
 
   if (res.status === 429) {
     rateLimited429.add(1);
-  } else if (res.status === 0 || res.status >= 500) {
-    infraErrors5xxOrTimeout.add(1);
+  } else if (res.status === 0) {
+    infraTimeouts.add(1);
+  } else if (res.status >= 500) {
+    appLevel5xxErrors.add(1);
   } else if (!ok) {
     otherClientErrors.add(1);
   }
@@ -70,6 +95,14 @@ export function setup() {
   if (tokens.length === 0) {
     throw new Error(
       `[SETUP] "${TOKENS_FILE}" produced 0 tokens. Confirm the seed script has run and TOKENS_FILE points at its output.`
+    );
+  }
+
+  const required = requiredTokenCount();
+  if (tokens.length < required) {
+    throw new Error(
+      `[SETUP] PHASE=${PHASE} needs at least ${required} tokens, but TOKENS_FILE contains ${tokens.length}. ` +
+        'A pool this small means every VU shares the same handful of identities, concentrating writes onto a few accounts instead of reflecting real per-user concurrency.'
     );
   }
 
