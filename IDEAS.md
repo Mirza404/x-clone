@@ -31,19 +31,19 @@ Everything that was Part P / P2 / D1 in earlier drafts of this file (the product
 
 Messaging used to be crammed into the 600px center column, because `(navPages)/messages/page.tsx` rendered inside the root layout's shared three-column shell alongside every other route.
 
-**Shipped:** the desktop chrome (`NavMenu` + capped `600px` `<main>` + right `SideBar`) moved out of the root layout into `frontend/src/app/(feed)/layout.tsx`, which now owns every feed route (`posts`, `newPost`, and the rest of the former `(navPages)` group). `frontend/src/app/messages/` sits outside that group with its own `layout.tsx`: full-bleed content, no `SideBar`, no width cap, `NavMenu` kept (so users aren't stranded with no navigation) but its "Messages" entry was dropped — the floating chat FAB (`FloatingActions`, feed-only now) plus `MessagePopover`'s "Messages" link are the entry points instead. Root `layout.tsx` holds only `<html>`/`<body>`, the theme-init script, and providers.
+**Shipped:** the desktop chrome (`NavMenu` + capped `600px` `<main>` + right `SideBar`) moved out of the root layout into `frontend/src/app/(feed)/layout.tsx`, which now owns every feed route (`posts`, `newPost`, and the rest of the former `(navPages)` group). `frontend/src/app/messages/` sits outside that group with its own `layout.tsx`: full-bleed content, no `SideBar`, no width cap, `NavMenu` kept (so users aren't stranded with no navigation) but its "Messages" entry was dropped, the floating chat FAB (`FloatingActions`, feed-only now) plus `MessagePopover`'s "Messages" link are the entry points instead. Root `layout.tsx` holds only `<html>`/`<body>`, the theme-init script, and providers.
 
 ### F2. Search: posts and messages `[x]`
 
 - **Backend:** `GET /api/post/search?q=` added, case-insensitive regex over `content` and denormalized `name`, paginated like `getPostsPaginated`.
 - **Frontend, posts:** `SideBar`'s search input is wired to `/explore?q=`; `explore/page.tsx` renders results reusing `PostItem` via a debounced React Query call keyed on the query string.
-- **Frontend, messages:** a client-side filter box above `ConversationList` narrows the already-loaded conversation summaries by participant name. Searching message contents (a backend concern) is not built — flag as a future step if wanted.
+- **Frontend, messages:** a client-side filter box above `ConversationList` narrows the already-loaded conversation summaries by participant name. Searching message contents (a backend concern) is not built, flag as a future step if wanted.
 
 ### F3. Comments at feature parity with posts `[x]`
 
-**Shipped:** `images: [String]` added to `CommentSchema` mirroring `PostSchema`'s constraints (max 8, optional), plus the backend `LeanComment` and frontend `Comment` types. `FileUpload` is wired into `NewComment.tsx` and `NewReply.tsx` with the same select-preview-remove flow as `NewPostModal`, uploading through the existing `uploadImages` (Cloudinary) path before the comment/reply mutation fires. `comment-controller.ts`'s `createComment` accepts and persists `images`; `findCommentsByPost`/`findCommentById` return it for both top-level comments and replies. `CommentItem.tsx`/`ReplyItem.tsx` render the images in a simple 1-2 column grid (not a full carousel like `PostItem` — comments don't need the swipe affordance for parity, just the ability to attach and see images).
+**Shipped:** `images: [String]` added to `CommentSchema` mirroring `PostSchema`'s constraints (max 8, optional), plus the backend `LeanComment` and frontend `Comment` types. `FileUpload` is wired into `NewComment.tsx` and `NewReply.tsx` with the same select-preview-remove flow as `NewPostModal`, uploading through the existing `uploadImages` (Cloudinary) path before the comment/reply mutation fires. `comment-controller.ts`'s `createComment` accepts and persists `images`; `findCommentsByPost`/`findCommentById` return it for both top-level comments and replies. `CommentItem.tsx`/`ReplyItem.tsx` render the images in a simple 1-2 column grid (not a full carousel like `PostItem`, comments don't need the swipe affordance for parity, just the ability to attach and see images).
 
-**Decided:** kept replies 2-level, per the note in the original entry — `comment-tree.ts`'s `collectCommentThreadIds`, the thread page, and pagination all still assume 2 levels, unchanged.
+**Decided:** kept replies 2-level, per the note in the original entry, `comment-tree.ts`'s `collectCommentThreadIds`, the thread page, and pagination all still assume 2 levels, unchanged.
 
 ### F4. Placeholder pages `[x]`
 
@@ -111,17 +111,17 @@ URLs. Mark F7 complete only after steps 2 and 3 are verified in production.
 
 ## Part D: DevOps / CI-CD
 
-D1 (Dockerfile hardening, real Mongo in CI, coverage gate) is fully shipped — see the reality check above. Numbering below continues from D2 to keep history/links stable.
+D1 (Dockerfile hardening, real Mongo in CI, coverage gate) is fully shipped, see the reality check above. Numbering below continues from D2 to keep history/links stable.
 
 ### D2. Automate the deploy that already exists `[x]`
 
-**Shipped:** `ci.yml`'s `deploy` job (`needs: [checks, test, build, secret-scan]`, gated on push to `main`) builds both Dockerfiles and pushes to GHCR (`ghcr.io/<owner>/x-clone-backend`/`x-clone-frontend`, tagged `latest` + commit SHA), then calls Render's REST API (`POST /v1/services/{id}/deploys`) per service to trigger the actual deploy. `render.yaml` sets `autoDeploy: false` on both services so Render's own on-push auto-build (previously ungated) is no longer the deploy path — the CI job is. (Render's per-service Deploy Hook URL, the simpler option, wasn't exposed in this account's dashboard — API key + service ID used instead.)
+**Shipped:** `ci.yml`'s `deploy` job (`needs: [checks, test, build, secret-scan]`, gated on push to `main`) builds both Dockerfiles and pushes to GHCR (`ghcr.io/<owner>/x-clone-backend`/`x-clone-frontend`, tagged `latest` + commit SHA), then calls Render's REST API (`POST /v1/services/{id}/deploys`) per service to trigger the actual deploy. `render.yaml` sets `autoDeploy: false` on both services so Render's own on-push auto-build (previously ungated) is no longer the deploy path, the CI job is. (Render's per-service Deploy Hook URL, the simpler option, wasn't exposed in this account's dashboard, API key + service ID used instead.)
 
 Required repo secrets (Settings → Secrets and variables → Actions): `RENDER_API_KEY` (Render dashboard → Account Settings → API Keys), `RENDER_BACKEND_SERVICE_ID` and `RENDER_FRONTEND_SERVICE_ID` (the `srv-xxxxx` id in each service's dashboard URL), `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` (same value already set in Render's frontend env, needed here too since Next bakes `NEXT_PUBLIC_*` into the build).
 
 **Rollback:** Render dashboard → service → Deploys → pick a prior deploy → Rollback. The GHCR SHA-tagged images are a secondary, off-platform rollback path if ever needed.
 
-GHCR images aren't currently consumed by Render (Render still builds from the Dockerfile itself on hook trigger, doesn't pull the pushed image) — pushing them is the "reproducible artifact" half of the story and sets up D9/D10 if pursued later. Wiring Render to actually deploy the built image (vs. rebuilding) isn't natively supported by Render's Docker runtime, so this is a known, accepted gap.
+GHCR images aren't currently consumed by Render (Render still builds from the Dockerfile itself on hook trigger, doesn't pull the pushed image), pushing them is the "reproducible artifact" half of the story and sets up D9/D10 if pursued later. Wiring Render to actually deploy the built image (vs. rebuilding) isn't natively supported by Render's Docker runtime, so this is a known, accepted gap.
 
 ### D3. Preview environments per pull request `[ ]`
 
@@ -173,7 +173,7 @@ Local `kind`/minikube manifests or a Helm chart for the two services + Mongo. Ov
 
 ### AI1. In-app AI features `[ ]`
 
-1. **Semantic search + RAG on posts.** _Best infra fit, top AI pick._ Embed each post on create; store vectors in **Mongo Atlas Vector Search** (already on Atlas, so zero new infra). "Search by meaning" + "related posts". Needs a backfill job for existing posts. F2's search endpoint now exists — treat this as swapping the retrieval strategy behind it, not a parallel system.
+1. **Semantic search + RAG on posts.** _Best infra fit, top AI pick._ Embed each post on create; store vectors in **Mongo Atlas Vector Search** (already on Atlas, so zero new infra). "Search by meaning" + "related posts". Needs a backfill job for existing posts. F2's search endpoint now exists, treat this as swapping the retrieval strategy behind it, not a parallel system.
 2. **AI compose / reply assist.** "Improve this post", tone rewrite, autocomplete, with **streamed** tokens to the UI. Pairs naturally with messaging (smart replies in DMs).
 3. **Automated content moderation.** Run new posts + DMs through a moderation model; flag or hold for review. Real trust-and-safety signal.
 4. **AI feed ranking.** Rank the timeline by embedding similarity to a user's interest profile instead of pure `createdAt`.
@@ -201,17 +201,17 @@ So this is **not a messages-only problem**. A blocker on `/messages` alone would
 - **Feed and elsewhere:** a dismissible top banner, **not** a blocker. The feed can still render cached posts from the Query cache while the backend wakes.
 - Add a `timeout` to the axios instance in `apiClient.ts` so REST calls fail loudly instead of hanging forever; currently there is none.
 
-**Decided 2026-08-04: skip the uptime pinger, ship the UI work.** The pinger's only job is keeping Render's free instance from sleeping, which wasn't wanted here — so the sleep/wake cycle stays as real behavior and this UI is what makes it legible instead of looking broken.
+**Decided 2026-08-04: skip the uptime pinger, ship the UI work.** The pinger's only job is keeping Render's free instance from sleeping, which wasn't wanted here, so the sleep/wake cycle stays as real behavior and this UI is what makes it legible instead of looking broken.
 
-**Shipped:** `useBackendWaking()` (`frontend/src/app/hooks/useBackendWaking.ts`) derives `'ok' | 'waking' | 'unreachable'` from `useSocketContext().connected` while `status === 'authenticated'`, on a 2s grace period (never flags on the first tick) and a 60s cutoff to `'unreachable'`. Built without a ref-based "adjust state on prop change" pattern — this repo's stricter `eslint-plugin-react-hooks` config (`react-hooks/refs`, `react-hooks/set-state-in-effect`) forbids mutating refs during render, so both the hook and `BackendWakingBanner` key their effect on the derived boolean and only ever call `setState` from inside the timer/timeout callback, never synchronously in the effect body. `messages/page.tsx` blocks on `'waking'`/`'unreachable'` with `EmptyState` (spinner, then a manual retry past 60s) since the view is unusable without a socket; `BackendWakingBanner.tsx` is a dismissible, non-blocking banner mounted in `(feed)/layout.tsx` so it covers every feed route. `apiClient.ts`'s axios instance got a 15s `timeout` so REST calls fail loudly instead of hanging through a cold start.
+**Shipped:** `useBackendWaking()` (`frontend/src/app/hooks/useBackendWaking.ts`) derives `'ok' | 'waking' | 'unreachable'` from `useSocketContext().connected` while `status === 'authenticated'`, on a 2s grace period (never flags on the first tick) and a 60s cutoff to `'unreachable'`. Built without a ref-based "adjust state on prop change" pattern, this repo's stricter `eslint-plugin-react-hooks` config (`react-hooks/refs`, `react-hooks/set-state-in-effect`) forbids mutating refs during render, so both the hook and `BackendWakingBanner` key their effect on the derived boolean and only ever call `setState` from inside the timer/timeout callback, never synchronously in the effect body. `messages/page.tsx` blocks on `'waking'`/`'unreachable'` with `EmptyState` (spinner, then a manual retry past 60s) since the view is unusable without a socket; `BackendWakingBanner.tsx` is a dismissible, non-blocking banner mounted in `(feed)/layout.tsx` so it covers every feed route. `apiClient.ts`'s axios instance got a 15s `timeout` so REST calls fail loudly instead of hanging through a cold start.
 
 ### F5. Messaging follow-ups carried over from the as-built record `[x]`
 
 Inherited from `WEBSOCKET_MESSAGING_PLAN.md`, which is now a design-rationale record rather than a to-do list. These are the parts of it that never shipped.
 
-**Product decisions (the plan's §13) — confirmed 2026-08-04, no code changes:**
+**Product decisions (the plan's §13), confirmed 2026-08-04, no code changes:**
 
-1. **Who can DM whom?** Confirmed: leave open. `createConversation` still only guards `recipientId !== userId` — anyone can DM anyone. No moderation/report system exists yet to back a stricter model, and this matches most X-clone demos.
+1. **Who can DM whom?** Confirmed: leave open. `createConversation` still only guards `recipientId !== userId`, anyone can DM anyone. No moderation/report system exists yet to back a stricter model, and this matches most X-clone demos.
 2. **Message length cap:** Confirmed: keep 2000 chars as already shipped.
 3. **Presence scope:** Confirmed: keep broadcasting to conversation partners only, not followers. Cheaper to compute and less exposure of activity to non-contacts; broadening it is exactly what the deferred Redis/horizontal-scaling section below is for.
 
@@ -252,7 +252,7 @@ There's currently no easy way to manually verify the messaging WebSocket round-t
 
 Dependencies are real; the ordering below respects them.
 
-**Phase 1: the layout refactor and search — done.** F1 (messages as its own view) and F2 (search, posts + messages) both shipped; see the reality check and Part F above.
+**Phase 1: the layout refactor and search, done.** F1 (messages as its own view) and F2 (search, posts + messages) both shipped; see the reality check and Part F above.
 
 **Phase 2: pipeline.**
 
