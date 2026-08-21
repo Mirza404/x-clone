@@ -179,7 +179,14 @@ function writeTokens(tokens: MintedToken[]): void {
 
 function parseCount(args: string[]): number {
   const countArg = args.find((arg) => arg.startsWith('--count='));
-  return countArg ? parseInt(countArg.split('=')[1], 10) : 20;
+  if (!countArg) return 20;
+
+  const raw = countArg.split('=')[1];
+  const count = Number(raw);
+  if (!Number.isInteger(count) || count <= 0) {
+    throw new Error(`--count must be a positive integer, got "${raw}"`);
+  }
+  return count;
 }
 
 async function main() {
