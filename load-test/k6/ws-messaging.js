@@ -1,76 +1,9 @@
-/*
- * k6 WebSocket load test for the x-clone messaging feature (Socket.io v4).
- *
- * =====================================================================
- * WHY THIS SCRIPT HAND-ROLLS SOCKET.IO FRAMING (read this before editing)
- * =====================================================================
- * The backend uses Socket.io, not raw WebSocket. Socket.io layers its own
- * handshake and packet framing (Engine.IO v4 + Socket.IO protocol v4) on
- * top of a plain WS connection. k6's `k6/websockets` module
- * only speaks raw WS frames - it does NOT perform the Socket.IO handshake.
- * If we just opened a WS connection and started sending JSON, the server's
- * `io.on('connection', ...)` handler (backend/src/socket/index.ts) would
- * never fire, `socketAuthMiddleware` (backend/src/socket/auth.ts) would
- * never run, and this script would silently measure nothing real.
- *
- * So every frame below is written by hand according to the Engine.IO v4 /
- * Socket.IO v4 wire protocol:
- *
- *   Engine.IO packet types (single leading char):
- *     0 = open     1 = close   2 = ping   3 = pong
- *     4 = message  5 = upgrade 6 = noop
- *
- *   When the Engine.IO type is "4" (message), everything after that
- *   character IS a Socket.IO packet, whose own first character is the
- *   Socket.IO packet type:
- *     0 = CONNECT        1 = DISCONNECT
- *     2 = EVENT          3 = ACK
- *     4 = CONNECT_ERROR  5/6 = BINARY EVENT/ACK (unused here)
- *
- *   That's why frames look like "40{...}" (Engine.IO message + Socket.IO
- *   CONNECT) or "42[...]"  (Engine.IO message + Socket.IO EVENT).
- *
- * Handshake sequence used here (WS-only, no HTTP polling phase):
- *   1. Open a raw WS connection directly to
- *      `/socket.io/?EIO=4&transport=websocket`. Skipping the polling
- *      transport entirely (no probe/upgrade dance) is valid because the
- *      probe/upgrade handshake only exists to upgrade an *already open*
- *      polling session to WebSocket - if there is no polling session to
- *      upgrade from, the server just treats the WS connection as the
- *      transport from the start and immediately sends the Engine.IO
- *      "0{...}" open packet.
- *   2. On receiving that open packet, send the Socket.IO CONNECT packet
- *      with the auth payload embedded (NOT an HTTP header - this backend
- *      reads `socket.handshake.auth.token`, which only exists in the
- *      Socket.IO CONNECT packet payload): `40{"token":"<jwt>"}`.
- *   3. The server replies `40{"sid":"..."}` once the namespace connect
- *      succeeds (i.e. once socketAuthMiddleware calls next() with no
- *      error) - this is our "connected" signal and the point at which we
- *      stop the connect-latency clock.
- *   4. Respond to every Engine.IO ping ("2") with a pong ("3") or the
- *      server drops the connection as a dead peer.
- *   5. Emit events as `42<ackId>["event", payload]` and match the
- *      server's `43<ackId>[ackPayload]` reply back to the pending send to
- *      compute ack round-trip latency and success/failure.
- *
- * ==========================================================================
- * LIVE VERIFICATION (also repeated in load-test/k6/README.md)
- * ==========================================================================
- * This framing has been exercised against the live local backend and MongoDB.
- * Phase 1 must still be run before every load-test session so authentication,
- * protocol compatibility, and the target environment are verified before
- * any capacity number is trusted.
- */
-
 import { WebSocket } from 'k6/websockets';
 import { SharedArray } from 'k6/data';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { check, sleep } from 'k6';
 import http from 'k6/http';
 
-// ---------------------------------------------------------------------
-// Configuration (all overridable via `-e VAR=value`)
-// ---------------------------------------------------------------------
 const PHASE = __ENV.PHASE || '1';
 const BASE_URL = (__ENV.BASE_URL || 'http://localhost:3001').replace(
   /\/+$/,
@@ -92,19 +25,8 @@ const PHASE4_MAX_VUS = Number(__ENV.PHASE4_MAX_VUS || 750);
 const STEPPED_RAMP_DURATION = __ENV.STEPPED_RAMP_DURATION || '1m';
 const STEPPED_HOLD_DURATION = __ENV.STEPPED_HOLD_DURATION || '5m';
 
-// Path is resolved relative to THIS script file (not the invocation cwd),
-// because k6's `open()` resolves relative paths against the script's own
-// location, which is the more predictable behavior across
-// `k6 run ws-messaging.js` (from load-test/k6/) vs
-// `k6 run load-test/k6/ws-messaging.js` (from repo root) invocations.
-// Override with an absolute path via -e TOKENS_FILE=/abs/path/tokens.json
-// if you want to be fully explicit instead.
 const TOKENS_FILE = __ENV.TOKENS_FILE || '../tokens.json';
 
-// ---------------------------------------------------------------------
-// Token pool (produced by the sibling token-minting script)
-// Contract: JSON array of { userId, email, token }
-// ---------------------------------------------------------------------
 const tokens = new SharedArray('tokens', function () {
   let raw;
   try {
@@ -112,34 +34,28 @@ const tokens = new SharedArray('tokens', function () {
   } catch (e) {
     throw new Error(
       `Could not read/parse TOKENS_FILE "${TOKENS_FILE}": ${e}. ` +
-        'Generate it with the sibling token-minting script first, or pass ' +
+        'Generate it with the token minting script first, or pass ' +
         '-e TOKENS_FILE=<path> to point at it.'
     );
   }
   if (!Array.isArray(raw) || raw.length === 0) {
     throw new Error(
-      `TOKENS_FILE "${TOKENS_FILE}" must be a non-empty JSON array`
+      `TOKENS_FILE "${TOKENS_FILE}" must be a nonempty JSON array`
     );
   }
   return raw;
 });
 
-// ---------------------------------------------------------------------
-// Custom metrics (feed directly into the plan's "what this should answer")
-// ---------------------------------------------------------------------
-const wsConnectLatency = new Trend('ws_connect_latency', true); // ms, WS open -> Socket.IO CONNECT ack
-const wsMessageAckLatency = new Trend('ws_message_ack_latency', true); // ms, emit -> ack received
-const wsAckFailureRate = new Rate('ws_ack_failure_rate'); // ok:false, timeout, or disconnect before ack
+const wsConnectLatency = new Trend('ws_connect_latency', true);
+const wsMessageAckLatency = new Trend('ws_message_ack_latency', true);
+const wsAckFailureRate = new Rate('ws_ack_failure_rate');
 const wsAcksReceived = new Counter('ws_acks_received');
 const wsAckTimeouts = new Counter('ws_ack_timeouts');
 const wsAcksAbandoned = new Counter('ws_acks_abandoned');
-const wsUnexpectedDisconnects = new Counter('ws_unexpected_disconnects'); // close not initiated by the script
-const wsConnectionErrors = new Counter('ws_connection_errors'); // transport errors / CONNECT_ERROR packets
+const wsUnexpectedDisconnects = new Counter('ws_unexpected_disconnects');
+const wsConnectionErrors = new Counter('ws_connection_errors');
 const wsMessagesSent = new Counter('ws_messages_sent');
 
-// ---------------------------------------------------------------------
-// Socket.IO v4 framing helpers (see the big comment block at top of file)
-// ---------------------------------------------------------------------
 function encodeConnectPacket(token) {
   return '40' + JSON.stringify({ token });
 }
@@ -148,7 +64,6 @@ function encodeEventPacket(ackId, event, payload) {
   return '42' + String(ackId) + JSON.stringify([event, payload]);
 }
 
-// Parses one raw text frame into { eioType, socketioType, ackId, payload }.
 function parseFrame(data) {
   if (typeof data !== 'string' || data.length === 0) {
     return { eioType: null };
@@ -156,7 +71,6 @@ function parseFrame(data) {
   const eioType = data[0];
 
   if (eioType === '0') {
-    // Engine.IO open packet: {"sid":"...","pingInterval":...,"pingTimeout":...}
     let payload = null;
     try {
       payload = JSON.parse(data.slice(1));
@@ -173,15 +87,12 @@ function parseFrame(data) {
     eioType === '5' ||
     eioType === '6'
   ) {
-    // ping / pong / close / upgrade / noop - no Socket.IO payload
     return { eioType };
   }
 
   if (eioType === '4') {
     const socketioType = data[1];
     const rest = data.slice(2);
-    // An ack id, if present, is a run of digits right after the Socket.IO
-    // type char, before the JSON payload (e.g. "42" + "7" + '["event",{}]').
     const match = rest.match(/^(\d*)([\s\S]*)$/);
     const ackId = match && match[1] ? match[1] : null;
     const jsonPart = match ? match[2] : rest;
@@ -205,15 +116,12 @@ function randomIntBetween(minInclusive, maxInclusive) {
   );
 }
 
-// Deterministic even/odd pairing so every VU always messages the same
-// "partner" - a real second user, never itself - producing real
-// conversations instead of self-messaging.
 function pickPartner(tokenIndex) {
   const n = tokens.length;
   if (n < 2) return null;
   if (n % 2 !== 0) {
     throw new Error(
-      `TOKENS_FILE has an odd number of entries (${n}) - even/odd pairing requires an even count so every VU has a real reciprocal partner`
+      `TOKENS_FILE has an odd number of entries (${n}). Reciprocal pairing requires an even count`
     );
   }
   const partnerIndex =
@@ -236,10 +144,6 @@ function requiredTokenCount() {
   }
 }
 
-// ---------------------------------------------------------------------
-// Warm-up: hit a cheap GET a few times before real load, so Render's
-// free-tier cold start doesn't contaminate Phase 1's baseline numbers.
-// ---------------------------------------------------------------------
 export function setup() {
   const required = requiredTokenCount();
   if (tokens.length < required) {
@@ -250,7 +154,7 @@ export function setup() {
   }
   if (tokens.length % 2 !== 0) {
     throw new Error(
-      `TOKENS_FILE has an odd number of entries (${tokens.length}) - even/odd pairing requires an even count`
+      `TOKENS_FILE has an odd number of entries (${tokens.length}). Reciprocal pairing requires an even count`
     );
   }
 
@@ -269,14 +173,11 @@ export function setup() {
     sleep(2);
   }
   console.warn(
-    '[warmup] backend never returned a clean response - continuing anyway, expect skewed baseline numbers'
+    '[warmup] backend never returned a clean response. Baseline numbers may be skewed'
   );
   return { warmedUp: false };
 }
 
-// =======================================================================
-// PHASE 1 - single VU, single iteration, obvious pass/fail sanity check
-// =======================================================================
 export function phase1() {
   if (tokens.length < 2) {
     throw new Error(
@@ -326,7 +227,7 @@ export function phase1() {
       socket.send(
         encodeEventPacket(1, 'message:send', {
           recipientId: recipient.userId,
-          content: 'k6 phase1 load-test sanity message',
+          content: 'k6 phase1 load test sanity message',
           clientId,
         })
       );
@@ -371,12 +272,9 @@ export function phase1() {
         `[phase1] ack received in ${rtt}ms, ok=${ackOk}${ackOk ? '' : `, error=${ackPayload && ackPayload.error}`}`
       );
 
-      // Confirm the connection stays open a moment after the ack, then
-      // close cleanly ourselves (this is the one intentional close in
-      // the whole script - Phase 1 is a single deliberate round trip).
       setTimeout(() => {
         console.log(
-          '[phase1] connection held open post-ack as expected, closing intentionally'
+          '[phase1] connection remained open after acknowledgment, closing intentionally'
         );
         socket.close();
       }, 2000);
@@ -413,17 +311,6 @@ export function phase1() {
   });
 }
 
-// =======================================================================
-// PHASES 2/3/4 - shared "realistic user" connect/send/reconnect loop
-// =======================================================================
-// Standard WebSocket readyState value for an open connection. k6's
-// k6/experimental/websockets module (as of k6 v2.2.0) does not expose the
-// WebSocket.OPEN/.CLOSED static constants browsers provide - reading
-// WebSocket.OPEN returns undefined, which made `readyState !== WebSocket.OPEN`
-// always true and silently no-op every sendMessage() call below (confirmed
-// against a real k6 v2.2.0 run: WS phase 2/3/3-stepped connected VUs but
-// wsMessagesSent stayed at 0 for the whole run). Use the numeric value from
-// the WHATWG WebSocket spec directly instead.
 const WS_READY_STATE_OPEN = 1;
 
 export function loadLoop() {
@@ -520,7 +407,6 @@ function openSession(entry, partner) {
       connected = true;
       wsConnectLatency.add(Date.now() - connectStart);
 
-      // Random jitter on first send so VUs don't all fire in lockstep.
       firstSendTimer = setTimeout(
         () => {
           firstSendTimer = null;
@@ -534,8 +420,6 @@ function openSession(entry, partner) {
         randomIntBetween(0, MSG_MAX_INTERVAL_S) * 1000
       );
 
-      // Occasionally force a disconnect/reconnect cycle to simulate flaky
-      // clients (mobile network drops, tab backgrounding, etc).
       reconnectCheckTimer = setInterval(() => {
         if (Math.random() < RECONNECT_PROBABILITY) {
           intentionalClose = true;
@@ -564,9 +448,6 @@ function openSession(entry, partner) {
       }
       return;
     }
-    // frame.eioType === '4' && socketioType === '2' -> inbound events
-    // (message:new, message:read, presence, typing) are intentionally
-    // ignored for load-generation purposes.
   });
 
   socket.addEventListener('close', () => {
@@ -576,12 +457,6 @@ function openSession(entry, partner) {
     if (!intentionalClose) {
       wsUnexpectedDisconnects.add(1);
     }
-    // Reconnect after a short delay, whether the close was intentional
-    // (simulated flaky client) or not (server/platform dropped us) - a
-    // real client would retry too, and we want the VU to stay "active"
-    // for the rest of its scheduled stage/duration. k6 interrupts this
-    // recursion itself once the scenario's stage/duration + gracefulStop
-    // window elapses.
     setTimeout(
       () => {
         openSession(entry, partner);
@@ -595,25 +470,16 @@ function openSession(entry, partner) {
   });
 }
 
-// ---------------------------------------------------------------------
-// Scenario/stage selection - one phase per run, chosen via -e PHASE=N
-// ---------------------------------------------------------------------
 function buildPhase4Stages() {
   return [
     { duration: '2m', target: 100 },
     { duration: '2m', target: 250 },
     { duration: '2m', target: 500 },
     { duration: '3m', target: PHASE4_MAX_VUS },
-    { duration: '5m', target: PHASE4_MAX_VUS }, // hold at ceiling to observe the failure mode
+    { duration: '5m', target: PHASE4_MAX_VUS },
   ];
 }
 
-// Phase 3 held SUSTAINED_VUS (chosen from Phase 2's prose, not fine-grained
-// per-stage data) for one long window. This steps through 100/150/200 VUs
-// instead, each ramped up then held, so the WS suite's actual "comfortable"
-// ceiling can be read off per-level rather than inferred from a single
-// sustained run - see the Phase 3 Results caveats in
-// frontend/load_testing_plan.md.
 function buildSteppedStages() {
   const levels = [100, 150, 200];
   return levels.flatMap((target) => [
@@ -695,7 +561,7 @@ function buildOptions() {
       };
     default:
       throw new Error(
-        `Unknown PHASE "${PHASE}" - expected 1, 2, 3, 3-stepped, or 4 (see load-test/k6/README.md)`
+        `Unknown PHASE "${PHASE}". Expected 1, 2, 3, 3-stepped, or 4 (see load-test/k6/README.md)`
       );
   }
 }
