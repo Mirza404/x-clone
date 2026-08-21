@@ -11,10 +11,6 @@ import Conversation from '../../src/models/Conversation';
 import Message from '../../src/models/Message';
 import Post from '../../src/models/Post';
 
-// Load-test users are tagged with this email suffix so `--wipe` can find and
-// remove exactly the accounts this script created, without touching real
-// users or the accounts created by scripts/seed.ts (which uses a different
-// suffix, @seed.x-clone.local).
 const LOAD_TEST_EMAIL_DOMAIN = '@load-test.x-clone.local';
 
 const TOKEN_EXPIRY = '24h';
@@ -108,7 +104,7 @@ async function wipeLoadTestData(): Promise<void> {
 
   if (existing.length === 0) {
     fs.rmSync(OUTPUT_PATH, { force: true });
-    console.info('No previously seeded load-test users to wipe.');
+    console.info('No previously seeded load test users to wipe.');
     return;
   }
 
@@ -133,8 +129,8 @@ async function wipeLoadTestData(): Promise<void> {
   await usersCollection.deleteMany({ _id: { $in: ids } });
   fs.rmSync(OUTPUT_PATH, { force: true });
   console.info(
-    `Wiped ${ids.length} load-test users, ${deletedConversations.deletedCount} ` +
-      `conversations, ${deletedMessages.deletedCount} messages, and load-test ` +
+    `Wiped ${ids.length} load test users, ${deletedConversations.deletedCount} ` +
+      `conversations, ${deletedMessages.deletedCount} messages, and load test ` +
       `likes from ${cleanedPosts.modifiedCount} posts.`
   );
 }
@@ -143,7 +139,7 @@ async function seedUsers(count: number): Promise<LoadTestUser[]> {
   const usersCollection = getUsersCollection();
   const users = buildLoadTestUsers(count);
   await usersCollection.insertMany(users);
-  console.info(`Inserted ${users.length} load-test users.`);
+  console.info(`Inserted ${users.length} load test users.`);
   return users;
 }
 
@@ -199,7 +195,7 @@ async function main() {
   }
 
   const count = parseCount(args);
-  console.info(`Seeding ${count} load-test users and minting tokens.`);
+  console.info(`Seeding ${count} load test users and minting tokens.`);
 
   const users = await seedUsers(count);
   const tokens = mintTokens(users);
@@ -209,6 +205,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Load-test seed failed:', error);
+  console.error('Load test seed failed:', error);
   process.exit(1);
 });
