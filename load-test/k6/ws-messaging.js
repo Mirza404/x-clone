@@ -15,6 +15,7 @@ const WARMUP_PATH = __ENV.WARMUP_PATH || '/api/post';
 const MSG_MIN_INTERVAL_S = Number(__ENV.MSG_MIN_INTERVAL_S || 2);
 const MSG_MAX_INTERVAL_S = Number(__ENV.MSG_MAX_INTERVAL_S || 6);
 const ACK_TIMEOUT_MS = Number(__ENV.ACK_TIMEOUT_MS || 10000);
+const CONNECT_TIMEOUT_MS = Number(__ENV.CONNECT_TIMEOUT_MS || 10000);
 const RECONNECT_PROBABILITY = Number(__ENV.RECONNECT_PROBABILITY || 0.05);
 const RECONNECT_CHECK_INTERVAL_S = Number(
   __ENV.RECONNECT_CHECK_INTERVAL_S || 45
@@ -24,6 +25,7 @@ const SUSTAINED_DURATION = __ENV.SUSTAINED_DURATION || '12m';
 const PHASE4_MAX_VUS = Number(__ENV.PHASE4_MAX_VUS || 750);
 const STEPPED_RAMP_DURATION = __ENV.STEPPED_RAMP_DURATION || '1m';
 const STEPPED_HOLD_DURATION = __ENV.STEPPED_HOLD_DURATION || '5m';
+const STEPPED_LEVELS = [100, 150, 200];
 
 const TOKENS_FILE = __ENV.TOKENS_FILE || '../tokens.json';
 
@@ -139,6 +141,10 @@ function requiredTokenCount() {
       return SUSTAINED_VUS + (SUSTAINED_VUS % 2);
     case '4':
       return PHASE4_MAX_VUS + (PHASE4_MAX_VUS % 2);
+    case '3-stepped': {
+      const top = Math.max(...STEPPED_LEVELS);
+      return top + (top % 2);
+    }
     default:
       return 0;
   }
@@ -334,10 +340,25 @@ function openSession(entry, partner) {
   let sendTimer = null;
   let firstSendTimer = null;
   let reconnectCheckTimer = null;
+  let connectTimeout = null;
 
   const socket = new WebSocket(WS_URL);
 
+  connectTimeout = setTimeout(() => {
+    connectTimeout = null;
+    if (connected) return;
+    wsConnectionErrors.add(1);
+    console.error(
+      `[load] handshake did not complete within ${CONNECT_TIMEOUT_MS}ms, closing`
+    );
+    socket.close();
+  }, CONNECT_TIMEOUT_MS);
+
   function clearTimers() {
+    if (connectTimeout) {
+      clearTimeout(connectTimeout);
+      connectTimeout = null;
+    }
     if (firstSendTimer) {
       clearTimeout(firstSendTimer);
       firstSendTimer = null;
@@ -405,6 +426,10 @@ function openSession(entry, partner) {
 
     if (frame.eioType === '4' && frame.socketioType === '0') {
       connected = true;
+      if (connectTimeout) {
+        clearTimeout(connectTimeout);
+        connectTimeout = null;
+      }
       wsConnectLatency.add(Date.now() - connectStart);
 
       firstSendTimer = setTimeout(
@@ -431,6 +456,7 @@ function openSession(entry, partner) {
 
     if (frame.eioType === '4' && frame.socketioType === '4') {
       wsConnectionErrors.add(1);
+      socket.close();
       return;
     }
 
@@ -481,8 +507,7 @@ function buildPhase4Stages() {
 }
 
 function buildSteppedStages() {
-  const levels = [100, 150, 200];
-  return levels.flatMap((target) => [
+  return STEPPED_LEVELS.flatMap((target) => [
     { duration: STEPPED_RAMP_DURATION, target },
     { duration: STEPPED_HOLD_DURATION, target },
   ]);
