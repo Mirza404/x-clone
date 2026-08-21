@@ -77,7 +77,7 @@ The server persists before emitting, which is a good ordering decision. The ackn
 
 ### Finding 1: Conversation summary updates can lose concurrent writes
 
-**Status: fixed.** `handleMessageSend` in `backend/src/socket/handlers.ts` no longer loads the conversation into memory, mutates it, and calls `conversation.save()`. It now issues an atomic `Conversation.findOneAndUpdate` with `$set` for `lastMessage`/`lastMessageAt` and `$inc` on `unread.$[elem].count` (scoped to the recipient via `arrayFilters`), so two concurrent sends each apply their own increment instead of one clobbering the other's read. A `findByIdAndUpdate` with `$push` fallback handles the (legacy-data) case where the recipient has no existing `unread` entry to match against. This does not cover `lastMessage`/`lastMessageAt` ordering under out-of-order writes (a slow request could still overwrite a newer `lastMessageAt` with an older one) — only the increment-loss race described below is closed.
+**Status: fixed.** `handleMessageSend` in `backend/src/socket/handlers.ts` no longer loads the conversation into memory, mutates it, and calls `conversation.save()`. It now issues an atomic `Conversation.findOneAndUpdate` with `$set` for `lastMessage`/`lastMessageAt` and `$inc` on `unread.$[elem].count` (scoped to the recipient via `arrayFilters`), so two concurrent sends each apply their own increment instead of one clobbering the other's read. A `findByIdAndUpdate` with `$push` fallback handles the (legacy-data) case where the recipient has no existing `unread` entry to match against. This does not cover `lastMessage`/`lastMessageAt` ordering under out-of-order writes (a slow request could still overwrite a newer `lastMessageAt` with an older one), only the increment-loss race described below is closed.
 
 Two sends for the same conversation used to interleave like this:
 
@@ -120,7 +120,7 @@ The user may retry and create a duplicate. The original successful server messag
 
 **Status: fixed.** The `message:new` subscription no longer lives in `useConversations`. It moved to a new `useConversationsCacheBridge` hook, mounted exactly once via `ConversationsCacheBridge` inside `SocketProvider` in the root layout. `useConversations` is now a plain `useQuery` wrapper with no socket subscription; every UI surface (messages page, mobile navigation, floating message UI) reads the same cache without registering its own listener. A regression test (`useConversations.test.tsx`, "increments unreadCount only once when multiple UI surfaces mount useConversations") mounts three consumers against one bridge and asserts a single `message:new` event bumps `unreadCount` by exactly one, and that only one handler is ever registered.
 
-This does not address the ordering race with `useMessages` noted below (an open conversation being marked read while `useConversations` is also processing the same event) — that's a separate concern from the multiplied-listener bug this finding was about.
+This does not address the ordering race with `useMessages` noted below (an open conversation being marked read while `useConversations` is also processing the same event), that's a separate concern from the multiplied-listener bug this finding was about.
 
 **Relevant code:** `frontend/src/app/hooks/useConversations.ts` (`useConversationsCacheBridge`), `frontend/src/app/components/messages/ConversationsCacheBridge.tsx`, `frontend/src/app/layout.tsx`.
 
@@ -297,7 +297,7 @@ still live: that mode accepts unregistered URLs from the exact configured tenant
 so old unsigned-client uploads continue to work, but it still rejects external
 URLs and assets already registered to another user. After the signed frontend is
 verified, set it to `false` and disable the old `x_clone` unsigned preset. Strict
-registry-backed ownership—and therefore full closure of this finding—starts at
+registry-backed ownership, and therefore full closure of this finding, starts at
 that cutover.
 
 **Relevant code:** `backend/src/services/media-service.ts`,
