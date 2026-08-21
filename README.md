@@ -1,55 +1,33 @@
 # X Clone
 
+X Clone is a full stack social application built with Next.js, Express, Socket.IO, and MongoDB. It includes posts, comments, follows, media uploads, realtime direct messages, optimistic updates, and load tests for the main HTTP and WebSocket paths.
+
 [![CI](https://github.com/Mirza404/x-clone/actions/workflows/ci.yml/badge.svg)](https://github.com/Mirza404/x-clone/actions/workflows/ci.yml)
 
-- Backend: Express + TypeScript. See [backend/src/app.ts](backend/src/app.ts) and [backend/src/index.ts](backend/src/index.ts).
-- Frontend: Next.js 14 (app dir). See [frontend/src/app/layout.tsx](frontend/src/app/layout.tsx).
-- Database: MongoDB (Atlas recommended). Backend connects via [`connectToDatabase`](backend/src/db/connection.ts).
-- Client-side data layer: React Query (caching, infinite queries, mutations, optimistic updates).
+## Local setup
 
-Getting started (dev)
+Use a current Node.js LTS release and a MongoDB database.
 
-1. Copy env files:
-   - Backend: copy [backend/.env.example](backend/.env.example) -> `backend/.env` and set your Atlas URL and secrets.
-   - Frontend: copy [frontend/.env.example](frontend/.env.example) -> `frontend/.env`.
-   - Both apps need the same `BACKEND_JWT_SECRET` value. Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and paste it into both `backend/.env` and `frontend/.env`. Next.js uses it to mint short-lived tokens from the NextAuth session; Express uses it to verify them.
-2. Start backend:
-   - `cd backend`
-   - `npm install`
-   - `npm run dev`
-   - backend listens on port 3001 by default ([backend/src/index.ts](backend/src/index.ts)).
-3. Start frontend:
-   - `cd frontend`
-   - `npm install`
-   - `npm run dev`
-   - open http://localhost:3000
+1. Copy `backend/.env.example` to `backend/.env`.
+2. Copy `frontend/.env.example` to `frontend/.env`.
+3. Set the same `BACKEND_JWT_SECRET` in both files.
+4. Run `npm install` in the root, `backend`, and `frontend` directories.
+5. Run `npm run dev` in `backend`.
+6. Run `npm run dev` in `frontend`.
+7. Open [http://localhost:3000](http://localhost:3000).
 
-React Query: what I used and why
+The frontend uses port `3000`. The backend uses port `3001`.
 
-- Central provider: [`QueryProvider`](frontend/src/query-client-provider/index.tsx) creates a global QueryClient for caching and devtools.
-- Fetches / pagination:
-  - Infinite lists: [`postMutations`](frontend/src/app/utils/postMutations.ts) exposes `useFetchInfinitePosts` and `useFetchInfiniteComments` (infinite queries and page merging).
-  - Generic fetch helpers live in [`frontend/src/app/utils/fetchInfo.ts`](frontend/src/app/utils/fetchInfo.ts).
-- Mutations:
-  - Post mutations (delete / update): [`postMutations`](frontend/src/app/utils/postMutations.ts).
-  - Comment mutations: [`useCommentMutations`](frontend/src/app/utils/commentMutations.ts).
-  - Liking with optimistic UI: [`LikeButton`](frontend/src/app/components/ui/LikeButton.tsx) uses a `useMutation` with onMutate/onError rollback for snappy UX.
-- What React Query helped me with:
-  - Automatic caching and cache invalidation (invalidateQueries/removeQueries).
-  - Built-in infinite scroll support (getNextPageParam).
-  - Easy optimistic updates and rollback.
-  - Reduced boilerplate for request/retry/stale handling.
+## Project guides
 
-Could I have done the same without React Query?
+1. [Frontend](frontend/README.md) covers the application structure, data access, authentication, and common commands.
+2. [Backend](backend/README.md) covers the API, database, authentication, media flow, and common commands.
+3. [Realtime messaging](docs/realtime-messaging.md) follows messages through the frontend, Socket.IO server, and MongoDB.
+4. [Architecture](docs/architecture.md) records the main boundaries and the reasons behind them.
+5. [Load testing](load-test/k6/README.md) explains setup, scenarios, metrics, and cleanup.
+6. [Messaging review](MESSAGING_FLOW_REVIEW.md) contains the detailed messaging audit.
+7. [Load test results](frontend/load_testing_plan.md) contains the recorded capacity runs and observations.
 
-- Probably, everything is possible with useState/useEffect and fetch/axios, but I'd have to reimplement caching, do pagination from scratch, retries, optimistic updates and global prefetch logic manually. React Query saves time and avoids subtle bugs and that makes it a great tool.
+## Checks
 
-Useful backend/frontend files
-
-- Backend entry & router: [backend/src/app.ts](backend/src/app.ts), [backend/src/index.ts](backend/src/index.ts)
-- DB connection: [`connectToDatabase`](backend/src/db/connection.ts). Set your MongoDB Atlas URI in [backend/.env.example](backend/.env.example)
-- API routes: [backend/src/routes/post-routes.ts](backend/src/routes/post-routes.ts), [backend/src/routes/comment-routes.ts](backend/src/routes/comment-routes.ts)
-- Frontend layout & providers: [frontend/src/app/layout.tsx](frontend/src/app/layout.tsx), [`QueryProvider`](frontend/src/query-client-provider/index.tsx)
-- React Query helpers: [`postMutations`](frontend/src/app/utils/postMutations.ts), [`useCommentMutations`](frontend/src/app/utils/commentMutations.ts)
-- Fetch helpers: [frontend/src/app/utils/fetchInfo.ts](frontend/src/app/utils/fetchInfo.ts)
-- UI that uses mutations/optimistic updates: [`LikeButton`](frontend/src/app/components/ui/LikeButton.tsx)
+Run `npm run check` from the repository root to check formatting, linting, types, the frontend build, and tests.
