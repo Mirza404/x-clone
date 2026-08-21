@@ -416,6 +416,16 @@ export function phase1() {
 // =======================================================================
 // PHASES 2/3/4 - shared "realistic user" connect/send/reconnect loop
 // =======================================================================
+// Standard WebSocket readyState value for an open connection. k6's
+// k6/experimental/websockets module (as of k6 v2.2.0) does not expose the
+// WebSocket.OPEN/.CLOSED static constants browsers provide - reading
+// WebSocket.OPEN returns undefined, which made `readyState !== WebSocket.OPEN`
+// always true and silently no-op every sendMessage() call below (confirmed
+// against a real k6 v2.2.0 run: WS phase 2/3/3-stepped connected VUs but
+// wsMessagesSent stayed at 0 for the whole run). Use the numeric value from
+// the WHATWG WebSocket spec directly instead.
+const WS_READY_STATE_OPEN = 1;
+
 export function loadLoop() {
   const tokenIndex = __VU - 1;
   const entry = tokens[tokenIndex];
@@ -465,7 +475,7 @@ function openSession(entry, partner) {
   }
 
   function sendMessage() {
-    if (!connected || socket.readyState !== WebSocket.OPEN) return;
+    if (!connected || socket.readyState !== WS_READY_STATE_OPEN) return;
     const ackId = ackCounter++;
     const clientId = `${__VU}-${__ITER}-${ackId}-${Date.now()}`;
     const ackKey = String(ackId);
@@ -515,7 +525,7 @@ function openSession(entry, partner) {
         () => {
           firstSendTimer = null;
           sendMessage();
-          if (!connected || socket.readyState !== WebSocket.OPEN) return;
+          if (!connected || socket.readyState !== WS_READY_STATE_OPEN) return;
           sendTimer = setInterval(
             sendMessage,
             randomIntBetween(MSG_MIN_INTERVAL_S, MSG_MAX_INTERVAL_S) * 1000
