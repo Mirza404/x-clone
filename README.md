@@ -31,3 +31,6 @@ The frontend uses port `3000`. The backend uses port `3001`.
 ## Checks
 
 Run `npm run check` from the repository root to check formatting, linting, types, the frontend build, and tests.
+
+## Disclaimer
+Video Demo coming soon
