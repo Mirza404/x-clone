@@ -10,6 +10,7 @@ import { useSession } from 'next-auth/react';
 import {
   getConversationMessages,
   markConversationRead,
+  sendMessageRest,
 } from '../utils/messageApi';
 import { useSocketContext } from '../utils/SocketProvider';
 import { CONVERSATIONS_QUERY_KEY } from './useConversations';
@@ -331,15 +332,37 @@ function useMessages(conversationId: string | null) {
         };
       });
 
+      // A retry of this same logical send (the ack fallback below, or any
+      // future manual retry) must reuse this clientId rather than generating
+      // a new one, so the backend can recognize it as the same attempt.
+      const finalizeWithRest = async () => {
+        const sent = await sendMessageRest(
+          conversationId,
+          trimmed,
+          images,
+          clientId
+        );
+        queryClient.setQueryData<MessagesData>(queryKey, (current) => {
+          if (!current) {
+            return current;
+          }
+          const pages = sent
+            ? replaceMessage(current.pages, tempId, sent)
+            : markFailed(current.pages, tempId);
+          return { ...current, pages };
+        });
+      };
+
+      if (!connected) {
+        void finalizeWithRest();
+        return;
+      }
+
       let settled = false;
       const timeout = setTimeout(() => {
         if (settled) return;
         settled = true;
-        queryClient.setQueryData<MessagesData>(queryKey, (current) =>
-          current
-            ? { ...current, pages: markFailed(current.pages, tempId) }
-            : current
-        );
+        void finalizeWithRest();
       }, ACK_TIMEOUT_MS);
 
       emit<
@@ -371,7 +394,7 @@ function useMessages(conversationId: string | null) {
         }
       );
     },
-    [conversationId, currentUserId, emit, queryClient, queryKey]
+    [conversationId, connected, currentUserId, emit, queryClient, queryKey]
   );
 
   return { ...query, messages, sendMessage };
