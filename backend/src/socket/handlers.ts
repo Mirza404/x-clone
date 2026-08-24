@@ -4,6 +4,7 @@ import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { getOrCreateConversation } from '../services/conversation-service';
+import { createMessageIdempotent } from '../services/message-service';
 import { allow } from './rate-limit';
 import { MediaValidationError, mediaService } from '../services/media-service';
 
@@ -13,18 +14,6 @@ interface MessageSendPayload {
   content?: string;
   images?: string[];
   clientId?: string;
-}
-
-interface MongoDuplicateKeyError {
-  code: number;
-}
-
-function isDuplicateKeyError(error: unknown): error is MongoDuplicateKeyError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as MongoDuplicateKeyError).code === 11000
-  );
 }
 
 interface MessageSendAck {
@@ -101,69 +90,23 @@ async function handleMessageSend(
       return;
     }
 
-    const existing = await Message.findOne({
-      sender: toObjectId(userId),
-      clientId,
-    });
-    if (existing) {
-      respond({ ok: true, message: existing, conversation });
-      return;
-    }
-
-    let message;
-    try {
-      message = await Message.create({
-        conversation: conversation._id,
-        sender: toObjectId(userId),
+    const { message, conversation: updatedConversation, created } =
+      await createMessageIdempotent({
+        conversation,
+        senderId: userId,
         content,
         images,
         clientId,
       });
-    } catch (e) {
-      if (isDuplicateKeyError(e)) {
-        const retried = await Message.findOne({
-          sender: toObjectId(userId),
-          clientId,
-        });
-        if (retried) {
-          respond({ ok: true, message: retried, conversation });
-          return;
-        }
-      }
-      throw e;
+
+    if (!created) {
+      respond({ ok: true, message, conversation: updatedConversation });
+      return;
     }
 
     const recipient = conversation.participants.find(
       (participant) => !equalsObjectId(participant, userId)
     );
-
-    const summaryUpdate = {
-      $set: { lastMessage: message._id, lastMessageAt: message.createdAt },
-    };
-
-    let updatedConversation = await Conversation.findOneAndUpdate(
-      recipient
-        ? { _id: conversation._id, 'unread.user': recipient }
-        : { _id: conversation._id },
-      recipient
-        ? { ...summaryUpdate, $inc: { 'unread.$[elem].count': 1 } }
-        : summaryUpdate,
-      recipient
-        ? { new: true, arrayFilters: [{ 'elem.user': recipient }] }
-        : { new: true }
-    );
-
-    if (!updatedConversation && recipient) {
-      updatedConversation = await Conversation.findByIdAndUpdate(
-        conversation._id,
-        { ...summaryUpdate, $push: { unread: { user: recipient, count: 1 } } },
-        { new: true }
-      );
-    }
-
-    if (!updatedConversation) {
-      throw new Error('Conversation disappeared during message send');
-    }
 
     const eventPayload = { message, conversation: updatedConversation };
     io.to(`user:${userId}`).emit('message:new', eventPayload);
