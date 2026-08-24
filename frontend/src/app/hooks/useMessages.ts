@@ -91,7 +91,7 @@ function upsertMessage(
   const [latestPage, ...olderPages] = pages;
   const pending = latestPage?.messages.findIndex(
     (m) =>
-      m.status === 'sending' &&
+      (m.status === 'sending' || m.status === 'failed') &&
       m.sender === currentUserId &&
       m.clientId === message.clientId
   );

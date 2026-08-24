@@ -549,6 +549,47 @@ describe('useMessages', () => {
     );
   });
 
+  it('reconciles a failed optimistic message when its delayed event arrives', async () => {
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      messages: [],
+    });
+
+    const { result } = renderWithClient('conv-1');
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    act(() => {
+      result.current.sendMessage('hey');
+    });
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+
+    const sendCall = emit.mock.calls.find(
+      ([event]) => event === 'message:send'
+    ) as [string, { clientId: string }, (ack: unknown) => void];
+    const [, payload, ack] = sendCall;
+    act(() => {
+      ack({ ok: false, error: 'uncertain result' });
+    });
+    await waitFor(() =>
+      expect(result.current.messages[0].status).toBe('failed')
+    );
+
+    act(() => {
+      handlers.get('message:new')?.({
+        message: makeMessage({
+          _id: 'real-id',
+          content: 'hey',
+          sender: 'me',
+          clientId: payload.clientId,
+        }),
+      });
+    });
+
+    await waitFor(() => expect(result.current.messages[0]._id).toBe('real-id'));
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].status).toBeUndefined();
+  });
+
   it('generates one clientId per send and reuses it for the REST fallback when disconnected', async () => {
     mockedUseSocketContext.mockReturnValue({
       emit,
@@ -594,9 +635,7 @@ describe('useMessages', () => {
     expect(typeof clientId).toBe('string');
     expect(clientId.length).toBeGreaterThan(0);
 
-    await waitFor(() =>
-      expect(result.current.messages[0]._id).toBe('rest-id')
-    );
+    await waitFor(() => expect(result.current.messages[0]._id).toBe('rest-id'));
   });
 
   it('falls back to REST with the same clientId used on the socket emit when the ack times out', async () => {
