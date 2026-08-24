@@ -687,6 +687,102 @@ describe('useMessages', () => {
     }
   });
 
+  it('retryMessage re-sends a failed message with the same clientId and can fail again visibly', async () => {
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      messages: [],
+    });
+
+    const { result } = renderWithClient('conv-1');
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    act(() => {
+      result.current.sendMessage('hey');
+    });
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+
+    const firstSendCall = emit.mock.calls.find(
+      ([event]) => event === 'message:send'
+    ) as [string, { clientId: string }, (ack: unknown) => void];
+    const [, firstPayload, firstAck] = firstSendCall;
+    act(() => {
+      firstAck({ ok: false, error: 'nope' });
+    });
+    await waitFor(() =>
+      expect(result.current.messages[0].status).toBe('failed')
+    );
+
+    const tempId = result.current.messages[0]._id;
+    emit.mockClear();
+
+    act(() => {
+      result.current.retryMessage(tempId);
+    });
+
+    await waitFor(() =>
+      expect(result.current.messages[0].status).toBe('sending')
+    );
+
+    const retrySendCall = emit.mock.calls.find(
+      ([event]) => event === 'message:send'
+    ) as [string, { clientId: string }, (ack: unknown) => void];
+    const [, retryPayload, retryAck] = retrySendCall;
+    expect(retryPayload.clientId).toBe(firstPayload.clientId);
+
+    act(() => {
+      retryAck({ ok: false, error: 'still down' });
+    });
+
+    await waitFor(() =>
+      expect(result.current.messages[0].status).toBe('failed')
+    );
+    expect(result.current.messages).toHaveLength(1);
+  });
+
+  it('retries a failed REST fallback with the original clientId while disconnected', async () => {
+    mockedUseSocketContext.mockReturnValue({
+      emit,
+      connected: false,
+      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
+        handlers.set(event, handler);
+        return () => handlers.delete(event);
+      }),
+    });
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      messages: [],
+    });
+    mockedSendMessageRest
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(
+        makeMessage({ _id: 'rest-id', content: 'hey', sender: 'me' })
+      );
+
+    const { result } = renderWithClient('conv-1');
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    act(() => {
+      result.current.sendMessage('hey');
+    });
+    await waitFor(() =>
+      expect(result.current.messages[0].status).toBe('failed')
+    );
+
+    const tempId = result.current.messages[0]._id;
+    const firstClientId = mockedSendMessageRest.mock.calls[0]?.[3];
+
+    act(() => {
+      result.current.retryMessage(tempId);
+    });
+
+    await waitFor(() => expect(mockedSendMessageRest).toHaveBeenCalledTimes(2));
+    expect(mockedSendMessageRest.mock.calls[1]?.[3]).toBe(firstClientId);
+    await waitFor(() => expect(result.current.messages[0]._id).toBe('rest-id'));
+    expect(emit.mock.calls.some(([event]) => event === 'message:send')).toBe(
+      false
+    );
+  });
+
   it('refetches on reconnect to backfill any gap, but not on the initial connect', async () => {
     mockedGetConversationMessages.mockResolvedValue({
       nextPage: undefined,

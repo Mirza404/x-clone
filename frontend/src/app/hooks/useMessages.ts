@@ -126,6 +126,15 @@ function markFailed(pages: MessagesPage[], tempId: string): MessagesPage[] {
   }));
 }
 
+function markSending(pages: MessagesPage[], tempId: string): MessagesPage[] {
+  return pages.map((page) => ({
+    ...page,
+    messages: page.messages.map((m) =>
+      m._id === tempId ? { ...m, status: 'sending' as const } : m
+    ),
+  }));
+}
+
 function useMessages(conversationId: string | null) {
   const { emit, subscribe, connected } = useSocketContext();
   const { data: session } = useSession();
@@ -293,6 +302,90 @@ function useMessages(conversationId: string | null) {
     .reverse()
     .flatMap((page) => page.messages);
 
+  // Prefer the socket while connected, then use the idempotent REST endpoint
+  // if the socket is unavailable or its acknowledgement times out. Both paths
+  // reuse the same clientId, so an uncertain socket result cannot create a
+  // duplicate. A message becomes retryable only after the available path has
+  // failed.
+  const attemptSend = useCallback(
+    (message: Message) => {
+      const clientId = message.clientId;
+      if (!clientId) {
+        queryClient.setQueryData<MessagesData>(queryKey, (current) =>
+          current
+            ? { ...current, pages: markFailed(current.pages, message._id) }
+            : current
+        );
+        return;
+      }
+
+      const finalizeWithRest = async () => {
+        const sent = await sendMessageRest(
+          message.conversation,
+          message.content,
+          message.images,
+          clientId
+        );
+        queryClient.setQueryData<MessagesData>(queryKey, (current) => {
+          if (!current) {
+            return current;
+          }
+          const pages = sent
+            ? replaceMessage(current.pages, message._id, sent)
+            : markFailed(current.pages, message._id);
+          return { ...current, pages };
+        });
+      };
+
+      if (!connected) {
+        void finalizeWithRest();
+        return;
+      }
+
+      let settled = false;
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        void finalizeWithRest();
+      }, ACK_TIMEOUT_MS);
+
+      emit<
+        {
+          conversationId: string;
+          content: string;
+          images: string[];
+          clientId: string;
+        },
+        MessageSendAck
+      >(
+        'message:send',
+        {
+          conversationId: message.conversation,
+          content: message.content,
+          images: message.images,
+          clientId,
+        },
+        (ack) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+
+          queryClient.setQueryData<MessagesData>(queryKey, (current) => {
+            if (!current) {
+              return current;
+            }
+            const pages =
+              ack.ok && ack.message
+                ? replaceMessage(current.pages, message._id, ack.message)
+                : markFailed(current.pages, message._id);
+            return { ...current, pages };
+          });
+        }
+      );
+    },
+    [connected, emit, queryClient, queryKey]
+  );
+
   const sendMessage = useCallback(
     (content: string, images: string[] = []) => {
       const trimmed = content.trim();
@@ -332,72 +425,36 @@ function useMessages(conversationId: string | null) {
         };
       });
 
-      // A retry of this same logical send (the ack fallback below, or any
-      // future manual retry) must reuse this clientId rather than generating
-      // a new one, so the backend can recognize it as the same attempt.
-      const finalizeWithRest = async () => {
-        const sent = await sendMessageRest(
-          conversationId,
-          trimmed,
-          images,
-          clientId
-        );
-        queryClient.setQueryData<MessagesData>(queryKey, (current) => {
-          if (!current) {
-            return current;
-          }
-          const pages = sent
-            ? replaceMessage(current.pages, tempId, sent)
-            : markFailed(current.pages, tempId);
-          return { ...current, pages };
-        });
-      };
+      attemptSend(optimisticMessage);
+    },
+    [conversationId, currentUserId, queryClient, queryKey, attemptSend]
+  );
 
-      if (!connected) {
-        void finalizeWithRest();
+  // Manual retry for a message already marked 'failed'. Reuses the original
+  // clientId so a retry after a send that actually succeeded server-side
+  // (e.g. a buffered emit that landed late) resolves to the same message
+  // instead of creating a duplicate.
+  const retryMessage = useCallback(
+    (tempId: string) => {
+      const current = queryClient.getQueryData<MessagesData>(queryKey);
+      const failedMessage = current?.pages
+        .flatMap((page) => page.messages)
+        .find((m) => m._id === tempId && m.status === 'failed');
+
+      if (!failedMessage || !failedMessage.clientId) {
         return;
       }
 
-      let settled = false;
-      const timeout = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        void finalizeWithRest();
-      }, ACK_TIMEOUT_MS);
-
-      emit<
-        {
-          conversationId: string;
-          content: string;
-          images: string[];
-          clientId: string;
-        },
-        MessageSendAck
-      >(
-        'message:send',
-        { conversationId, content: trimmed, images, clientId },
-        (ack) => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeout);
-
-          queryClient.setQueryData<MessagesData>(queryKey, (current) => {
-            if (!current) {
-              return current;
-            }
-            const pages =
-              ack.ok && ack.message
-                ? replaceMessage(current.pages, tempId, ack.message)
-                : markFailed(current.pages, tempId);
-            return { ...current, pages };
-          });
-        }
+      queryClient.setQueryData<MessagesData>(queryKey, (data) =>
+        data ? { ...data, pages: markSending(data.pages, tempId) } : data
       );
+
+      attemptSend({ ...failedMessage, status: 'sending' });
     },
-    [conversationId, connected, currentUserId, emit, queryClient, queryKey]
+    [queryClient, queryKey, attemptSend]
   );
 
-  return { ...query, messages, sendMessage };
+  return { ...query, messages, sendMessage, retryMessage };
 }
 
 export { useMessages };
