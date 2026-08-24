@@ -38,6 +38,7 @@ function mockMessages(overrides: Partial<ReturnType<typeof useMessages>>) {
     hasNextPage: false,
     isFetchingNextPage: false,
     sendMessage: jest.fn(),
+    retryMessage: jest.fn(),
     ...overrides,
   });
 }
@@ -147,6 +148,36 @@ describe('MessageThread', () => {
       expect(sendMessage).toHaveBeenCalledWith('hi there', [])
     );
     expect(stopTypingNow).toHaveBeenCalled();
+  });
+
+  it('retries a failed message owned by the current user', () => {
+    const retryMessage = jest.fn();
+    mockMessages({
+      retryMessage,
+      messages: [
+        {
+          _id: 'temp-1',
+          conversation: 'conv-1',
+          sender: 'me',
+          clientId: 'client-1',
+          content: 'try again',
+          readBy: [],
+          images: [],
+          createdAt: new Date(0).toISOString(),
+          status: 'failed',
+        },
+      ],
+    });
+
+    render(
+      <MessageThread
+        conversationId="conv-1"
+        participant={{ id: 'user-2', name: 'Ada', image: null }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(retryMessage).toHaveBeenCalledWith('temp-1');
   });
 
   it('calls notifyTyping when the composer input changes', () => {

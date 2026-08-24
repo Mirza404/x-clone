@@ -3,6 +3,7 @@ import {
   getConversations,
   getOrCreateConversation,
   getConversationMessages,
+  sendMessageRest,
   markConversationRead,
 } from './messageApi';
 
@@ -93,6 +94,33 @@ describe('messageApi', () => {
     mockedApi.get.mockRejectedValueOnce(error);
 
     await expect(getConversationMessages('conv-1', null)).rejects.toBe(error);
+  });
+
+  it('sendMessageRest posts content, images, and clientId, and returns the message', async () => {
+    mockedApi.post.mockResolvedValueOnce({
+      data: { message: { _id: 'm1', content: 'hey' } },
+    });
+
+    const result = await sendMessageRest(
+      'conv-1',
+      'hey',
+      ['https://example.com/a.png'],
+      'client-1'
+    );
+
+    expect(mockedApi.post).toHaveBeenCalledWith(
+      '/api/message/conversations/conv-1/messages',
+      { content: 'hey', images: ['https://example.com/a.png'], clientId: 'client-1' }
+    );
+    expect(result).toEqual({ _id: 'm1', content: 'hey' });
+  });
+
+  it('sendMessageRest returns null on error', async () => {
+    mockedApi.post.mockRejectedValueOnce(new Error('network error'));
+
+    const result = await sendMessageRest('conv-1', 'hey', [], 'client-1');
+
+    expect(result).toBeNull();
   });
 
   it('markConversationRead patches the read endpoint and returns true', async () => {

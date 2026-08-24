@@ -46,6 +46,31 @@ export async function getOrCreateConversation(
   }
 }
 
+// REST fallback for sending a message when the socket path doesn't ack in
+// time. `clientId` must be the same id already used on the socket emit for
+// this send attempt: the backend dedupes on it, so a message the socket send
+// actually persisted is returned as-is instead of being duplicated here.
+export async function sendMessageRest(
+  conversationId: string,
+  content: string,
+  images: string[],
+  clientId: string
+): Promise<Message | null> {
+  try {
+    const res = await api.post(
+      `/api/message/conversations/${conversationId}/messages`,
+      { content, images, clientId }
+    );
+    return (res.data as { message: Message }).message;
+  } catch (error) {
+    console.error(
+      'Error sending message over REST:',
+      getApiErrorMessage(error, 'Error')
+    );
+    return null;
+  }
+}
+
 // The backend paginates from most-recent backwards. Each page is chronological
 // within itself, and nextPage is an opaque cursor pointing further into the
 // past. New messages cannot shift that boundary between requests.

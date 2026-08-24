@@ -35,6 +35,7 @@ export default function MessageThread({
     hasNextPage,
     isFetchingNextPage,
     sendMessage,
+    retryMessage,
   } = useMessages(conversationId);
   const { isPeerTyping, notifyTyping, stopTypingNow } =
     useTyping(conversationId);
@@ -124,6 +125,9 @@ export default function MessageThread({
                     message._id === lastMineId &&
                     Boolean(participant) &&
                     message.readBy.includes(participant?.id as string)
+                  }
+                  onRetry={
+                    message.sender === currentUserId ? retryMessage : undefined
                   }
                 />
               ))}

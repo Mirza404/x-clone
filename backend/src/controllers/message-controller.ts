@@ -1,11 +1,15 @@
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
+import type { Server } from 'socket.io';
 import type {} from '../types/express';
 import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { getUsersCollection } from '../db/connection';
 import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { getOrCreateConversation } from '../services/conversation-service';
+import { createMessageIdempotent } from '../services/message-service';
+import { MediaValidationError, mediaService } from '../services/media-service';
+import { emitNewMessage } from '../socket/message-events';
 
 function isParticipant(
   conversation: { participants: mongoose.Types.ObjectId[] },
@@ -260,6 +264,108 @@ async function getConversationMessages(
   }
 }
 
+const MAX_CLIENT_ID_LENGTH = 100;
+
+// REST fallback for sending a message when the socket path can't be used
+// (disconnected, or an ack that timed out). It shares the same idempotent
+// create path as the socket handler, keyed on `clientId`, so a message
+// already persisted by a socket send that actually reached the server is
+// returned as-is instead of being duplicated by the REST retry.
+async function sendMessage(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: 'Valid conversation id is required' });
+      return;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      res.status(500).json({ message: 'Database not connected' });
+      return;
+    }
+
+    const content =
+      typeof req.body.content === 'string' ? req.body.content.trim() : '';
+    if (!content || content.length > 2000) {
+      res
+        .status(400)
+        .json({ message: 'Content must be between 1 and 2000 characters' });
+      return;
+    }
+
+    const clientId = req.body.clientId;
+    if (
+      typeof clientId !== 'string' ||
+      clientId.length === 0 ||
+      clientId.length > MAX_CLIENT_ID_LENGTH
+    ) {
+      res.status(400).json({ message: 'Valid clientId is required' });
+      return;
+    }
+
+    const conversation = await Conversation.findById(id);
+
+    if (!conversation) {
+      res.status(404).json({ message: 'Conversation not found' });
+      return;
+    }
+
+    if (!isParticipant(conversation, userId)) {
+      res
+        .status(403)
+        .json({ message: 'You are not a participant of this conversation' });
+      return;
+    }
+
+    let images: string[];
+    try {
+      images = await mediaService.assertOwnedImageUrls(
+        userId,
+        req.body.images ?? []
+      );
+    } catch (e) {
+      if (e instanceof MediaValidationError) {
+        res.status(400).json({ message: e.message });
+        return;
+      }
+      throw e;
+    }
+
+    const {
+      message,
+      conversation: updatedConversation,
+      created,
+    } = await createMessageIdempotent({
+      conversation,
+      senderId: userId,
+      content,
+      images,
+      clientId,
+    });
+
+    if (created) {
+      const io = req.app.get('socketIo') as Server | undefined;
+      if (io) {
+        emitNewMessage(io, userId, message, updatedConversation);
+      }
+    }
+
+    res.status(200).json({ message, conversation: updatedConversation });
+  } catch (e) {
+    console.error('Error sending message:', e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+}
+
 async function markConversationRead(
   req: Request,
   res: Response
@@ -324,5 +430,6 @@ export {
   listConversations,
   createConversation,
   getConversationMessages,
+  sendMessage,
   markConversationRead,
 };
