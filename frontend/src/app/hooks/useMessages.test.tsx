@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import {
   getConversationMessages,
   markConversationRead,
+  sendMessageRest,
 } from '../utils/messageApi';
 import { useSocketContext } from '../utils/SocketProvider';
 import { CONVERSATIONS_QUERY_KEY } from './useConversations';
@@ -18,6 +19,7 @@ jest.mock('next-auth/react', () => ({
 jest.mock('../utils/messageApi', () => ({
   getConversationMessages: jest.fn(),
   markConversationRead: jest.fn(),
+  sendMessageRest: jest.fn(),
 }));
 
 jest.mock('../utils/SocketProvider', () => ({
@@ -27,6 +29,7 @@ jest.mock('../utils/SocketProvider', () => ({
 const mockedUseSession = useSession as jest.Mock;
 const mockedGetConversationMessages = getConversationMessages as jest.Mock;
 const mockedMarkConversationRead = markConversationRead as jest.Mock;
+const mockedSendMessageRest = sendMessageRest as jest.Mock;
 const mockedUseSocketContext = useSocketContext as jest.Mock;
 
 function makeMessage(overrides: Partial<Message> = {}): Message {
@@ -544,6 +547,105 @@ describe('useMessages', () => {
     await waitFor(() =>
       expect(result.current.messages[0].status).toBe('failed')
     );
+  });
+
+  it('generates one clientId per send and reuses it for the REST fallback when disconnected', async () => {
+    mockedUseSocketContext.mockReturnValue({
+      emit,
+      connected: false,
+      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
+        handlers.set(event, handler);
+        return () => handlers.delete(event);
+      }),
+    });
+    mockedGetConversationMessages.mockResolvedValueOnce({
+      nextPage: undefined,
+      messages: [],
+    });
+    mockedSendMessageRest.mockResolvedValueOnce(
+      makeMessage({ _id: 'rest-id', content: 'hey', sender: 'me' })
+    );
+
+    const { result } = renderWithClient('conv-1');
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    act(() => {
+      result.current.sendMessage('hey');
+    });
+
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+
+    // The socket is disconnected, so this logical send never goes through
+    // `emit` at all; the REST fallback below must still receive a clientId
+    // generated for this attempt.
+    expect(emit).not.toHaveBeenCalledWith(
+      'message:send',
+      expect.anything(),
+      expect.anything()
+    );
+
+    await waitFor(() => expect(mockedSendMessageRest).toHaveBeenCalledTimes(1));
+    const [, , , clientId] = mockedSendMessageRest.mock.calls[0] as [
+      string,
+      string,
+      string[],
+      string,
+    ];
+    expect(typeof clientId).toBe('string');
+    expect(clientId.length).toBeGreaterThan(0);
+
+    await waitFor(() =>
+      expect(result.current.messages[0]._id).toBe('rest-id')
+    );
+  });
+
+  it('falls back to REST with the same clientId used on the socket emit when the ack times out', async () => {
+    jest.useFakeTimers();
+    try {
+      mockedGetConversationMessages.mockResolvedValueOnce({
+        nextPage: undefined,
+        messages: [],
+      });
+      mockedSendMessageRest.mockResolvedValueOnce(
+        makeMessage({ _id: 'rest-id', content: 'hey', sender: 'me' })
+      );
+
+      const { result } = renderWithClient('conv-1');
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      act(() => {
+        result.current.sendMessage('hey');
+      });
+
+      await waitFor(() => expect(result.current.messages).toHaveLength(1));
+
+      const sendCall = emit.mock.calls.find(
+        ([event]) => event === 'message:send'
+      );
+      const [, sendPayload] = sendCall as [string, { clientId: string }];
+      const socketClientId = sendPayload.clientId;
+
+      // The ack never arrives; advance past the ack timeout so the fallback
+      // fires. No new call to sendMessage happens here, so if the fallback
+      // reuses socketClientId it proves the id was generated once up front
+      // rather than being regenerated for this retry.
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(10_000);
+      });
+
+      expect(mockedSendMessageRest).toHaveBeenCalledWith(
+        'conv-1',
+        'hey',
+        [],
+        socketClientId
+      );
+
+      await waitFor(() =>
+        expect(result.current.messages[0]._id).toBe('rest-id')
+      );
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('refetches on reconnect to backfill any gap, but not on the initial connect', async () => {
