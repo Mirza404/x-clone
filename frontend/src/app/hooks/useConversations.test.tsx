@@ -292,4 +292,38 @@ describe('useConversationsCacheBridge', () => {
       expect(result.current.data?.[0].unreadCount).toBe(1);
     }
   });
+
+  it('keeps the remaining consumer in sync after one of several consumers unmounts', async () => {
+    mockedGetConversations.mockResolvedValue([
+      makeConversation({ unreadCount: 0 }),
+    ]);
+
+    // Two UI surfaces mount at once (e.g. sidebar list and full inbox page),
+    // sharing the single bridge mounted by SocketProvider.
+    const [first, second] = mountBridgeAndConsumers(2);
+    await Promise.all(
+      [first, second].map(({ result }) =>
+        waitFor(() => expect(result.current.data).toHaveLength(1))
+      )
+    );
+
+    // One of the two consumers unmounts (e.g. navigating away from the inbox
+    // page while the sidebar list stays mounted).
+    first.unmount();
+
+    // The bridge itself must still own exactly one message:new handler; an
+    // unrelated consumer unmounting must not tear down the shared
+    // subscription or register a duplicate.
+    expect(handlers.size).toBe(1);
+
+    act(() => {
+      handlers.get('message:new')?.({
+        message: makeMessage({ sender: 'user-2' }),
+      });
+    });
+
+    await waitFor(() =>
+      expect(second.result.current.data?.[0].unreadCount).toBe(1)
+    );
+  });
 });
