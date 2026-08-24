@@ -3,6 +3,7 @@ import {
   listConversations,
   createConversation,
   getConversationMessages,
+  sendMessage,
   markConversationRead,
 } from '../controllers/message-controller';
 import { requireAuth } from '../middleware/require-auth';
@@ -21,6 +22,12 @@ messageRoutes.get(
   '/conversations/:id/messages',
   requireAuth,
   getConversationMessages
+);
+messageRoutes.post(
+  '/conversations/:id/messages',
+  requireAuth,
+  writeLimiter,
+  sendMessage
 );
 messageRoutes.patch(
   '/conversations/:id/read',
