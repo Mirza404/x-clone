@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import MessageBubble from './MessageBubble';
 import type { Message } from '@/app/types/Message';
 
@@ -39,6 +39,20 @@ describe('MessageBubble', () => {
       />
     );
     expect(screen.getByText('Failed to send')).toBeInTheDocument();
+  });
+
+  it('offers retry for a failed message and passes its temporary id', () => {
+    const onRetry = jest.fn();
+    render(
+      <MessageBubble
+        message={makeMessage({ _id: 'temp-1', status: 'failed' })}
+        isMine={true}
+        onRetry={onRetry}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetry).toHaveBeenCalledWith('temp-1');
   });
 
   it('shows "Read" when seenByPeer is true', () => {
