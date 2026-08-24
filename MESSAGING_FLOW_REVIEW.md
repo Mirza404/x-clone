@@ -122,12 +122,11 @@ server returns the message the socket attempt already persisted, if any,
   or persists it now if the socket attempt never reached the server
 ```
 
-The REST fallback does not emit a `message:new` socket event (only the
-socket path does), so a message sent this way reaches the recipient once
-their client refetches — via the existing reconnect invalidation (Finding 5)
-or the next inbox/thread refetch — rather than immediately. Wiring the REST
-path into realtime delivery would need a shared `io` instance reachable from
-the controller, which is out of scope here.
+When the REST path creates the message, it emits the same `message:new` event
+to the sender and recipient rooms as the socket path. The Express app exposes
+the initialized Socket.IO server through an application setting, and both entry points
+use the shared `emitNewMessage` helper. A deduplicated retry does not emit a
+second event.
 
 **Relevant code:** `frontend/src/app/hooks/useMessages.ts`, optimistic
 message creation, ack timeout, and REST fallback;
@@ -135,6 +134,7 @@ message creation, ack timeout, and REST fallback;
 `backend/src/services/message-service.ts`, `createMessageIdempotent`;
 `backend/src/socket/handlers.ts`, `handleMessageSend`;
 `backend/src/controllers/message-controller.ts`, `sendMessage`;
+`backend/src/socket/message-events.ts`, `emitNewMessage`;
 `backend/src/routes/message-routes.ts`.
 
 **Relevant coverage:** `backend/src/socket/handlers.test.ts` and

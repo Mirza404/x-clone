@@ -7,6 +7,7 @@ import { getOrCreateConversation } from '../services/conversation-service';
 import { createMessageIdempotent } from '../services/message-service';
 import { allow } from './rate-limit';
 import { MediaValidationError, mediaService } from '../services/media-service';
+import { emitNewMessage } from './message-events';
 
 interface MessageSendPayload {
   conversationId?: string;
@@ -90,29 +91,24 @@ async function handleMessageSend(
       return;
     }
 
-    const { message, conversation: updatedConversation, created } =
-      await createMessageIdempotent({
-        conversation,
-        senderId: userId,
-        content,
-        images,
-        clientId,
-      });
+    const {
+      message,
+      conversation: updatedConversation,
+      created,
+    } = await createMessageIdempotent({
+      conversation,
+      senderId: userId,
+      content,
+      images,
+      clientId,
+    });
 
     if (!created) {
       respond({ ok: true, message, conversation: updatedConversation });
       return;
     }
 
-    const recipient = conversation.participants.find(
-      (participant) => !equalsObjectId(participant, userId)
-    );
-
-    const eventPayload = { message, conversation: updatedConversation };
-    io.to(`user:${userId}`).emit('message:new', eventPayload);
-    if (recipient) {
-      io.to(`user:${recipient.toString()}`).emit('message:new', eventPayload);
-    }
+    emitNewMessage(io, userId, message, updatedConversation);
 
     respond({ ok: true, message, conversation: updatedConversation });
   } catch (e) {

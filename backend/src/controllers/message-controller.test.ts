@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test, { afterEach, beforeEach } from 'node:test';
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
+import type { Server } from 'socket.io';
 import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { MediaValidationError, mediaService } from '../services/media-service';
@@ -17,6 +18,8 @@ type MockResponse = Response & {
   statusCode?: number;
   body?: unknown;
 };
+
+type Emission = { room: string; event: string; payload: unknown };
 
 const originalReadyStateDescriptor = Object.getOwnPropertyDescriptor(
   mongoose.connection,
@@ -96,13 +99,32 @@ function createRequest(options: {
   body?: Record<string, unknown>;
   query?: Record<string, unknown>;
   userId?: string;
+  socketIo?: Server;
 }): Request {
   return {
     params: options.params ?? {},
     body: options.body ?? {},
     query: options.query ?? {},
     userId: options.userId,
+    app: {
+      get: (name: string) =>
+        name === 'socketIo' ? options.socketIo : undefined,
+    },
   } as Request;
+}
+
+function createIo(): { io: Server; emissions: Emission[] } {
+  const emissions: Emission[] = [];
+  const io = {
+    to(room: string) {
+      return {
+        emit(event: string, payload: unknown) {
+          emissions.push({ room, event, payload });
+        },
+      };
+    },
+  } as unknown as Server;
+  return { io, emissions };
 }
 
 function mockConversationFind(conversations: unknown[]) {
@@ -652,7 +674,9 @@ test('sendMessage rejects images that fail ownership validation', async () => {
   (Conversation as unknown as { findById: (id: unknown) => unknown }).findById =
     () => ({ _id: conversationId, participants: [userId] });
   stubMediaValidation(async () => {
-    throw new MediaValidationError('Image is not owned by the authenticated user');
+    throw new MediaValidationError(
+      'Image is not owned by the authenticated user'
+    );
   });
 
   const response = createResponse();
@@ -675,6 +699,33 @@ test('sendMessage rejects images that fail ownership validation', async () => {
     (response.body as { message: string }).message,
     'Image is not owned by the authenticated user'
   );
+});
+
+test('sendMessage rejects a non-array images value', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  (Conversation as unknown as { findById: (id: unknown) => unknown }).findById =
+    () => ({ _id: conversationId, participants: [userId] });
+  stubMediaValidation(async (_senderId, images) => {
+    if (!Array.isArray(images)) {
+      throw new MediaValidationError('Images must be an array');
+    }
+    return images as string[];
+  });
+
+  const response = createResponse();
+  await sendMessage(
+    createRequest({
+      userId: userId.toString(),
+      params: { id: conversationId.toString() },
+      body: { content: 'hello', clientId: 'c1', images: 'not-an-array' },
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, { message: 'Images must be an array' });
 });
 
 test('sendMessage persists a new message and updates the conversation summary', async () => {
@@ -701,13 +752,17 @@ test('sendMessage persists a new message and updates the conversation summary', 
     createdAt: new Date(),
   };
   let createCalls = 0;
-  (Message as unknown as { create: (args: unknown) => Promise<unknown> }).create =
-    async () => {
-      createCalls += 1;
-      return createdMessage;
-    };
+  (
+    Message as unknown as { create: (args: unknown) => Promise<unknown> }
+  ).create = async () => {
+    createCalls += 1;
+    return createdMessage;
+  };
 
-  const updatedConversation = { ...conversation, lastMessage: createdMessage._id };
+  const updatedConversation = {
+    ...conversation,
+    lastMessage: createdMessage._id,
+  };
   (
     Conversation as unknown as {
       findOneAndUpdate: (
@@ -719,12 +774,14 @@ test('sendMessage persists a new message and updates the conversation summary', 
   ).findOneAndUpdate = async () => updatedConversation;
 
   const response = createResponse();
+  const { io, emissions } = createIo();
 
   await sendMessage(
     createRequest({
       userId: userId.toString(),
       params: { id: conversationId.toString() },
       body: { content: 'hi', clientId: 'rest-1' },
+      socketIo: io,
     }),
     response
   );
@@ -734,6 +791,13 @@ test('sendMessage persists a new message and updates the conversation summary', 
   const body = response.body as { message: unknown; conversation: unknown };
   assert.equal(body.message, createdMessage);
   assert.equal(body.conversation, updatedConversation);
+  assert.deepEqual(
+    emissions.map(({ room, event }) => ({ room, event })),
+    [
+      { room: `user:${userId.toString()}`, event: 'message:new' },
+      { room: `user:${recipientId.toString()}`, event: 'message:new' },
+    ]
+  );
 });
 
 test('sendMessage is idempotent: a retried clientId returns the existing message instead of creating a duplicate', async () => {
@@ -760,6 +824,7 @@ test('sendMessage is idempotent: a retried clientId returns the existing message
       createCalled = true;
       return existingMessage;
     };
+  const { io, emissions } = createIo();
 
   // First send and a retried send with the same clientId should both land
   // here and both resolve to the same persisted message.
@@ -770,6 +835,7 @@ test('sendMessage is idempotent: a retried clientId returns the existing message
         userId: userId.toString(),
         params: { id: conversationId.toString() },
         body: { content: 'hi', clientId: 'rest-retry' },
+        socketIo: io,
       }),
       response
     );
@@ -782,6 +848,7 @@ test('sendMessage is idempotent: a retried clientId returns the existing message
   }
 
   assert.equal(createCalled, false);
+  assert.equal(emissions.length, 0);
 });
 
 test('markConversationRead returns 403 for a non-participant', async () => {

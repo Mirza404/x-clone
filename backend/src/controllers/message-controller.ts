@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
+import type { Server } from 'socket.io';
 import type {} from '../types/express';
 import Conversation from '../models/Conversation';
 import Message from '../models/Message';
@@ -8,6 +9,7 @@ import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
 import { getOrCreateConversation } from '../services/conversation-service';
 import { createMessageIdempotent } from '../services/message-service';
 import { MediaValidationError, mediaService } from '../services/media-service';
+import { emitNewMessage } from '../socket/message-events';
 
 function isParticipant(
   conversation: { participants: mongoose.Types.ObjectId[] },
@@ -326,7 +328,7 @@ async function sendMessage(req: Request, res: Response): Promise<void> {
     try {
       images = await mediaService.assertOwnedImageUrls(
         userId,
-        Array.isArray(req.body.images) ? req.body.images : []
+        req.body.images ?? []
       );
     } catch (e) {
       if (e instanceof MediaValidationError) {
@@ -336,18 +338,26 @@ async function sendMessage(req: Request, res: Response): Promise<void> {
       throw e;
     }
 
-    const { message, conversation: updatedConversation } =
-      await createMessageIdempotent({
-        conversation,
-        senderId: userId,
-        content,
-        images,
-        clientId,
-      });
+    const {
+      message,
+      conversation: updatedConversation,
+      created,
+    } = await createMessageIdempotent({
+      conversation,
+      senderId: userId,
+      content,
+      images,
+      clientId,
+    });
 
-    res
-      .status(200)
-      .json({ message, conversation: updatedConversation });
+    if (created) {
+      const io = req.app.get('socketIo') as Server | undefined;
+      if (io) {
+        emitNewMessage(io, userId, message, updatedConversation);
+      }
+    }
+
+    res.status(200).json({ message, conversation: updatedConversation });
   } catch (e) {
     console.error('Error sending message:', e);
     if (!res.headersSent) {
