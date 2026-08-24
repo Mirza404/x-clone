@@ -562,6 +562,242 @@ test('message:send recovers from a duplicate-key race by returning the winner', 
   assert.equal(ack.message, winnerMessage);
 });
 
+test('message:send does not lose an unread increment when two clientIds race on the same conversation', async () => {
+  // Simulates a user with two tabs open, both firing sendMessage in rapid
+  // succession into the same conversation with different clientIds.
+  const { io } = createIo();
+  const userId = new mongoose.Types.ObjectId();
+  const recipientId = new mongoose.Types.ObjectId();
+  const conversation = fakeConversation({
+    participants: [userId, recipientId],
+    unread: [
+      { user: userId, count: 0 },
+      { user: recipientId, count: 0 },
+    ],
+  });
+
+  (Conversation as unknown as { findById: () => unknown }).findById = () =>
+    conversation;
+  stubNoExistingMessage();
+  stubConversationUpdate(conversation);
+
+  let createCalls = 0;
+  (
+    Message as unknown as {
+      create: (args: { clientId: string }) => Promise<unknown>;
+    }
+  ).create = async (args) => {
+    createCalls += 1;
+    return {
+      _id: new mongoose.Types.ObjectId(),
+      conversation: conversation._id,
+      sender: userId,
+      content: 'hi',
+      clientId: args.clientId,
+      createdAt: new Date(),
+    };
+  };
+
+  const { socket, emit } = createSocket(userId.toString());
+  registerMessageHandlers(io, socket);
+
+  const [ackA, ackB] = await Promise.all([
+    emit('message:send', {
+      conversationId: conversation._id.toString(),
+      content: 'first tab',
+      clientId: 'tab-a',
+    }),
+    emit('message:send', {
+      conversationId: conversation._id.toString(),
+      content: 'second tab',
+      clientId: 'tab-b',
+    }),
+  ]);
+
+  assert.equal(ackA.ok, true);
+  assert.equal(ackB.ok, true);
+  assert.equal(createCalls, 2);
+  assert.notEqual(
+    (ackA.message as { _id: unknown })._id,
+    (ackB.message as { _id: unknown })._id
+  );
+
+  const recipientUnread = conversation.unread.find(
+    (entry) => entry.user === recipientId
+  );
+  assert.equal(recipientUnread?.count, 2);
+});
+
+test('message:send updates each participant unread count independently when both send at the same time', async () => {
+  // Two participants of the same conversation both send a message in the
+  // same tick. Each send must bump only the OTHER participant's unread
+  // counter, and neither send's increment should clobber the other's.
+  const { io } = createIo();
+  const userA = new mongoose.Types.ObjectId();
+  const userB = new mongoose.Types.ObjectId();
+  const conversation = fakeConversation({
+    participants: [userA, userB],
+    unread: [
+      { user: userA, count: 0 },
+      { user: userB, count: 0 },
+    ],
+  });
+
+  (Conversation as unknown as { findById: () => unknown }).findById = () =>
+    conversation;
+  stubNoExistingMessage();
+  stubConversationUpdate(conversation);
+
+  (
+    Message as unknown as {
+      create: (args: {
+        sender: unknown;
+        clientId: string;
+      }) => Promise<unknown>;
+    }
+  ).create = async (args) => ({
+    _id: new mongoose.Types.ObjectId(),
+    conversation: conversation._id,
+    sender: args.sender,
+    content: 'hi',
+    clientId: args.clientId,
+    createdAt: new Date(),
+  });
+
+  const socketA = createSocket(userA.toString());
+  const socketB = createSocket(userB.toString());
+  registerMessageHandlers(io, socketA.socket);
+  registerMessageHandlers(io, socketB.socket);
+
+  const [ackA, ackB] = await Promise.all([
+    socketA.emit('message:send', {
+      conversationId: conversation._id.toString(),
+      content: 'from A',
+      clientId: 'a-1',
+    }),
+    socketB.emit('message:send', {
+      conversationId: conversation._id.toString(),
+      content: 'from B',
+      clientId: 'b-1',
+    }),
+  ]);
+
+  assert.equal(ackA.ok, true);
+  assert.equal(ackB.ok, true);
+
+  const unreadForA = conversation.unread.find((entry) => entry.user === userA);
+  const unreadForB = conversation.unread.find((entry) => entry.user === userB);
+  assert.equal(unreadForA?.count, 1);
+  assert.equal(unreadForB?.count, 1);
+});
+
+test('message:send resolves a first-time DM race between both participants to one shared conversation', async () => {
+  // Both participants open a fresh DM (no conversationId yet, only
+  // recipientId) at the same time. This exercises the same duplicate-key
+  // race as conversation-service.test.ts, but through the socket entry
+  // point end-to-end, including the message persistence and unread update
+  // that follow conversation resolution.
+  const { io } = createIo();
+  const userA = new mongoose.Types.ObjectId();
+  const userB = new mongoose.Types.ObjectId();
+  setRecipient({ _id: userB });
+
+  const winner = fakeConversation({
+    participants: [userA, userB],
+    unread: [
+      { user: userA, count: 0 },
+      { user: userB, count: 0 },
+    ],
+  });
+
+  let upsertCalls = 0;
+  (
+    Conversation as unknown as {
+      findOneAndUpdate: (
+        filter: Record<string, unknown>,
+        update: {
+          $set?: Record<string, unknown>;
+          $setOnInsert?: Record<string, unknown>;
+          $inc?: Record<string, number>;
+        },
+        options?: { arrayFilters?: Array<Record<string, unknown>> }
+      ) => Promise<unknown>;
+    }
+  ).findOneAndUpdate = async (filter, update, options) => {
+    if ('participantsKey' in filter) {
+      upsertCalls += 1;
+      if (upsertCalls === 1) {
+        return winner;
+      }
+      const error = new Error('duplicate key') as Error & { code: number };
+      error.code = 11000;
+      throw error;
+    }
+
+    // Summary-update path (lastMessage/unread bump) reuses the shared
+    // conversation, mirroring stubConversationUpdate's behavior.
+    if (update.$set) {
+      Object.assign(winner, update.$set);
+    }
+    if (update.$inc) {
+      const elemUser = options?.arrayFilters?.[0]?.['elem.user'] as
+        | { toString(): string }
+        | undefined;
+      const entry = winner.unread.find(
+        (candidate) => candidate.user.toString() === elemUser?.toString()
+      );
+      if (entry) {
+        entry.count += update.$inc['unread.$[elem].count'];
+      }
+    }
+    return winner;
+  };
+  (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
+    async () => winner;
+
+  stubNoExistingMessage();
+
+  (
+    Message as unknown as {
+      create: (args: {
+        sender: unknown;
+        clientId: string;
+      }) => Promise<unknown>;
+    }
+  ).create = async (args) => ({
+    _id: new mongoose.Types.ObjectId(),
+    conversation: winner._id,
+    sender: args.sender,
+    content: 'hi',
+    clientId: args.clientId,
+    createdAt: new Date(),
+  });
+
+  const socketA = createSocket(userA.toString());
+  const socketB = createSocket(userB.toString());
+  registerMessageHandlers(io, socketA.socket);
+  registerMessageHandlers(io, socketB.socket);
+
+  const [ackA, ackB] = await Promise.all([
+    socketA.emit('message:send', {
+      recipientId: userB.toString(),
+      content: 'hi from A',
+      clientId: 'race-a',
+    }),
+    socketB.emit('message:send', {
+      recipientId: userA.toString(),
+      content: 'hi from B',
+      clientId: 'race-b',
+    }),
+  ]);
+
+  assert.equal(ackA.ok, true);
+  assert.equal(ackB.ok, true);
+  assert.equal(ackA.conversation, winner);
+  assert.equal(ackB.conversation, winner);
+  assert.equal(upsertCalls, 2);
+});
+
 test('message:send acks an error when the conversation cannot be resolved', async () => {
   const { io } = createIo();
   const { socket, emit } = createSocket(
