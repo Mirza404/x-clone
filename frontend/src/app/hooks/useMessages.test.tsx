@@ -10,6 +10,7 @@ import {
 import { useSocketContext } from '../utils/SocketProvider';
 import { CONVERSATIONS_QUERY_KEY } from './useConversations';
 import { useMessages } from './useMessages';
+import { upsertMessage, type MessagesData } from './messagesCacheUtils';
 import type { Message } from '../types/Message';
 
 jest.mock('next-auth/react', () => ({
@@ -134,57 +135,41 @@ describe('useMessages', () => {
     ]);
   });
 
-  it('appends a live message:new event for the open conversation', async () => {
+  // `message:new`/`message:read` cache writes are owned exclusively by
+  // `useSocketCacheSync` (see useSocketCacheSync.test.tsx for that
+  // write-path coverage, including dedupe and optimistic-message
+  // reconciliation). This hook only needs to prove it reads that cache
+  // live, which we verify by writing to it the same way the sync hook
+  // does (via the shared `upsertMessage` helper) rather than firing a
+  // socket event through this hook.
+  it('reflects a message written live to the query cache by the socket cache sync hook', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
-    const { result } = renderWithClient('conv-1');
+    const { result, queryClient } = renderWithClient('conv-1');
     await waitFor(() => expect(result.current.messages).toHaveLength(1));
 
     act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ _id: 'm2', content: 'hi there' }),
-      });
+      queryClient.setQueryData<MessagesData>(
+        ['messages', 'conv-1'],
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: upsertMessage(
+                  current.pages,
+                  makeMessage({ _id: 'm2', content: 'hi there' }),
+                  'me'
+                ),
+              }
+            : current
+      );
     });
 
     await waitFor(() => expect(result.current.messages).toHaveLength(2));
     expect(result.current.messages[1]._id).toBe('m2');
-  });
-
-  it('ignores message:new events for a different conversation', async () => {
-    mockedGetConversationMessages.mockResolvedValueOnce({
-      nextPage: undefined,
-      messages: [makeMessage({ _id: 'm1' })],
-    });
-
-    const { result } = renderWithClient('conv-1');
-    await waitFor(() => expect(result.current.messages).toHaveLength(1));
-
-    act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ _id: 'm2', conversation: 'conv-other' }),
-      });
-    });
-
-    expect(result.current.messages).toHaveLength(1);
-  });
-
-  it('does not duplicate a message already applied via message:new', async () => {
-    mockedGetConversationMessages.mockResolvedValueOnce({
-      nextPage: undefined,
-      messages: [makeMessage({ _id: 'm1' })],
-    });
-
-    const { result } = renderWithClient('conv-1');
-    await waitFor(() => expect(result.current.messages).toHaveLength(1));
-
-    act(() => {
-      handlers.get('message:new')?.({ message: makeMessage({ _id: 'm1' }) });
-    });
-
-    expect(result.current.messages).toHaveLength(1);
   });
 
   it('zeroes the cached unreadCount for this conversation once marked read', async () => {
@@ -393,13 +378,16 @@ describe('useMessages', () => {
     expect(emit).not.toHaveBeenCalled();
   });
 
+  // As above, these simulate the socket cache sync hook's write (a plain
+  // cache update) rather than firing a socket event through this hook,
+  // since this hook no longer subscribes to message:new itself.
   it('marks the conversation read again when a live message arrives from the other user', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
       messages: [makeMessage({ _id: 'm1' })],
     });
 
-    renderWithClient('conv-1');
+    const { queryClient } = renderWithClient('conv-1');
     await waitFor(() =>
       expect(emit).toHaveBeenCalledWith(
         'message:read',
@@ -410,9 +398,20 @@ describe('useMessages', () => {
     emit.mockClear();
 
     act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ _id: 'm2', sender: 'other-user' }),
-      });
+      queryClient.setQueryData<MessagesData>(
+        ['messages', 'conv-1'],
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: upsertMessage(
+                  current.pages,
+                  makeMessage({ _id: 'm2', sender: 'other-user' }),
+                  'me'
+                ),
+              }
+            : current
+      );
     });
 
     await waitFor(() =>
@@ -430,7 +429,7 @@ describe('useMessages', () => {
       messages: [makeMessage({ _id: 'm1' })],
     });
 
-    renderWithClient('conv-1');
+    const { queryClient } = renderWithClient('conv-1');
     await waitFor(() =>
       expect(emit).toHaveBeenCalledWith(
         'message:read',
@@ -441,52 +440,56 @@ describe('useMessages', () => {
     emit.mockClear();
 
     act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ _id: 'm2', sender: 'me' }),
-      });
+      queryClient.setQueryData<MessagesData>(
+        ['messages', 'conv-1'],
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: upsertMessage(
+                  current.pages,
+                  makeMessage({ _id: 'm2', sender: 'me' }),
+                  'me'
+                ),
+              }
+            : current
+      );
     });
 
     expect(emit).not.toHaveBeenCalled();
   });
 
-  it('applies a message:read event by adding the reader to readBy', async () => {
+  it('reflects a message:read cache write by exposing the reader in readBy', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
       nextPage: undefined,
       messages: [makeMessage({ _id: 'm1', sender: 'me', readBy: [] })],
     });
 
-    const { result } = renderWithClient('conv-1');
+    const { result, queryClient } = renderWithClient('conv-1');
     await waitFor(() => expect(result.current.messages).toHaveLength(1));
 
     act(() => {
-      handlers.get('message:read')?.({
-        conversationId: 'conv-1',
-        userId: 'other-user',
-      });
+      queryClient.setQueryData<MessagesData>(
+        ['messages', 'conv-1'],
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: current.pages.map((page) => ({
+                  ...page,
+                  messages: page.messages.map((m) => ({
+                    ...m,
+                    readBy: [...m.readBy, 'other-user'],
+                  })),
+                })),
+              }
+            : current
+      );
     });
 
     await waitFor(() =>
       expect(result.current.messages[0].readBy).toContain('other-user')
     );
-  });
-
-  it('ignores a message:read event for a different conversation', async () => {
-    mockedGetConversationMessages.mockResolvedValueOnce({
-      nextPage: undefined,
-      messages: [makeMessage({ _id: 'm1', sender: 'me', readBy: [] })],
-    });
-
-    const { result } = renderWithClient('conv-1');
-    await waitFor(() => expect(result.current.messages).toHaveLength(1));
-
-    act(() => {
-      handlers.get('message:read')?.({
-        conversationId: 'conv-other',
-        userId: 'other-user',
-      });
-    });
-
-    expect(result.current.messages[0].readBy).toEqual([]);
   });
 
   it('sendMessage optimistically appends then reconciles with the ack', async () => {
@@ -555,7 +558,7 @@ describe('useMessages', () => {
       messages: [],
     });
 
-    const { result } = renderWithClient('conv-1');
+    const { result, queryClient } = renderWithClient('conv-1');
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     act(() => {
@@ -574,15 +577,28 @@ describe('useMessages', () => {
       expect(result.current.messages[0].status).toBe('failed')
     );
 
+    // Simulates the socket cache sync hook applying the delayed message:new
+    // it eventually receives for this send.
     act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({
-          _id: 'real-id',
-          content: 'hey',
-          sender: 'me',
-          clientId: payload.clientId,
-        }),
-      });
+      queryClient.setQueryData<MessagesData>(
+        ['messages', 'conv-1'],
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: upsertMessage(
+                  current.pages,
+                  makeMessage({
+                    _id: 'real-id',
+                    content: 'hey',
+                    sender: 'me',
+                    clientId: payload.clientId,
+                  }),
+                  'me'
+                ),
+              }
+            : current
+      );
     });
 
     await waitFor(() => expect(result.current.messages[0]._id).toBe('real-id'));
@@ -783,42 +799,11 @@ describe('useMessages', () => {
     );
   });
 
-  it('refetches on reconnect to backfill any gap, but not on the initial connect', async () => {
-    mockedGetConversationMessages.mockResolvedValue({
-      nextPage: undefined,
-      messages: [makeMessage({ _id: 'm1' })],
-    });
-
-    const { rerender } = renderWithClient('conv-1');
-    await waitFor(() =>
-      expect(mockedGetConversationMessages).toHaveBeenCalledTimes(1)
-    );
-
-    mockedUseSocketContext.mockReturnValue({
-      emit,
-      connected: false,
-      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
-        handlers.set(event, handler);
-        return () => handlers.delete(event);
-      }),
-    });
-    rerender();
-    expect(mockedGetConversationMessages).toHaveBeenCalledTimes(1);
-
-    mockedUseSocketContext.mockReturnValue({
-      emit,
-      connected: true,
-      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
-        handlers.set(event, handler);
-        return () => handlers.delete(event);
-      }),
-    });
-    rerender();
-
-    await waitFor(() =>
-      expect(mockedGetConversationMessages).toHaveBeenCalledTimes(2)
-    );
-  });
+  // Reconnect backfill is no longer this hook's concern: useSocketCacheSync
+  // invalidates the whole ['messages'] family on reconnect, which refetches
+  // this hook's active query automatically (React Query's own contract).
+  // See useSocketCacheSync.test.tsx, "invalidates the inbox and all message
+  // histories after reconnect".
 
   it('does nothing for blank content', async () => {
     mockedGetConversationMessages.mockResolvedValueOnce({
