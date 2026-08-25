@@ -1,15 +1,10 @@
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { getConversations } from '../utils/messageApi';
 import { useSocketContext } from '../utils/SocketProvider';
-import {
-  useConversations,
-  useConversationsCacheBridge,
-} from './useConversations';
-import type { ConversationSummary } from '../types/Conversation';
-import type { Message } from '../types/Message';
+import { useConversations } from './useConversations';
 
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
@@ -27,32 +22,6 @@ const mockedUseSession = useSession as jest.Mock;
 const mockedGetConversations = getConversations as jest.Mock;
 const mockedUseSocketContext = useSocketContext as jest.Mock;
 
-function makeConversation(
-  overrides: Partial<ConversationSummary> = {}
-): ConversationSummary {
-  return {
-    id: 'conv-1',
-    participant: { id: 'user-2', name: 'Ada', image: null },
-    lastMessage: null,
-    lastMessageAt: new Date(0).toISOString(),
-    unreadCount: 0,
-    ...overrides,
-  };
-}
-
-function makeMessage(overrides: Partial<Message> = {}): Message {
-  return {
-    _id: 'm1',
-    conversation: 'conv-1',
-    sender: 'user-2',
-    content: 'hello',
-    images: [],
-    readBy: [],
-    createdAt: new Date(1).toISOString(),
-    ...overrides,
-  };
-}
-
 function makeWrapper(queryClient: QueryClient) {
   function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -62,39 +31,13 @@ function makeWrapper(queryClient: QueryClient) {
   return Wrapper;
 }
 
-// Mounts the cache bridge (once, as SocketProvider does) plus one or more
-// useConversations() consumers (as multiple UI surfaces do) sharing a client.
-function mountBridgeAndConsumers(consumerCount: number) {
-  const queryClient = new QueryClient({
+function makeQueryClient() {
+  return new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  const wrapper = makeWrapper(queryClient);
-
-  renderHook(() => useConversationsCacheBridge(), { wrapper });
-  const views = Array.from({ length: consumerCount }, () =>
-    renderHook(() => useConversations(), { wrapper })
-  );
-
-  return views;
 }
 
 describe('useConversations', () => {
-  let handlers: Map<string, (payload: unknown) => void>;
-
-  beforeEach(() => {
-    mockedUseSession.mockReturnValue({
-      status: 'authenticated',
-      data: { user: { id: 'me' } },
-    });
-    handlers = new Map();
-    mockedUseSocketContext.mockReturnValue({
-      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
-        handlers.set(event, handler);
-        return () => handlers.delete(event);
-      }),
-    });
-  });
-
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -102,228 +45,38 @@ describe('useConversations', () => {
   it('is disabled while unauthenticated', () => {
     mockedUseSession.mockReturnValue({ status: 'unauthenticated', data: null });
 
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
+    renderHook(() => useConversations(), {
+      wrapper: makeWrapper(makeQueryClient()),
     });
-    renderHook(() => useConversations(), { wrapper: makeWrapper(queryClient) });
 
     expect(mockedGetConversations).not.toHaveBeenCalled();
   });
 
-  it('does not itself subscribe to message:new (the cache bridge owns that)', () => {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
-    renderHook(() => useConversations(), { wrapper: makeWrapper(queryClient) });
-
-    expect(mockedUseSocketContext).not.toHaveBeenCalled();
-  });
-});
-
-describe('useConversationsCacheBridge', () => {
-  let handlers: Map<string, (payload: unknown) => void>;
-  let connected: boolean;
-
-  beforeEach(() => {
+  it('fetches conversations while authenticated', async () => {
     mockedUseSession.mockReturnValue({
       status: 'authenticated',
       data: { user: { id: 'me' } },
     });
-    handlers = new Map();
-    connected = true;
-    mockedUseSocketContext.mockImplementation(() => ({
-      connected,
-      subscribe: jest.fn((event: string, handler: (p: unknown) => void) => {
-        handlers.set(event, handler);
-        return () => handlers.delete(event);
-      }),
-    }));
+    mockedGetConversations.mockResolvedValueOnce([]);
+
+    const { result } = renderHook(() => useConversations(), {
+      wrapper: makeWrapper(makeQueryClient()),
+    });
+
+    await waitFor(() => expect(result.current.data).toEqual([]));
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  it('does not itself subscribe to any socket event (useSocketCacheSync owns that)', () => {
+    mockedUseSession.mockReturnValue({
+      status: 'authenticated',
+      data: { user: { id: 'me' } },
+    });
+    mockedGetConversations.mockResolvedValueOnce([]);
 
-  it('bumps unreadCount and lastMessage for an incoming message:new', async () => {
-    mockedGetConversations.mockResolvedValueOnce([
-      makeConversation({ unreadCount: 1 }),
-    ]);
-
-    const [{ result }] = mountBridgeAndConsumers(1);
-    await waitFor(() => expect(result.current.data).toHaveLength(1));
-
-    act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ sender: 'user-2', content: 'new one' }),
-      });
+    renderHook(() => useConversations(), {
+      wrapper: makeWrapper(makeQueryClient()),
     });
 
-    await waitFor(() => expect(result.current.data?.[0].unreadCount).toBe(2));
-    expect(result.current.data?.[0].lastMessage?.content).toBe('new one');
-  });
-
-  it('does not bump unreadCount for a message the current user sent', async () => {
-    mockedGetConversations.mockResolvedValueOnce([
-      makeConversation({ unreadCount: 0 }),
-    ]);
-
-    const [{ result }] = mountBridgeAndConsumers(1);
-    await waitFor(() => expect(result.current.data).toHaveLength(1));
-
-    act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ sender: 'me' }),
-      });
-    });
-
-    await waitFor(() =>
-      expect(result.current.data?.[0].lastMessage).not.toBeNull()
-    );
-    expect(result.current.data?.[0].unreadCount).toBe(0);
-  });
-
-  it('moves the updated conversation into lastMessageAt order', async () => {
-    mockedGetConversations.mockResolvedValueOnce([
-      makeConversation({
-        id: 'conv-2',
-        lastMessageAt: new Date(20).toISOString(),
-      }),
-      makeConversation({
-        id: 'conv-1',
-        lastMessageAt: new Date(10).toISOString(),
-      }),
-    ]);
-
-    const [{ result }] = mountBridgeAndConsumers(1);
-    await waitFor(() => expect(result.current.data).toHaveLength(2));
-
-    act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ createdAt: new Date(30).toISOString() }),
-      });
-    });
-
-    await waitFor(() => expect(result.current.data?.[0].id).toBe('conv-1'));
-    expect(result.current.data?.map((conversation) => conversation.id)).toEqual(
-      ['conv-1', 'conv-2']
-    );
-  });
-
-  it('invalidates the inbox and active histories after reconnect', () => {
-    connected = false;
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
-    const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries');
-    const { rerender } = renderHook(() => useConversationsCacheBridge(), {
-      wrapper: makeWrapper(queryClient),
-    });
-
-    connected = true;
-    rerender();
-
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['conversations'],
-    });
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['messages'],
-    });
-  });
-
-  it('refetches when message:new references a conversation not yet in the cache', async () => {
-    mockedGetConversations
-      .mockResolvedValueOnce([makeConversation({ id: 'conv-1' })])
-      .mockResolvedValueOnce([
-        makeConversation({ id: 'conv-1' }),
-        makeConversation({ id: 'conv-2' }),
-      ]);
-
-    const [{ result }] = mountBridgeAndConsumers(1);
-    await waitFor(() => expect(result.current.data).toHaveLength(1));
-
-    act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ conversation: 'conv-2' }),
-      });
-    });
-
-    await waitFor(() => expect(result.current.data).toHaveLength(2));
-    expect(mockedGetConversations).toHaveBeenCalledTimes(2);
-  });
-
-  it('increments unreadCount only once when multiple UI surfaces mount useConversations', async () => {
-    mockedGetConversations.mockResolvedValue([
-      makeConversation({ unreadCount: 0 }),
-    ]);
-
-    // Simulates the messages page, mobile nav, and floating message UI all
-    // mounting useConversations() at once, while only one bridge is mounted
-    // (as SocketProvider guarantees in the app tree).
-    const views = mountBridgeAndConsumers(3);
-    await Promise.all(
-      views.map(({ result }) =>
-        waitFor(() => expect(result.current.data).toHaveLength(1))
-      )
-    );
-
-    // Only one handler should have been registered for message:new despite
-    // three mounted consumers.
-    expect(handlers.size).toBe(1);
-
-    act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ sender: 'user-2' }),
-      });
-    });
-
-    await waitFor(() =>
-      expect(views[0].result.current.data?.[0].unreadCount).toBe(1)
-    );
-    for (const { result } of views) {
-      expect(result.current.data?.[0].unreadCount).toBe(1);
-    }
-  });
-
-  it('keeps the remaining consumer in sync after one of several consumers unmounts', async () => {
-    mockedGetConversations.mockResolvedValue([
-      makeConversation({ unreadCount: 0 }),
-    ]);
-
-    // Two UI surfaces mount at once (e.g. sidebar list and full inbox page),
-    // sharing the single bridge mounted by SocketProvider.
-    const [first, second] = mountBridgeAndConsumers(2);
-    await Promise.all(
-      [first, second].map(({ result }) =>
-        waitFor(() => expect(result.current.data).toHaveLength(1))
-      )
-    );
-
-    // One of the two consumers unmounts (e.g. navigating away from the inbox
-    // page while the sidebar list stays mounted).
-    first.unmount();
-
-    // The bridge itself must still own exactly one message:new handler; an
-    // unrelated consumer unmounting must not tear down the shared
-    // subscription or register a duplicate.
-    expect(handlers.size).toBe(1);
-
-    act(() => {
-      handlers.get('message:new')?.({
-        message: makeMessage({ sender: 'user-2' }),
-      });
-    });
-
-    await waitFor(() =>
-      expect(second.result.current.data?.[0].unreadCount).toBe(1)
-    );
+    expect(mockedUseSocketContext).not.toHaveBeenCalled();
   });
 });
