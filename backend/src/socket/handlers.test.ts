@@ -650,10 +650,7 @@ test('message:send updates each participant unread count independently when both
 
   (
     Message as unknown as {
-      create: (args: {
-        sender: unknown;
-        clientId: string;
-      }) => Promise<unknown>;
+      create: (args: { sender: unknown; clientId: string }) => Promise<unknown>;
     }
   ).create = async (args) => ({
     _id: new mongoose.Types.ObjectId(),
@@ -741,8 +738,7 @@ test('message:send resolves a first-time DM race between both participants to on
     }
     if (update.$inc) {
       const elemUser = options?.arrayFilters?.[0]?.['elem.user'] as
-        | { toString(): string }
-        | undefined;
+        { toString(): string } | undefined;
       const entry = winner.unread.find(
         (candidate) => candidate.user.toString() === elemUser?.toString()
       );
@@ -759,10 +755,7 @@ test('message:send resolves a first-time DM race between both participants to on
 
   (
     Message as unknown as {
-      create: (args: {
-        sender: unknown;
-        clientId: string;
-      }) => Promise<unknown>;
+      create: (args: { sender: unknown; clientId: string }) => Promise<unknown>;
     }
   ).create = async (args) => ({
     _id: new mongoose.Types.ObjectId(),
