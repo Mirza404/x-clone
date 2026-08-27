@@ -12,7 +12,8 @@
     "test": "npm run test:ci --prefix backend && npm run test:ci --prefix frontend",
     "deps:check": "npm audit --omit=dev --audit-level=high && npm audit --prefix backend --omit=dev --audit-level=high && npm audit --prefix frontend --omit=dev --audit-level=high",
     "deps:check:all": "npm audit --audit-level=high && npm audit --prefix backend --audit-level=high && npm audit --prefix frontend --audit-level=high",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm test"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm test",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,7 @@
     "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
+    "husky": "^9.1.7",
     "prettier": "3.9.6",
     "typescript-eslint": "8.67.0"
   }

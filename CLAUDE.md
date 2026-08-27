@@ -11,6 +11,15 @@ Run from repo root unless noted:
 - `npm run check`: everything CI runs, in one shot
 - Per-project dev servers: `cd backend && npm run dev` (port 3001), `cd frontend && npm run dev` (port 3000)
 
+## Git hooks
+
+Husky manages git hooks (`.husky/`), installed automatically by `npm install` at the repo root via the `prepare` script:
+
+- `pre-commit`: runs `npm run format` (auto-fixes and restages), then `npm run lint` and `npm run typecheck`. Blocks the commit if lint or typecheck fails.
+- `pre-push`: runs `npm run check` (format check, lint, typecheck, build, tests).
+
+Both projects' dependencies must be installed (`npm install` in `backend/` and `frontend/`, not just root) for lint/typecheck to run cleanly — the hooks don't install them for you.
+
 ## Rules
 
 Standards for this repo live in `.claude/rules/`, one file per concern:
