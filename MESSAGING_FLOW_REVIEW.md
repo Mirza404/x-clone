@@ -153,6 +153,11 @@ This does not address the ordering race with `useMessages` noted below (an open 
 
 **Relevant code:** `frontend/src/app/hooks/useConversations.ts` (`useConversationsCacheBridge`), `frontend/src/app/components/messages/ConversationsCacheBridge.tsx`, `frontend/src/app/layout.tsx`.
 
+**Update:** this bridge was later folded into the broader `useSocketCacheSync`
+hook described under item 5 of "Recommended order for a deeper follow-up"
+below, which also took over `message:read` handling and the messages-thread
+cache. The single-bridge guarantee this finding describes still holds.
+
 ### Finding 4: Inbox ordering is not updated when a new message arrives
 
 **Status: fixed.** `applyNewMessage` now re-sorts the cached inbox by
@@ -391,7 +396,25 @@ These parts of the implementation are sound or reasonable for the current scope:
    over REST with the same `clientId`; it is not queued for a later socket
    retry.
 4. ~~Add client-message idempotency.~~ Done — see Finding 2.
-5. Centralize socket event processing and query-cache mutation.
+5. ~~Centralize socket event processing and query-cache mutation.~~
+   Resolved. `useSocketCacheSync` (`frontend/src/app/hooks/useSocketCacheSync.ts`),
+   mounted exactly once via `SocketCacheSync`
+   (`frontend/src/app/components/messages/SocketCacheSync.tsx`) in the root
+   layout, is now the sole subscriber for `message:new` and `message:read`
+   and the sole writer to both the conversations cache and every
+   `['messages', conversationId]` cache for those events, plus the reconnect
+   invalidation for both query families. `useConversations` is a plain query
+   hook with no socket subscription. `useMessages` no longer subscribes to
+   `message:new`/`message:read` or refetches on reconnect on its own; it
+   reads the cache `useSocketCacheSync` writes and derives its
+   mark-as-read-while-open behavior from cache changes instead of a direct
+   event handler. Shared page-shape helpers (`upsertMessage`, `markAllRead`,
+   `replaceMessage`, `markFailed`, `markSending`) moved to
+   `frontend/src/app/hooks/messagesCacheUtils.ts` so both hooks use one
+   implementation. Typing (`useTyping`) and presence (`useSocket`, exposed
+   through `SocketProvider`) already had exactly one subscription site each
+   and hold transient UI state rather than query-cache data, so they were
+   left as-is.
 6. Fix REST error propagation and pagination validation.
 7. Add reconnect backfill for inbox and threads.
 8. Move to cursor-based history pagination.

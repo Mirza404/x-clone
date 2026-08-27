@@ -1,11 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  useInfiniteQuery,
-  useQueryClient,
-  InfiniteData,
-} from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import {
   getConversationMessages,
@@ -14,16 +10,15 @@ import {
 } from '../utils/messageApi';
 import { useSocketContext } from '../utils/SocketProvider';
 import { CONVERSATIONS_QUERY_KEY } from './useConversations';
+import {
+  EMPTY_PAGE,
+  replaceMessage,
+  markFailed,
+  markSending,
+  type MessagesData,
+} from './messagesCacheUtils';
 import type { Message } from '../types/Message';
 import type { ConversationSummary } from '../types/Conversation';
-
-type MessagesPage = Awaited<ReturnType<typeof getConversationMessages>>;
-type MessagesData = InfiniteData<MessagesPage, string | null>;
-
-const EMPTY_PAGE: MessagesPage = {
-  nextPage: undefined,
-  messages: [],
-};
 
 const ACK_TIMEOUT_MS = 10_000;
 
@@ -33,110 +28,13 @@ interface MessageSendAck {
   error?: string;
 }
 
-interface NewMessageEvent {
-  message: Message;
-}
-
-interface MessageReadEvent {
-  conversationId: string;
-  userId: string;
-}
-
 interface MessageReadAck {
   ok: boolean;
   error?: string;
 }
 
-function isNewMessageEvent(value: unknown): value is NewMessageEvent {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { message?: unknown }).message === 'object'
-  );
-}
-
-function isMessageReadEvent(value: unknown): value is MessageReadEvent {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { conversationId?: unknown }).conversationId ===
-      'string' &&
-    typeof (value as { userId?: unknown }).userId === 'string'
-  );
-}
-
-function markAllRead(pages: MessagesPage[], readerId: string): MessagesPage[] {
-  return pages.map((page) => ({
-    ...page,
-    messages: page.messages.map((m) =>
-      m.readBy.includes(readerId)
-        ? m
-        : { ...m, readBy: [...m.readBy, readerId] }
-    ),
-  }));
-}
-
-function upsertMessage(
-  pages: MessagesPage[],
-  message: Message,
-  currentUserId: string
-): MessagesPage[] {
-  const alreadyPresent = pages.some((page) =>
-    page.messages.some((m) => m._id === message._id)
-  );
-  if (alreadyPresent) {
-    return pages;
-  }
-
-  const [latestPage, ...olderPages] = pages;
-  const pending = latestPage?.messages.findIndex(
-    (m) =>
-      (m.status === 'sending' || m.status === 'failed') &&
-      m.sender === currentUserId &&
-      m.clientId === message.clientId
-  );
-
-  if (latestPage && pending !== undefined && pending !== -1) {
-    const messages = [...latestPage.messages];
-    messages[pending] = message;
-    return [{ ...latestPage, messages }, ...olderPages];
-  }
-
-  const base = latestPage ?? EMPTY_PAGE;
-  return [{ ...base, messages: [...base.messages, message] }, ...olderPages];
-}
-
-function replaceMessage(
-  pages: MessagesPage[],
-  tempId: string,
-  replacement: Message
-): MessagesPage[] {
-  return pages.map((page) => ({
-    ...page,
-    messages: page.messages.map((m) => (m._id === tempId ? replacement : m)),
-  }));
-}
-
-function markFailed(pages: MessagesPage[], tempId: string): MessagesPage[] {
-  return pages.map((page) => ({
-    ...page,
-    messages: page.messages.map((m) =>
-      m._id === tempId ? { ...m, status: 'failed' as const } : m
-    ),
-  }));
-}
-
-function markSending(pages: MessagesPage[], tempId: string): MessagesPage[] {
-  return pages.map((page) => ({
-    ...page,
-    messages: page.messages.map((m) =>
-      m._id === tempId ? { ...m, status: 'sending' as const } : m
-    ),
-  }));
-}
-
 function useMessages(conversationId: string | null) {
-  const { emit, subscribe, connected } = useSocketContext();
+  const { emit, connected } = useSocketContext();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const currentUserId = session?.user?.id ?? '';
@@ -153,6 +51,16 @@ function useMessages(conversationId: string | null) {
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: Boolean(conversationId),
   });
+
+  // `message:new`/`message:read` are applied to this cache exclusively by
+  // `useSocketCacheSync` (mounted once at the root), not by this hook — see
+  // that module for why. `messages` below is therefore a plain read of
+  // whatever the query cache currently holds, live-updated socket writes
+  // included.
+  const messages = (query.data?.pages ?? [])
+    .slice()
+    .reverse()
+    .flatMap((page) => page.messages);
 
   const confirmRead = useCallback(
     (id: string) => {
@@ -224,83 +132,41 @@ function useMessages(conversationId: string | null) {
     [confirmRead, connected, emit, reconcileReadFailure]
   );
 
+  // Marks the thread read once on initial load, and again whenever the
+  // cached last message changes to a new message from the other user (a
+  // live `message:new` write from `useSocketCacheSync` while this thread is
+  // open). Deriving this from the cache instead of subscribing to the socket
+  // directly means this hook doesn't need its own `message:new` listener.
+  const lastHandledRef = useRef<{
+    conversationId: string;
+    messageId: string | null;
+  } | null>(null);
+
   useEffect(() => {
     if (!conversationId || !query.isSuccess) {
       return;
     }
-    markAsRead(conversationId);
-  }, [conversationId, query.isSuccess, markAsRead]);
 
-  const wasConnected = useRef(connected);
-  useEffect(() => {
-    if (connected && !wasConnected.current && conversationId) {
-      void query.refetch();
-    }
-    wasConnected.current = connected;
-  }, [connected, conversationId, query]);
+    const last = messages[messages.length - 1];
+    const lastId = last?._id ?? null;
+    const previous = lastHandledRef.current;
+    const isNewConversation =
+      !previous || previous.conversationId !== conversationId;
 
-  useEffect(() => {
-    if (!conversationId) {
+    if (isNewConversation) {
+      lastHandledRef.current = { conversationId, messageId: lastId };
+      markAsRead(conversationId);
       return;
     }
 
-    return subscribe('message:new', (raw: unknown) => {
-      if (
-        !isNewMessageEvent(raw) ||
-        raw.message.conversation !== conversationId
-      ) {
-        return;
-      }
-
-      queryClient.setQueryData<MessagesData>(queryKey, (current) => {
-        if (!current) {
-          return current;
-        }
-        return {
-          ...current,
-          pages: upsertMessage(current.pages, raw.message, currentUserId),
-        };
-      });
-
-      if (raw.message.sender !== currentUserId) {
-        markAsRead(conversationId);
-      }
-    });
-  }, [
-    conversationId,
-    subscribe,
-    queryClient,
-    currentUserId,
-    queryKey,
-    markAsRead,
-  ]);
-
-  useEffect(() => {
-    if (!conversationId) {
+    if (previous.messageId === lastId) {
       return;
     }
-
-    return subscribe('message:read', (raw: unknown) => {
-      if (!isMessageReadEvent(raw) || raw.conversationId !== conversationId) {
-        return;
-      }
-
-      queryClient.setQueryData<MessagesData>(queryKey, (current) => {
-        if (!current) {
-          return current;
-        }
-        return {
-          ...current,
-          pages: markAllRead(current.pages, raw.userId),
-        };
-      });
-    });
-  }, [conversationId, subscribe, queryClient, queryKey]);
-
-  const messages = (query.data?.pages ?? [])
-    .slice()
-    .reverse()
-    .flatMap((page) => page.messages);
+    lastHandledRef.current = { conversationId, messageId: lastId };
+    if (last && last.sender !== currentUserId) {
+      markAsRead(conversationId);
+    }
+  }, [conversationId, query.isSuccess, messages, currentUserId, markAsRead]);
 
   // Prefer the socket while connected, then use the idempotent REST endpoint
   // if the socket is unavailable or its acknowledgement times out. Both paths
