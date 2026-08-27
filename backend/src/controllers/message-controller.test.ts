@@ -457,7 +457,19 @@ test('getConversationMessages rejects invalid limits', async () => {
     participants: [userId, new mongoose.Types.ObjectId()],
   });
 
-  for (const limit of ['0', '-1', '1.5', 'invalid', '', ['20']]) {
+  const maliciousLimits: unknown[] = [
+    '0',
+    '-1',
+    '1.5',
+    'invalid',
+    '',
+    ['20'],
+    '99999999999999999999', // exceeds Number.isSafeInteger
+    '1e5', // scientific notation, not a plain integer
+    { $gt: '' }, // NoSQL-injection-shaped query value
+  ];
+
+  for (const limit of maliciousLimits) {
     const response = createResponse();
     await getConversationMessages(
       createRequest({
