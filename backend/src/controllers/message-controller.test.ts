@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
-import test, { afterEach } from 'node:test';
+import test, { afterEach, beforeEach } from 'node:test';
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
+import type { Server } from 'socket.io';
 import Conversation from '../models/Conversation';
 import Message from '../models/Message';
+import { MediaValidationError, mediaService } from '../services/media-service';
 import {
   listConversations,
   createConversation,
   getConversationMessages,
+  sendMessage,
   markConversationRead,
 } from './message-controller';
 
@@ -15,6 +18,8 @@ type MockResponse = Response & {
   statusCode?: number;
   body?: unknown;
 };
+
+type Emission = { room: string; event: string; payload: unknown };
 
 const originalReadyStateDescriptor = Object.getOwnPropertyDescriptor(
   mongoose.connection,
@@ -30,7 +35,10 @@ const originalConversationFindOneAndUpdate = Conversation.findOneAndUpdate;
 const originalConversationFindOne = Conversation.findOne;
 const originalConversationUpdateOne = Conversation.updateOne;
 const originalMessageFind = Message.find;
+const originalMessageFindOne = Message.findOne;
+const originalMessageCreate = Message.create;
 const originalMessageUpdateMany = Message.updateMany;
+const originalAssertOwnedImageUrls = mediaService.assertOwnedImageUrls;
 
 function setReadyState(readyState: number) {
   Object.defineProperty(mongoose.connection, 'readyState', {
@@ -92,13 +100,32 @@ function createRequest(options: {
   body?: Record<string, unknown>;
   query?: Record<string, unknown>;
   userId?: string;
+  socketIo?: Server;
 }): Request {
   return {
     params: options.params ?? {},
     body: options.body ?? {},
     query: options.query ?? {},
     userId: options.userId,
+    app: {
+      get: (name: string) =>
+        name === 'socketIo' ? options.socketIo : undefined,
+    },
   } as Request;
+}
+
+function createIo(): { io: Server; emissions: Emission[] } {
+  const emissions: Emission[] = [];
+  const io = {
+    to(room: string) {
+      return {
+        emit(event: string, payload: unknown) {
+          emissions.push({ room, event, payload });
+        },
+      };
+    },
+  } as unknown as Server;
+  return { io, emissions };
 }
 
 function mockConversationFind(conversations: unknown[]) {
@@ -163,9 +190,24 @@ afterEach(() => {
   ).updateOne = originalConversationUpdateOne;
   (Message as unknown as { find: typeof originalMessageFind }).find =
     originalMessageFind;
+  (Message as unknown as { findOne: typeof originalMessageFindOne }).findOne =
+    originalMessageFindOne;
+  (Message as unknown as { create: typeof originalMessageCreate }).create =
+    originalMessageCreate;
   (
     Message as unknown as { updateMany: typeof originalMessageUpdateMany }
   ).updateMany = originalMessageUpdateMany;
+  mediaService.assertOwnedImageUrls = originalAssertOwnedImageUrls;
+});
+
+function stubMediaValidation(
+  implementation: typeof mediaService.assertOwnedImageUrls
+): void {
+  mediaService.assertOwnedImageUrls = implementation;
+}
+
+beforeEach(() => {
+  stubMediaValidation(async (_userId, images) => images as string[]);
 });
 
 test('listConversations returns 401 without auth', async () => {
@@ -578,6 +620,295 @@ test('getConversationMessages rejects a malformed cursor', async () => {
   );
 
   assert.equal(response.statusCode, 400);
+});
+
+test('sendMessage returns 401 without auth', async () => {
+  const response = createResponse();
+
+  await sendMessage(
+    createRequest({ params: { id: new mongoose.Types.ObjectId().toString() } }),
+    response
+  );
+
+  assert.equal(response.statusCode, 401);
+});
+
+test('sendMessage returns 400 for an invalid conversation id', async () => {
+  setReadyState(1);
+  const response = createResponse();
+
+  await sendMessage(
+    createRequest({
+      userId: new mongoose.Types.ObjectId().toString(),
+      params: { id: 'not-an-id' },
+      body: { content: 'hello', clientId: 'c1' },
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+});
+
+test('sendMessage returns 400 for blank content', async () => {
+  setReadyState(1);
+  const response = createResponse();
+
+  await sendMessage(
+    createRequest({
+      userId: new mongoose.Types.ObjectId().toString(),
+      params: { id: new mongoose.Types.ObjectId().toString() },
+      body: { content: '   ', clientId: 'c1' },
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+});
+
+test('sendMessage returns 400 for a missing clientId', async () => {
+  setReadyState(1);
+  const response = createResponse();
+
+  await sendMessage(
+    createRequest({
+      userId: new mongoose.Types.ObjectId().toString(),
+      params: { id: new mongoose.Types.ObjectId().toString() },
+      body: { content: 'hello' },
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.match((response.body as { message: string }).message, /clientId/);
+});
+
+test('sendMessage returns 404 when the conversation does not exist', async () => {
+  setReadyState(1);
+  (Conversation as unknown as { findById: (id: unknown) => unknown }).findById =
+    () => null;
+
+  const response = createResponse();
+
+  await sendMessage(
+    createRequest({
+      userId: new mongoose.Types.ObjectId().toString(),
+      params: { id: new mongoose.Types.ObjectId().toString() },
+      body: { content: 'hello', clientId: 'c1' },
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 404);
+});
+
+test('sendMessage returns 403 for a non-participant', async () => {
+  setReadyState(1);
+  const conversationId = new mongoose.Types.ObjectId();
+  (Conversation as unknown as { findById: (id: unknown) => unknown }).findById =
+    () => ({
+      _id: conversationId,
+      participants: [
+        new mongoose.Types.ObjectId(),
+        new mongoose.Types.ObjectId(),
+      ],
+    });
+
+  const response = createResponse();
+
+  await sendMessage(
+    createRequest({
+      userId: new mongoose.Types.ObjectId().toString(),
+      params: { id: conversationId.toString() },
+      body: { content: 'hello', clientId: 'c1' },
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 403);
+});
+
+test('sendMessage rejects images that fail ownership validation', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  (Conversation as unknown as { findById: (id: unknown) => unknown }).findById =
+    () => ({ _id: conversationId, participants: [userId] });
+  stubMediaValidation(async () => {
+    throw new MediaValidationError(
+      'Image is not owned by the authenticated user'
+    );
+  });
+
+  const response = createResponse();
+
+  await sendMessage(
+    createRequest({
+      userId: userId.toString(),
+      params: { id: conversationId.toString() },
+      body: {
+        content: 'hello',
+        clientId: 'c1',
+        images: ['https://example.com/unowned.png'],
+      },
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(
+    (response.body as { message: string }).message,
+    'Image is not owned by the authenticated user'
+  );
+});
+
+test('sendMessage rejects a non-array images value', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  (Conversation as unknown as { findById: (id: unknown) => unknown }).findById =
+    () => ({ _id: conversationId, participants: [userId] });
+  stubMediaValidation(async (_senderId, images) => {
+    if (!Array.isArray(images)) {
+      throw new MediaValidationError('Images must be an array');
+    }
+    return images as string[];
+  });
+
+  const response = createResponse();
+  await sendMessage(
+    createRequest({
+      userId: userId.toString(),
+      params: { id: conversationId.toString() },
+      body: { content: 'hello', clientId: 'c1', images: 'not-an-array' },
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, { message: 'Images must be an array' });
+});
+
+test('sendMessage persists a new message and updates the conversation summary', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const recipientId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  const conversation = {
+    _id: conversationId,
+    participants: [userId, recipientId],
+  };
+  (Conversation as unknown as { findById: (id: unknown) => unknown }).findById =
+    () => conversation;
+
+  (Message as unknown as { findOne: () => Promise<unknown> }).findOne =
+    async () => null;
+
+  const createdMessage = {
+    _id: new mongoose.Types.ObjectId(),
+    conversation: conversationId,
+    sender: userId,
+    content: 'hi',
+    clientId: 'rest-1',
+    createdAt: new Date(),
+  };
+  let createCalls = 0;
+  (
+    Message as unknown as { create: (args: unknown) => Promise<unknown> }
+  ).create = async () => {
+    createCalls += 1;
+    return createdMessage;
+  };
+
+  const updatedConversation = {
+    ...conversation,
+    lastMessage: createdMessage._id,
+  };
+  (
+    Conversation as unknown as {
+      findOneAndUpdate: (
+        filter: unknown,
+        update: unknown,
+        options: unknown
+      ) => Promise<unknown>;
+    }
+  ).findOneAndUpdate = async () => updatedConversation;
+
+  const response = createResponse();
+  const { io, emissions } = createIo();
+
+  await sendMessage(
+    createRequest({
+      userId: userId.toString(),
+      params: { id: conversationId.toString() },
+      body: { content: 'hi', clientId: 'rest-1' },
+      socketIo: io,
+    }),
+    response
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(createCalls, 1);
+  const body = response.body as { message: unknown; conversation: unknown };
+  assert.equal(body.message, createdMessage);
+  assert.equal(body.conversation, updatedConversation);
+  assert.deepEqual(
+    emissions.map(({ room, event }) => ({ room, event })),
+    [
+      { room: `user:${userId.toString()}`, event: 'message:new' },
+      { room: `user:${recipientId.toString()}`, event: 'message:new' },
+    ]
+  );
+});
+
+test('sendMessage is idempotent: a retried clientId returns the existing message instead of creating a duplicate', async () => {
+  setReadyState(1);
+  const userId = new mongoose.Types.ObjectId();
+  const conversationId = new mongoose.Types.ObjectId();
+  (Conversation as unknown as { findById: (id: unknown) => unknown }).findById =
+    () => ({ _id: conversationId, participants: [userId] });
+
+  const existingMessage = {
+    _id: new mongoose.Types.ObjectId(),
+    conversation: conversationId,
+    sender: userId,
+    content: 'hi',
+    clientId: 'rest-retry',
+    createdAt: new Date(),
+  };
+  (Message as unknown as { findOne: () => Promise<unknown> }).findOne =
+    async () => existingMessage;
+
+  let createCalled = false;
+  (Message as unknown as { create: () => Promise<unknown> }).create =
+    async () => {
+      createCalled = true;
+      return existingMessage;
+    };
+  const { io, emissions } = createIo();
+
+  // First send and a retried send with the same clientId should both land
+  // here and both resolve to the same persisted message.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = createResponse();
+    await sendMessage(
+      createRequest({
+        userId: userId.toString(),
+        params: { id: conversationId.toString() },
+        body: { content: 'hi', clientId: 'rest-retry' },
+        socketIo: io,
+      }),
+      response
+    );
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(
+      (response.body as { message: unknown }).message,
+      existingMessage
+    );
+  }
+
+  assert.equal(createCalled, false);
+  assert.equal(emissions.length, 0);
 });
 
 test('markConversationRead returns 403 for a non-participant', async () => {

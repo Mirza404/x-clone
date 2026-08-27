@@ -6,6 +6,7 @@ import { initSocket } from './socket';
 const PORT = 3001;
 const server = http.createServer(app);
 const io = initSocket(server);
+app.set('socketIo', io);
 let shuttingDown = false;
 
 async function shutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {

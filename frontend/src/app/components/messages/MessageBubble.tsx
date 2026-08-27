@@ -5,12 +5,14 @@ interface MessageBubbleProps {
   message: Message;
   isMine: boolean;
   seenByPeer?: boolean;
+  onRetry?: (tempId: string) => void;
 }
 
 export default function MessageBubble({
   message,
   isMine,
   seenByPeer,
+  onRetry,
 }: MessageBubbleProps) {
   return (
     <div
@@ -43,7 +45,20 @@ export default function MessageBubble({
           className={`mt-1 text-xs text-muted ${isMine ? 'text-right' : 'text-left'}`}
         >
           {message.status === 'sending' && 'Sending...'}
-          {message.status === 'failed' && 'Failed to send'}
+          {message.status === 'failed' && (
+            <>
+              Failed to send
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={() => onRetry(message._id)}
+                  className="ml-1 font-bold text-red-500 underline"
+                >
+                  Retry
+                </button>
+              )}
+            </>
+          )}
           {!message.status &&
             (seenByPeer ? 'Read' : relativeTime(message.createdAt))}
         </span>

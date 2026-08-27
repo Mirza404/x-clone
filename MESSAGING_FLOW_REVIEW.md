@@ -96,25 +96,54 @@ Both `Message` documents existed, but the conversation summary reflected only on
 
 ### Finding 2: Message sending is not idempotent
 
-**Status: fixed.** The client now generates a `clientId` per send and sends it in `message:send`. `Message` stores `clientId` with a `{ sender, clientId }` sparse unique index. The server checks for an existing message with that `sender`/`clientId` before creating one and returns it instead of creating a duplicate; a duplicate-key error from a concurrent race is caught and resolved by re-reading the winning document. Retries no longer double-count unread or duplicate the message.
+**Status: fixed, including the REST path.** The client generates a `clientId`
+once per logical send attempt (not regenerated on retry) and sends it on both
+transports: as part of the `message:send` socket payload, and in the body of
+the new `POST /api/message/conversations/:id/messages` REST endpoint. Both
+entry points share one idempotent creation path,
+`createMessageIdempotent` in `backend/src/services/message-service.ts`.
+`Message` stores `clientId` with a `{ sender, clientId }` sparse unique index.
+The server checks for an existing message with that `sender`/`clientId`
+before creating one and returns it instead of creating a duplicate; a
+duplicate-key error from a concurrent race is caught and resolved by
+re-reading the winning document. Retries no longer double-count unread or
+duplicate the message, regardless of which transport a retry lands on.
 
-The client creates a temporary local ID, but that ID is not sent to the server or stored in MongoDB. The server therefore cannot distinguish a retry of the same logical send from a new message.
-
-The client also marks a message failed after ten seconds. Socket.IO can buffer an emit while disconnected and send it after reconnect. This creates a problematic sequence:
+The client also marks a message failed after ten seconds of waiting for a
+socket ack. That case, and the disconnected case, now fall back to the REST
+endpoint automatically, reusing the same `clientId` the socket attempt used:
 
 ```text
-client adds optimistic message
-client emits while disconnected
-ten seconds pass; client marks it failed
-socket reconnects and buffered event reaches server
-server persists it
+client adds optimistic message, generates clientId once
+client emits message:send with clientId
+ack does not arrive within ten seconds (or the socket is disconnected)
+client POSTs the REST endpoint with the same clientId
+server returns the message the socket attempt already persisted, if any,
+  or persists it now if the socket attempt never reached the server
 ```
 
-The user may retry and create a duplicate. The original successful server message may also arrive after the temporary message has already been marked failed, making reconciliation less reliable.
+When the REST path creates the message, it emits the same `message:new` event
+to the sender and recipient rooms as the socket path. The Express app exposes
+the initialized Socket.IO server through an application setting, and both entry points
+use the shared `emitNewMessage` helper. A deduplicated retry does not emit a
+second event.
 
-**Relevant code:** `frontend/src/app/hooks/useMessages.ts`, optimistic message creation and acknowledgement timeout.
+**Relevant code:** `frontend/src/app/hooks/useMessages.ts`, optimistic
+message creation, ack timeout, and REST fallback;
+`frontend/src/app/utils/messageApi.ts`, `sendMessageRest`;
+`backend/src/services/message-service.ts`, `createMessageIdempotent`;
+`backend/src/socket/handlers.ts`, `handleMessageSend`;
+`backend/src/controllers/message-controller.ts`, `sendMessage`;
+`backend/src/socket/message-events.ts`, `emitNewMessage`;
+`backend/src/routes/message-routes.ts`.
 
-**Proposed direction:** generate a client message ID, send it in `message:send`, persist it with a unique index scoped appropriately, and make the server return the existing message for retries. Decide explicitly whether sends while disconnected should be queued or rejected.
+**Relevant coverage:** `backend/src/socket/handlers.test.ts` and
+`backend/src/controllers/message-controller.test.ts` both verify a retried
+`clientId` returns the existing message without a second `Message.create`
+call, on the socket and REST paths respectively.
+`frontend/src/app/hooks/useMessages.test.tsx` verifies the generated
+`clientId` is reused for the REST fallback both when disconnected and when
+the socket ack times out.
 
 ### Finding 3: `useConversations` can process one event multiple times
 
@@ -357,8 +386,11 @@ These parts of the implementation are sound or reasonable for the current scope:
 
 1. Add tests for multiple mounted `useConversations` consumers.
 2. Add concurrent-send and concurrent-conversation-creation tests.
-3. Decide whether disconnected sends are queued, rejected, or retried.
-4. Add client-message idempotency.
+3. ~~Decide whether disconnected sends are queued, rejected, or retried.~~
+   Resolved as part of item 4: a disconnected or timed-out send retries once
+   over REST with the same `clientId`; it is not queued for a later socket
+   retry.
+4. ~~Add client-message idempotency.~~ Done — see Finding 2.
 5. Centralize socket event processing and query-cache mutation.
 6. Fix REST error propagation and pagination validation.
 7. Add reconnect backfill for inbox and threads.
