@@ -110,7 +110,11 @@ describe('messageApi', () => {
 
     expect(mockedApi.post).toHaveBeenCalledWith(
       '/api/message/conversations/conv-1/messages',
-      { content: 'hey', images: ['https://example.com/a.png'], clientId: 'client-1' }
+      {
+        content: 'hey',
+        images: ['https://example.com/a.png'],
+        clientId: 'client-1',
+      }
     );
     expect(result).toEqual({ _id: 'm1', content: 'hey' });
   });
