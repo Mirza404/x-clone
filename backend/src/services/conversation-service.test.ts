@@ -118,3 +118,45 @@ test('getOrCreateConversation returns the winner of a duplicate-key race', async
 
   assert.deepEqual(results, [winner, winner]);
 });
+
+test('getOrCreateConversation resolves a swapped-order race (both participants starting the DM at once) to the same conversation', async () => {
+  // Two participants both tapping "message" on each other's profile at the
+  // same instant call this with the arguments reversed: (A, B) and (B, A).
+  // participantsKey sorts its inputs, so both calls target the same unique
+  // key; only the argument order differs between callers.
+  const userA = new mongoose.Types.ObjectId();
+  const userB = new mongoose.Types.ObjectId();
+  const winner = { _id: new mongoose.Types.ObjectId() };
+  setRecipient({ _id: userB });
+
+  let upsertCalls = 0;
+  const seenKeys = new Set<string>();
+  (
+    Conversation as unknown as {
+      findOneAndUpdate: (filter: {
+        participantsKey: string;
+      }) => Promise<unknown>;
+    }
+  ).findOneAndUpdate = async (filter) => {
+    seenKeys.add(filter.participantsKey);
+    upsertCalls += 1;
+    if (upsertCalls === 1) {
+      return winner;
+    }
+    const error = new Error('duplicate key') as Error & { code: number };
+    error.code = 11000;
+    throw error;
+  };
+  (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
+    async () => winner;
+
+  const results = await Promise.all([
+    getOrCreateConversation(userA.toString(), userB.toString()),
+    getOrCreateConversation(userB.toString(), userA.toString()),
+  ]);
+
+  assert.deepEqual(results, [winner, winner]);
+  assert.equal(upsertCalls, 2);
+  assert.equal(seenKeys.size, 1);
+  assert.deepEqual([...seenKeys], [participantsKey(userA, userB)]);
+});

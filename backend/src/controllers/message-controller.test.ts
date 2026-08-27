@@ -27,6 +27,7 @@ const originalDbDescriptor = Object.getOwnPropertyDescriptor(
 const originalConversationFind = Conversation.find;
 const originalConversationFindById = Conversation.findById;
 const originalConversationFindOneAndUpdate = Conversation.findOneAndUpdate;
+const originalConversationFindOne = Conversation.findOne;
 const originalConversationUpdateOne = Conversation.updateOne;
 const originalMessageFind = Message.find;
 const originalMessageUpdateMany = Message.updateMany;
@@ -152,6 +153,9 @@ afterEach(() => {
       findOneAndUpdate: typeof originalConversationFindOneAndUpdate;
     }
   ).findOneAndUpdate = originalConversationFindOneAndUpdate;
+  (
+    Conversation as unknown as { findOne: typeof originalConversationFindOne }
+  ).findOne = originalConversationFindOne;
   (
     Conversation as unknown as {
       updateOne: typeof originalConversationUpdateOne;
@@ -289,6 +293,62 @@ test('createConversation atomically gets or creates the participant pair', async
   assert.equal(response.statusCode, 200);
   assert.equal(upsertOptions?.upsert, true);
   assert.deepEqual(response.body, { conversation: existing });
+});
+
+test('createConversation resolves a race between both participants starting the same DM at once to one conversation', async () => {
+  // Both users hit POST /api/message/conversations for each other within
+  // the same tick: userA -> userB and userB -> userA. The unique
+  // participantsKey index means only one upsert can win; the loser must
+  // fall back to reading the winner instead of surfacing a 500.
+  setReadyState(1);
+  const userA = new mongoose.Types.ObjectId();
+  const userB = new mongoose.Types.ObjectId();
+  const winner = { _id: new mongoose.Types.ObjectId() };
+
+  setUsersCollection([{ _id: userB }]);
+
+  let upsertCalls = 0;
+  (
+    Conversation as unknown as {
+      findOneAndUpdate: (...args: unknown[]) => Promise<unknown>;
+    }
+  ).findOneAndUpdate = async () => {
+    upsertCalls += 1;
+    if (upsertCalls === 1) {
+      return winner;
+    }
+    const error = new Error('duplicate key') as Error & { code: number };
+    error.code = 11000;
+    throw error;
+  };
+  (Conversation as unknown as { findOne: () => Promise<unknown> }).findOne =
+    async () => winner;
+
+  const responseA = createResponse();
+  const responseB = createResponse();
+
+  await Promise.all([
+    createConversation(
+      createRequest({
+        userId: userA.toString(),
+        body: { recipientId: userB.toString() },
+      }),
+      responseA
+    ),
+    createConversation(
+      createRequest({
+        userId: userB.toString(),
+        body: { recipientId: userA.toString() },
+      }),
+      responseB
+    ),
+  ]);
+
+  assert.equal(responseA.statusCode, 200);
+  assert.equal(responseB.statusCode, 200);
+  assert.deepEqual(responseA.body, { conversation: winner });
+  assert.deepEqual(responseB.body, { conversation: winner });
+  assert.equal(upsertCalls, 2);
 });
 
 test('getConversationMessages returns 403 for a non-participant', async () => {
