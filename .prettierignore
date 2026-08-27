@@ -7,3 +7,4 @@ next-env.d.ts
 docker-compose.yml
 .claude/**/*.md
 ./*.md
+.claude/worktrees/

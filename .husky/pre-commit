@@ -1,0 +1,7 @@
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -n "$staged" ]; then
+  echo "$staged" | xargs npx prettier --write --ignore-unknown
+  echo "$staged" | xargs git add
+fi
+npm run lint
+npm run typecheck

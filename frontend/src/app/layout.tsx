@@ -11,7 +11,7 @@ import MobileHeader from './components/mobile/MobileHeader';
 import MobileNavBar from './components/mobile/MobileNavBar';
 import ThemeProvider from './utils/ThemeProvider';
 import PostModalProvider from './utils/PostModalProvider';
-import ConversationsCacheBridge from './components/messages/ConversationsCacheBridge';
+import SocketCacheSync from './components/messages/SocketCacheSync';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -53,7 +53,7 @@ export default async function RootLayout({
           <QueryProvider>
             <SessionProvider>
               <SocketProvider>
-                <ConversationsCacheBridge />
+                <SocketCacheSync />
                 <PostModalProvider>
                   {/* Mobile Header - Only visible on mobile */}
                   <MobileHeader />
