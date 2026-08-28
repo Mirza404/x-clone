@@ -121,7 +121,7 @@ Required repo secrets (Settings → Secrets and variables → Actions): `RENDER_
 
 **Rollback:** Render dashboard → service → Deploys → pick a prior deploy → Rollback. The GHCR SHA-tagged images are a secondary, off-platform rollback path if ever needed.
 
-GHCR images aren't currently consumed by Render (Render still builds from the Dockerfile itself on hook trigger, doesn't pull the pushed image), pushing them is the "reproducible artifact" half of the story and sets up D9/D10 if pursued later. Wiring Render to actually deploy the built image (vs. rebuilding) isn't natively supported by Render's Docker runtime, so this is a known, accepted gap.
+GHCR images aren't currently consumed by Render (Render still builds from the Dockerfile itself on hook trigger, doesn't pull the pushed image), so they remain a reproducible off-platform artifact rather than the artifact Render deploys. Wiring Render to actually deploy the built image (vs. rebuilding) isn't natively supported by Render's Docker runtime, so this is a known, accepted gap.
 
 ### D3. Preview environments per pull request `[ ]`
 
@@ -129,39 +129,28 @@ GHCR images aren't currently consumed by Render (Render still builds from the Do
 - **Render has native PR previews.** Check whether that's sufficient before building this by hand. Using the platform feature and writing up _why_ is a perfectly good answer.
 - Depends on D2.
 
-### D4. End-to-end tests in CI (Playwright) `[ ]`
+### D5. Reusable workflow / matrix refactor `[x]`
 
-- Boot both services via `docker-compose` in CI.
-- Smoke flow: sign in (mock provider), create a post, comment, send a DM.
-- Headless; upload the Playwright trace as an artifact on failure.
+**Shipped:** `ci.yml` runs format, lint, typecheck, and dependency auditing
+through a job matrix. Repeated checkout/install setup is centralized in
+`.github/actions/install-deps/action.yml` and reused by the matrix, test, and
+build jobs.
 
-### D5. Reusable workflow / matrix refactor `[ ]`
+### D7. Dependency automation `[x]`
 
-The `format`/`lint`/`typecheck`/`test` jobs all repeat `checkout + install-deps + run <x>`. Collapse into a matrix or a reusable workflow. Signal: you refactor pipelines, not just author them.
-
-### D6. Release automation `[ ]`
-
-Conventional commits (already the convention here) feeding `release-please` or `semantic-release`. Auto CHANGELOG, version tags, GitHub Releases.
-
-### D7. Dependency automation `[ ]`
-
-**Renovate** or **Dependabot**; auto-merge patch/minor once CI is green. Pairs with the existing `dependency-audit` job. Watch: prettier version parity across root/backend/frontend is a known drift risk; pin all three together.
+**Shipped:** `.github/dependabot.yml` checks npm dependencies in the root,
+backend, and frontend, plus GitHub Actions, on a weekly schedule. It complements
+the existing dependency-audit CI job.
 
 ### D8. Observability `[ ]`
 
-- Replace `morgan` with structured logging (**pino**).
-- **OpenTelemetry** traces from Express.
-- `/healthz` (liveness) + `/readyz` (readiness, checks Mongo).
-- Ship to **Grafana Cloud** free tier; build one dashboard.
-- Story: "I can debug prod." Most valuable _after_ D2, when there's a real pipeline producing deploys worth observing.
-
-### D9. Infrastructure as Code (Terraform) `[ ]`
-
-Terraform for the Mongo Atlas cluster + host + DNS. Even a small module is a strong signal. State in a remote backend.
-
-### D10. Kubernetes: stretch, label it "learning" `[ ]`
-
-Local `kind`/minikube manifests or a Helm chart for the two services + Mongo. Overkill for the app size, so frame it explicitly as a learning exercise, not production.
+The phased implementation and acceptance criteria live in
+[`OBSERVABILITY_PLAN.md`](OBSERVABILITY_PLAN.md). The plan adds Render-backed
+health/readiness checks, privacy-safe structured Pino logs, OpenTelemetry traces
+and metrics sent directly to Grafana Cloud, one operational dashboard, and a
+small set of actionable alerts. It deliberately avoids an external uptime
+pinger, log infrastructure, or an OpenTelemetry collector for this
+single-instance project.
 
 ### D11. Load testing `[ ]`
 
@@ -235,16 +224,16 @@ There's currently no easy way to manually verify the messaging WebSocket round-t
 
 - Small Node script: connects as a seeded user over the same socket auth the frontend uses, listens for incoming DMs, calls a local Ollama model (e.g. `llama3.2:1b`, fast and tiny) for a reply, sends it back.
 - Gives a live, self-testing conversation partner for local dev.
-- **Not a CI job.** It needs Ollama running locally. If you want socket coverage in CI, that's D4's job with a scripted fake client, not a model.
+- **Not a CI job.** It needs Ollama running locally; it is only an optional
+  manual development helper.
 - Nice side effect: it exercises the same socket path a real second user would, so it catches presence/unread/ordering bugs that a single-session test can't.
 
 ### AI3. AI in the DevOps loop `[ ]`
 
-1. **AI PR reviewer in CI.** A GitHub Action runs an LLM over the diff and posts review comments.
-2. **AI-generated PR descriptions / changelogs** from commit history.
-3. **Flaky-test / failure triage bot.** On red CI, an LLM reads the logs and comments probable cause + suggested fix.
-4. **AI issue auto-labeler / triage** via LLM classification.
-5. **Semantic release notes.** LLM turns merged PRs into a readable changelog.
+1. **AI-generated PR descriptions / changelogs** from commit history.
+2. **Flaky-test / failure triage bot.** On red CI, an LLM reads the logs and comments probable cause + suggested fix.
+3. **AI issue auto-labeler / triage** via LLM classification.
+4. **Semantic release notes.** LLM turns merged PRs into a readable changelog.
 
 ---
 
@@ -256,13 +245,16 @@ Dependencies are real; the ordering below respects them.
 
 **Phase 2: pipeline.**
 
-> D2 (gated deploy to the existing Render app), then D4 (E2E, now that the UI is stable), then D3 (PR previews)
+> D2 (gated deploy to the existing Render app), then D3 (PR previews)
 
 **Phase 3: the differentiators.** Pick by interest; these are the resume centerpieces.
 
-> AI1.1 (semantic search, reusing F2's endpoint), then AI3.1 (AI PR reviewer), then D8 (observability), then AI2 (Ollama socket bot, any time, it's independent and fun)
+> AI1.1 (semantic search, reusing F2's endpoint), then D8 (observability), then AI2 (Ollama socket bot, any time, it's independent and fun)
 
 **Part F1-F6 is shipped.** F7 is the remaining product/security item. Other open
 work is Part D (pipeline, from D3 on) and Part AI.
 
-**Deliberately deprioritized:** D9 (Terraform), D10 (Kubernetes), D11 (load testing). All three are legitimate but only pay off on a project with real traffic or real infrastructure sprawl. Reach for them when the earlier phases are done, not before.
+**Deliberately deprioritized:** D11's CI scheduling and historical trend
+reporting only pay off if load testing becomes a recurring practice. The local
+k6 suites and recorded capacity runs already provide the useful project-level
+evidence.
