@@ -424,8 +424,8 @@ These parts of the implementation are sound or reasonable for the current scope:
    rejects negative, fractional, non-numeric, array, and unbounded values,
    capping `limit` at 100. Verified by re-reading the current code and
    `backend/src/controllers/message-controller.test.ts` (`getConversationMessages
-   rejects invalid limits`, `caps limits at 100 messages`, `rejects a
-   malformed cursor`, `sendMessage returns 403 for a non-participant`), and by
+rejects invalid limits`, `caps limits at 100 messages`, `rejects a
+malformed cursor`, `sendMessage returns 403 for a non-participant`), and by
    a full backend test run (202/203 passing, 1 pre-existing skip) plus a clean
    `tsc --noEmit`.
 7. Add reconnect backfill for inbox and threads.
