@@ -30,6 +30,7 @@ const originalDbDescriptor = Object.getOwnPropertyDescriptor(
 );
 const originalCommentFindById = Comment.findById;
 const originalCommentFindByIdAndUpdate = Comment.findByIdAndUpdate;
+const originalCommentFindOneAndUpdate = Comment.findOneAndUpdate;
 const originalCommentDeleteMany = Comment.deleteMany;
 const originalCommentFind = Comment.find;
 const originalCommentFindOne = Comment.findOne;
@@ -134,6 +135,11 @@ afterEach(() => {
       findByIdAndUpdate: typeof originalCommentFindByIdAndUpdate;
     }
   ).findByIdAndUpdate = originalCommentFindByIdAndUpdate;
+  (
+    Comment as unknown as {
+      findOneAndUpdate: typeof originalCommentFindOneAndUpdate;
+    }
+  ).findOneAndUpdate = originalCommentFindOneAndUpdate;
   (
     Comment as unknown as { deleteMany: typeof originalCommentDeleteMany }
   ).deleteMany = originalCommentDeleteMany;
@@ -306,12 +312,10 @@ test('toggleLike adds the author when a string authorId matches an ObjectId alre
   const authorObjectId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
 
-  (Comment as unknown as { findById: unknown }).findById = async () => ({
-    likes: [authorObjectId],
-  });
-  (Comment as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
-    async (id: unknown, update: unknown) => {
-      calls.push(update);
+  (Comment as unknown as { findOneAndUpdate: unknown }).findOneAndUpdate =
+    async (filter: unknown, update: unknown) => {
+      calls.push([filter, update]);
+      return { likes: [] };
     };
 
   const response = createResponse();
@@ -325,7 +329,12 @@ test('toggleLike adds the author when a string authorId matches an ObjectId alre
     response
   );
 
-  assert.deepEqual(calls, [{ $pull: { likes: authorObjectId } }]);
+  assert.deepEqual(calls, [
+    [
+      { _id: commentId.toString(), likes: authorObjectId },
+      { $pull: { likes: authorObjectId } },
+    ],
+  ]);
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { message: 'Comment unliked' });
 });
@@ -336,12 +345,10 @@ test('toggleLike likes the comment when the author has not liked it yet', async 
   const authorId = new mongoose.Types.ObjectId().toString();
   const calls: unknown[] = [];
 
-  (Comment as unknown as { findById: unknown }).findById = async () => ({
-    likes: [],
-  });
-  (Comment as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
-    async (id: unknown, update: unknown) => {
-      calls.push(update);
+  (Comment as unknown as { findOneAndUpdate: unknown }).findOneAndUpdate =
+    async (filter: unknown, update: unknown) => {
+      calls.push([filter, update]);
+      return calls.length === 1 ? null : { likes: [] };
     };
 
   const response = createResponse();
@@ -351,7 +358,7 @@ test('toggleLike likes the comment when the author has not liked it yet', async 
     response
   );
 
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
   assert.deepEqual(response.body, { message: 'Comment liked' });
 });
 

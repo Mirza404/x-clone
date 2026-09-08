@@ -5,7 +5,7 @@ import { Request, Response } from 'express';
 import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
 import { LeanComment } from '../types/LeanComment';
-import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
+import { toObjectId, equalsObjectId } from '../utils/object-id';
 import { collectCommentThreadIds } from '../utils/comment-tree';
 import { getUsersCollection } from '../db/connection';
 import { MediaValidationError, mediaService } from '../services/media-service';
@@ -418,23 +418,27 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const comment = await Comment.findById(id);
-    if (!comment) {
-      res.status(404).json({ message: 'Comment not found' });
+    const authorObjectId = toObjectId(authorId);
+
+    const unliked = await Comment.findOneAndUpdate(
+      { _id: id, likes: authorObjectId },
+      { $pull: { likes: authorObjectId } }
+    );
+    if (unliked) {
+      res.status(200).json({ message: 'Comment unliked' });
       return;
     }
 
-    const hasLiked = hasObjectId(comment.likes, authorId);
-    const authorObjectId = toObjectId(authorId);
-    const updateAction = hasLiked
-      ? { $pull: { likes: authorObjectId } }
-      : { $addToSet: { likes: authorObjectId } };
+    const liked = await Comment.findOneAndUpdate(
+      { _id: id, likes: { $ne: authorObjectId } },
+      { $addToSet: { likes: authorObjectId } }
+    );
+    if (liked) {
+      res.status(200).json({ message: 'Comment liked' });
+      return;
+    }
 
-    await Comment.findByIdAndUpdate(id, updateAction, { new: true });
-
-    res.status(200).json({
-      message: hasLiked ? 'Comment unliked' : 'Comment liked',
-    });
+    res.status(404).json({ message: 'Comment not found' });
   } catch (e) {
     console.error('Error liking/unliking comment:', e);
     if (!res.headersSent) {

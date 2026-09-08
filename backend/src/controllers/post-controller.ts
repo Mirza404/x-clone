@@ -5,7 +5,7 @@ import Follow from '../models/Follow';
 import { Request, Response } from 'express';
 import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
-import { hasObjectId, toObjectId, equalsObjectId } from '../utils/object-id';
+import { toObjectId, equalsObjectId } from '../utils/object-id';
 import { getUsersCollection } from '../db/connection';
 import { MediaValidationError, mediaService } from '../services/media-service';
 
@@ -498,23 +498,27 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const post = await Post.findById(id);
-    if (!post) {
-      res.status(404).json({ message: 'Post not found' });
+    const authorObjectId = toObjectId(authorId);
+
+    const unliked = await Post.findOneAndUpdate(
+      { _id: id, likes: authorObjectId },
+      { $pull: { likes: authorObjectId } }
+    );
+    if (unliked) {
+      res.status(200).json({ message: 'Post unliked' });
       return;
     }
 
-    const hasLiked = hasObjectId(post.likes, authorId);
-    const authorObjectId = toObjectId(authorId);
-    const updateAction = hasLiked
-      ? { $pull: { likes: authorObjectId } }
-      : { $addToSet: { likes: authorObjectId } };
+    const liked = await Post.findOneAndUpdate(
+      { _id: id, likes: { $ne: authorObjectId } },
+      { $addToSet: { likes: authorObjectId } }
+    );
+    if (liked) {
+      res.status(200).json({ message: 'Post liked' });
+      return;
+    }
 
-    await Post.findByIdAndUpdate(id, updateAction, { new: true });
-
-    res.status(200).json({
-      message: hasLiked ? 'Post unliked' : 'Post liked',
-    });
+    res.status(404).json({ message: 'Post not found' });
   } catch (e) {
     console.error('Error liking/unliking post:', e);
     if (!res.headersSent) {

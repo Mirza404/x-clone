@@ -29,6 +29,7 @@ const originalFindById = Post.findById;
 const originalDeleteOne = Post.deleteOne;
 const originalDeleteMany = Comment.deleteMany;
 const originalFindByIdAndUpdate = Post.findByIdAndUpdate;
+const originalFindOneAndUpdate = Post.findOneAndUpdate;
 const originalFind = Post.find;
 const originalCountDocuments = Post.countDocuments;
 const originalDb = Object.getOwnPropertyDescriptor(mongoose.connection, 'db');
@@ -161,6 +162,9 @@ afterEach(() => {
   (
     Post as unknown as { findByIdAndUpdate: typeof originalFindByIdAndUpdate }
   ).findByIdAndUpdate = originalFindByIdAndUpdate;
+  (
+    Post as unknown as { findOneAndUpdate: typeof originalFindOneAndUpdate }
+  ).findOneAndUpdate = originalFindOneAndUpdate;
   (Post as unknown as { find: typeof originalFind }).find = originalFind;
   (
     Post as unknown as { countDocuments: typeof originalCountDocuments }
@@ -267,13 +271,13 @@ test('toggleLike unlikes when a string authorId matches an ObjectId already stor
   const authorObjectId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
 
-  (Post as unknown as { findById: unknown }).findById = async () => ({
-    likes: [authorObjectId],
-  });
-  (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
-    async (id: unknown, update: unknown) => {
-      calls.push(update);
-    };
+  (Post as unknown as { findOneAndUpdate: unknown }).findOneAndUpdate = async (
+    filter: unknown,
+    update: unknown
+  ) => {
+    calls.push([filter, update]);
+    return { likes: [] };
+  };
 
   const response = createResponse();
 
@@ -283,7 +287,12 @@ test('toggleLike unlikes when a string authorId matches an ObjectId already stor
     response
   );
 
-  assert.deepEqual(calls, [{ $pull: { likes: authorObjectId } }]);
+  assert.deepEqual(calls, [
+    [
+      { _id: postId.toString(), likes: authorObjectId },
+      { $pull: { likes: authorObjectId } },
+    ],
+  ]);
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { message: 'Post unliked' });
 });
@@ -294,13 +303,13 @@ test('toggleLike likes the post when the author has not liked it yet', async () 
   const authorId = new mongoose.Types.ObjectId().toString();
   const calls: unknown[] = [];
 
-  (Post as unknown as { findById: unknown }).findById = async () => ({
-    likes: [],
-  });
-  (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
-    async (id: unknown, update: unknown) => {
-      calls.push(update);
-    };
+  (Post as unknown as { findOneAndUpdate: unknown }).findOneAndUpdate = async (
+    filter: unknown,
+    update: unknown
+  ) => {
+    calls.push([filter, update]);
+    return calls.length === 1 ? null : { likes: [] };
+  };
 
   const response = createResponse();
 
@@ -309,7 +318,7 @@ test('toggleLike likes the post when the author has not liked it yet', async () 
     response
   );
 
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
   assert.deepEqual(response.body, { message: 'Post liked' });
 });
 
