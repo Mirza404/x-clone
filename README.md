@@ -6,7 +6,7 @@ X Clone is a full stack social application built with Next.js, Express, Socket.I
 
 ## Local setup
 
-Use a current Node.js LTS release and a MongoDB database.
+Use a current Node.js LTS release and a MongoDB database. For a local MongoDB instead of Atlas, run `docker compose up -d mongo` from the repo root.
 
 1. Copy `backend/.env.example` to `backend/.env`.
 2. Copy `frontend/.env.example` to `frontend/.env`.
