@@ -15,6 +15,7 @@
     "seed": "ts-node scripts/seed.ts",
     "seed:wipe": "ts-node scripts/seed.ts --wipe",
     "seed:my-follows": "ts-node scripts/seed-my-follows.ts",
+    "backfill:likes": "ts-node scripts/backfill-likes.ts",
     "loadtest:seed": "ts-node scripts/load-test/seed-and-mint.ts",
     "loadtest:seed:wipe": "ts-node scripts/load-test/seed-and-mint.ts --wipe"
   },
