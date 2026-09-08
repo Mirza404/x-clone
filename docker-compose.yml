@@ -2,7 +2,9 @@ services:
   mongo:
     image: mongo:7
     ports:
-      - "27017:27017"
+      # Bound to localhost only — this container has no auth configured,
+      # so it must never be reachable from outside the host.
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo-data:/data/db
     restart: unless-stopped
