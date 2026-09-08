@@ -108,8 +108,8 @@ const ReplyItem = ({
           <LikeButton
             type="comment"
             targetId={reply.id}
-            authorId={authorId}
-            initialLikes={reply.likes}
+            initialIsLiked={reply.likes.includes(authorId)}
+            initialLikeCount={reply.likes.length}
           />
         </div>
       </div>

@@ -205,8 +205,8 @@ export default function PostItem({
             <LikeButton
               type="post"
               targetId={post.id}
-              authorId={authorId}
-              initialLikes={post.likes}
+              initialIsLiked={post.likes.includes(authorId)}
+              initialLikeCount={post.likes.length}
             />
           </div>
           <ActionButton

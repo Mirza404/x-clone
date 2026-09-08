@@ -10,29 +10,33 @@ import api from '../../utils/apiClient';
 interface LikeButtonProps {
   type: 'post' | 'comment';
   targetId: string;
-  authorId: string;
-  initialLikes: string[];
+  initialIsLiked: boolean;
+  initialLikeCount: number;
 }
 
 export default function LikeButton({
   type,
   targetId,
-  authorId,
-  initialLikes,
+  initialIsLiked,
+  initialLikeCount,
 }: LikeButtonProps) {
-  const [isLiked, setIsLiked] = useState(initialLikes.includes(authorId));
-  const [likeCount, setLikeCount] = useState(initialLikes.length);
-  const [prevInitialLikes, setPrevInitialLikes] = useState(initialLikes);
-  const [prevAuthorId, setPrevAuthorId] = useState(authorId);
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
+  const [prevInitialIsLiked, setPrevInitialIsLiked] = useState(initialIsLiked);
+  const [prevInitialLikeCount, setPrevInitialLikeCount] =
+    useState(initialLikeCount);
   const queryClient = useQueryClient();
   const params = useParams();
   const { status } = useSession();
 
-  if (initialLikes !== prevInitialLikes || authorId !== prevAuthorId) {
-    setPrevInitialLikes(initialLikes);
-    setPrevAuthorId(authorId);
-    setIsLiked(initialLikes.includes(authorId));
-    setLikeCount(initialLikes.length);
+  if (
+    initialIsLiked !== prevInitialIsLiked ||
+    initialLikeCount !== prevInitialLikeCount
+  ) {
+    setPrevInitialIsLiked(initialIsLiked);
+    setPrevInitialLikeCount(initialLikeCount);
+    setIsLiked(initialIsLiked);
+    setLikeCount(initialLikeCount);
   }
 
   const likeMutation = useMutation({

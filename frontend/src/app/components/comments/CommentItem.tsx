@@ -123,8 +123,8 @@ const CommentItem = ({
           <LikeButton
             type="comment"
             targetId={comment.id}
-            authorId={authorId}
-            initialLikes={comment.likes}
+            initialIsLiked={comment.likes.includes(authorId)}
+            initialLikeCount={comment.likes.length}
           />
         </div>
       </div>
