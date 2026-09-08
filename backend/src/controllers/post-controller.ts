@@ -45,27 +45,29 @@ async function attachPostViewFields(
     posts.map((post) => post._id)
   );
 
-  return Promise.all(
-    posts.map(async (post) => {
-      const user = await getUsersCollection().findOne(
-        { _id: new mongoose.Types.ObjectId(post.author) },
-        { projection: { image: 1 } }
-      );
-
-      return {
-        id: post._id,
-        content: post.content,
-        images: post.images,
-        name: post.name,
-        createdAt: post.createdAt,
-        likeCount: post.likeCount,
-        isLiked: likedIds.has(post._id.toString()),
-        author: post.author,
-        authorImage: user?.image || null,
-        comments: post.comments,
-      };
-    })
+  const authorIds = Array.from(
+    new Set(posts.map((post) => post.author.toString()))
+  ).map((id) => new mongoose.Types.ObjectId(id));
+  const users = await getUsersCollection()
+    .find({ _id: { $in: authorIds } })
+    .project({ image: 1 })
+    .toArray();
+  const userImageMap = new Map(
+    users.map((user) => [user._id.toString(), user.image])
   );
+
+  return posts.map((post) => ({
+    id: post._id,
+    content: post.content,
+    images: post.images,
+    name: post.name,
+    createdAt: post.createdAt,
+    likeCount: post.likeCount,
+    isLiked: likedIds.has(post._id.toString()),
+    author: post.author,
+    authorImage: userImageMap.get(post.author.toString()) || null,
+    comments: post.comments,
+  }));
 }
 
 async function allPosts(req: Request, res: Response): Promise<void> {

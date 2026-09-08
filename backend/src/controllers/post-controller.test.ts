@@ -109,6 +109,11 @@ function setEmptyUsersCollection() {
     get: () => ({
       collection: () => ({
         findOne: async () => null,
+        find: () => ({
+          project: () => ({
+            toArray: async () => [],
+          }),
+        }),
       }),
     }),
   });
@@ -471,6 +476,73 @@ test('allPosts ignores an invalid author id', async () => {
 
   assert.deepEqual(findCalls, [{}]);
   assert.equal(response.statusCode, 200);
+});
+
+test('allPosts batches author-image lookups into a single query for the whole page', async () => {
+  setReadyState(1);
+  const authorOne = new mongoose.Types.ObjectId();
+  const authorTwo = new mongoose.Types.ObjectId();
+  const usersFindCalls: unknown[] = [];
+
+  (Post as unknown as { find: (filter: unknown) => unknown }).find = () => ({
+    sort: () => ({
+      skip: () => ({
+        limit: () => ({
+          lean: async () => [
+            {
+              _id: new mongoose.Types.ObjectId(),
+              author: authorOne,
+              content: 'one',
+              images: [],
+              name: 'Ada',
+              createdAt: new Date(),
+              likeCount: 0,
+              comments: [],
+            },
+            {
+              _id: new mongoose.Types.ObjectId(),
+              author: authorTwo,
+              content: 'two',
+              images: [],
+              name: 'Bob',
+              createdAt: new Date(),
+              likeCount: 0,
+              comments: [],
+            },
+          ],
+        }),
+      }),
+    }),
+  });
+  (
+    Post as unknown as { countDocuments: (filter: unknown) => Promise<number> }
+  ).countDocuments = async () => 2;
+  Object.defineProperty(mongoose.connection, 'db', {
+    configurable: true,
+    get: () => ({
+      collection: () => ({
+        findOne: async () => null,
+        find: (query: unknown) => {
+          usersFindCalls.push(query);
+          return {
+            project: () => ({
+              toArray: async () => [],
+            }),
+          };
+        },
+      }),
+    }),
+  });
+
+  const response = createResponse();
+  await allPosts(createQueryRequest({}), response);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(
+    usersFindCalls.length,
+    1,
+    'expected one batched users query for the whole page, not one per post'
+  );
 });
 
 test('searchPosts returns an empty page without querying when q is blank', async () => {
