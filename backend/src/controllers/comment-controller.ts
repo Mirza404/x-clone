@@ -1,14 +1,29 @@
 import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
+import Like from '../models/Like';
 import { Request, Response } from 'express';
 import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
 import { LeanComment } from '../types/LeanComment';
-import { toObjectId, equalsObjectId } from '../utils/object-id';
+import { equalsObjectId } from '../utils/object-id';
 import { collectCommentThreadIds } from '../utils/comment-tree';
 import { getUsersCollection } from '../db/connection';
 import { MediaValidationError, mediaService } from '../services/media-service';
+import { getLikedTargetIds } from '../utils/like-status';
+import { toggleLike as toggleLikeForTarget } from '../services/like-service';
+import type { LikeToggleCounter } from '../services/like-service';
+
+const commentLikeCounter: LikeToggleCounter = {
+  targetExists: async (targetId) =>
+    Boolean(await Comment.exists({ _id: targetId })),
+  incrementLikeCount: async (targetId, delta) => {
+    await Comment.findOneAndUpdate(
+      { _id: targetId },
+      { $inc: { likeCount: delta } }
+    );
+  },
+};
 
 async function findCommentsByPost(req: Request, res: Response): Promise<void> {
   try {
@@ -72,6 +87,18 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
       users.map((user) => [user._id.toString(), user.image])
     );
 
+    // Batch the like-status check for every comment and reply on this page,
+    // instead of one query per item.
+    const allTargetIds = comments.flatMap((comment) => [
+      comment._id,
+      ...(comment.replies ?? []).map((reply) => reply._id),
+    ]);
+    const likedIds = await getLikedTargetIds(
+      req.userId,
+      'comment',
+      allTargetIds
+    );
+
     // Attach authorImage to comments and replies
     const commentsWithUserData = comments.map((comment) => ({
       id: comment._id,
@@ -81,7 +108,8 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
       postId: comment.postId,
       parentComment: comment.parentComment,
       createdAt: comment.createdAt,
-      likes: comment.likes,
+      likeCount: comment.likeCount,
+      isLiked: likedIds.has(comment._id.toString()),
       author: comment.author,
       authorImage: userImageMap.get(comment.author.toString()) || null,
       replies: (comment.replies ?? []).map((reply) => ({
@@ -92,7 +120,8 @@ async function findCommentsByPost(req: Request, res: Response): Promise<void> {
         postId: reply.postId,
         parentComment: reply.parentComment,
         createdAt: reply.createdAt,
-        likes: reply.likes,
+        likeCount: reply.likeCount,
+        isLiked: likedIds.has(reply._id.toString()),
         author: reply.author,
         authorImage: userImageMap.get(reply.author.toString()) || null,
         replies: reply.replies, // (should usually be empty since this is a 2-level system)
@@ -186,6 +215,11 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       users.map((user) => [user._id.toString(), user.image])
     );
 
+    const likedIds = await getLikedTargetIds(req.userId, 'comment', [
+      typedComment._id,
+      ...(typedComment.replies ?? []).map((reply) => reply._id),
+    ]);
+
     // Attach authorImage to comment and replies
     const commentWithUserData = {
       id: typedComment._id,
@@ -195,7 +229,8 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
       postId: typedComment.postId,
       parentComment: typedComment.parentComment,
       createdAt: typedComment.createdAt,
-      likes: typedComment.likes,
+      likeCount: typedComment.likeCount,
+      isLiked: likedIds.has(typedComment._id.toString()),
       author: typedComment.author,
       authorImage: userImageMap.get(typedComment.author.toString()) || null,
       replies: (typedComment.replies ?? []).map((reply) => ({
@@ -206,7 +241,8 @@ async function findCommentById(req: Request, res: Response): Promise<void> {
         postId: reply.postId,
         parentComment: reply.parentComment,
         createdAt: reply.createdAt,
-        likes: reply.likes,
+        likeCount: reply.likeCount,
+        isLiked: likedIds.has(reply._id.toString()),
         author: reply.author,
         authorImage: userImageMap.get(reply.author.toString()) || null,
         replies: reply.replies,
@@ -248,7 +284,6 @@ async function createComment(req: Request, res: Response): Promise<void> {
       parentComment: parentCommentId || null,
       replies: [],
       createdAt: new Date(),
-      likes: [],
     });
 
     await newComment.save();
@@ -384,15 +419,17 @@ async function getLikes(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const comment = await Comment.findById(id).lean();
-    if (!comment) {
+    const commentExists = await Comment.exists({ _id: id });
+    if (!commentExists) {
       res.status(404).json({ message: 'Comment not found' });
       return;
     }
 
-    // Fetch user names based on ObjectIDs in 'likes'
+    const likes = await Like.find({ targetType: 'comment', targetId: id })
+      .select('user')
+      .lean();
     const users = await getUsersCollection()
-      .find({ _id: { $in: comment.likes } })
+      .find({ _id: { $in: likes.map((like) => like.user) } })
       .project({ name: 1 })
       .toArray();
 
@@ -418,27 +455,20 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const authorObjectId = toObjectId(authorId);
-
-    const unliked = await Comment.findOneAndUpdate(
-      { _id: id, likes: authorObjectId },
-      { $pull: { likes: authorObjectId } }
+    const result = await toggleLikeForTarget(
+      commentLikeCounter,
+      'comment',
+      id,
+      authorId
     );
-    if (unliked) {
-      res.status(200).json({ message: 'Comment unliked' });
+    if (result === 'not_found') {
+      res.status(404).json({ message: 'Comment not found' });
       return;
     }
 
-    const liked = await Comment.findOneAndUpdate(
-      { _id: id, likes: { $ne: authorObjectId } },
-      { $addToSet: { likes: authorObjectId } }
-    );
-    if (liked) {
-      res.status(200).json({ message: 'Comment liked' });
-      return;
-    }
-
-    res.status(404).json({ message: 'Comment not found' });
+    res.status(200).json({
+      message: result === 'liked' ? 'Comment liked' : 'Comment unliked',
+    });
   } catch (e) {
     console.error('Error liking/unliking comment:', e);
     if (!res.headersSent) {

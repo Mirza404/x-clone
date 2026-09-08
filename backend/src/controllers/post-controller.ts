@@ -2,12 +2,71 @@ import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
 import Follow from '../models/Follow';
+import Like from '../models/Like';
 import { Request, Response } from 'express';
 import type {} from '../types/express';
 import { getUserNameByID } from './user-controller';
-import { toObjectId, equalsObjectId } from '../utils/object-id';
+import { equalsObjectId } from '../utils/object-id';
 import { getUsersCollection } from '../db/connection';
 import { MediaValidationError, mediaService } from '../services/media-service';
+import { getLikedTargetIds } from '../utils/like-status';
+import { toggleLike as toggleLikeForTarget } from '../services/like-service';
+import type { LikeToggleCounter } from '../services/like-service';
+
+interface LeanPostForView {
+  _id: mongoose.Types.ObjectId;
+  author: mongoose.Types.ObjectId;
+  content: string;
+  images?: string[] | null;
+  name: string;
+  createdAt: Date;
+  likeCount: number;
+  comments: mongoose.Types.ObjectId[];
+}
+
+const postLikeCounter: LikeToggleCounter = {
+  targetExists: async (targetId) =>
+    Boolean(await Post.exists({ _id: targetId })),
+  incrementLikeCount: async (targetId, delta) => {
+    await Post.findOneAndUpdate(
+      { _id: targetId },
+      { $inc: { likeCount: delta } }
+    );
+  },
+};
+
+async function attachPostViewFields(
+  posts: LeanPostForView[],
+  requesterId: string | undefined
+) {
+  const likedIds = await getLikedTargetIds(
+    requesterId,
+    'post',
+    posts.map((post) => post._id)
+  );
+
+  return Promise.all(
+    posts.map(async (post) => {
+      const user = await getUsersCollection().findOne(
+        { _id: new mongoose.Types.ObjectId(post.author) },
+        { projection: { image: 1 } }
+      );
+
+      return {
+        id: post._id,
+        content: post.content,
+        images: post.images,
+        name: post.name,
+        createdAt: post.createdAt,
+        likeCount: post.likeCount,
+        isLiked: likedIds.has(post._id.toString()),
+        author: post.author,
+        authorImage: user?.image || null,
+        comments: post.comments,
+      };
+    })
+  );
+}
 
 async function allPosts(req: Request, res: Response): Promise<void> {
   try {
@@ -33,26 +92,7 @@ async function allPosts(req: Request, res: Response): Promise<void> {
       .limit(limit)
       .lean();
 
-    const postsWithUserData = await Promise.all(
-      posts.map(async (post) => {
-        const user = await getUsersCollection().findOne(
-          { _id: new mongoose.Types.ObjectId(post.author) }, // Convert author ID to ObjectId
-          { projection: { image: 1 } }
-        );
-
-        return {
-          id: post._id,
-          content: post.content,
-          images: post.images,
-          name: post.name,
-          createdAt: post.createdAt,
-          likes: post.likes,
-          author: post.author,
-          authorImage: user?.image || null,
-          comments: post.comments,
-        };
-      })
-    );
+    const postsWithUserData = await attachPostViewFields(posts, req.userId);
 
     const totalPosts = await Post.countDocuments(filter);
     const totalPages = Math.ceil(totalPosts / limit);
@@ -98,26 +138,7 @@ async function followingPosts(req: Request, res: Response): Promise<void> {
       .limit(limit)
       .lean();
 
-    const postsWithUserData = await Promise.all(
-      posts.map(async (post) => {
-        const user = await getUsersCollection().findOne(
-          { _id: new mongoose.Types.ObjectId(post.author) },
-          { projection: { image: 1 } }
-        );
-
-        return {
-          id: post._id,
-          content: post.content,
-          images: post.images,
-          name: post.name,
-          createdAt: post.createdAt,
-          likes: post.likes,
-          author: post.author,
-          authorImage: user?.image || null,
-          comments: post.comments,
-        };
-      })
-    );
+    const postsWithUserData = await attachPostViewFields(posts, req.userId);
 
     const totalPosts = await Post.countDocuments(filter);
     const totalPages = Math.ceil(totalPosts / limit);
@@ -160,26 +181,7 @@ async function searchPosts(req: Request, res: Response): Promise<void> {
       .limit(limit)
       .lean();
 
-    const postsWithUserData = await Promise.all(
-      posts.map(async (post) => {
-        const user = await getUsersCollection().findOne(
-          { _id: new mongoose.Types.ObjectId(post.author) },
-          { projection: { image: 1 } }
-        );
-
-        return {
-          id: post._id,
-          content: post.content,
-          images: post.images,
-          name: post.name,
-          createdAt: post.createdAt,
-          likes: post.likes,
-          author: post.author,
-          authorImage: user?.image || null,
-          comments: post.comments,
-        };
-      })
-    );
+    const postsWithUserData = await attachPostViewFields(posts, req.userId);
 
     const totalPosts = await Post.countDocuments(filter);
     const totalPages = Math.ceil(totalPosts / limit);
@@ -219,6 +221,11 @@ async function getPost(req: Request, res: Response): Promise<void> {
 
     // Fetch all users related to the post's comments
     const userMap = new Map();
+    const likedCommentIds = await getLikedTargetIds(
+      req.userId,
+      'comment',
+      post.comments
+    );
     const commentsWithUserData = await Promise.all(
       post.comments.map(async (commentId) => {
         const comment = await Comment.findById(commentId).lean();
@@ -242,7 +249,8 @@ async function getPost(req: Request, res: Response): Promise<void> {
           content: comment.content,
           name: comment.name,
           createdAt: comment.createdAt,
-          likes: comment.likes,
+          likeCount: comment.likeCount,
+          isLiked: likedCommentIds.has(comment._id.toString()),
           author: comment.author,
           authorImage: userMap.get(comment.author),
         };
@@ -272,6 +280,9 @@ async function getPost(req: Request, res: Response): Promise<void> {
       );
 
     const postAuthorImage = postAuthorUser?.image ?? null;
+    const likedPostIds = await getLikedTargetIds(req.userId, 'post', [
+      post._id,
+    ]);
 
     res.status(200).json({
       id: post._id, // Map _id to id
@@ -279,7 +290,8 @@ async function getPost(req: Request, res: Response): Promise<void> {
       images: post.images,
       name: post.name,
       createdAt: post.createdAt,
-      likes: post.likes,
+      likeCount: post.likeCount,
+      isLiked: likedPostIds.has(post._id.toString()),
       author: post.author,
       authorImage: postAuthorImage,
       comments: filteredComments,
@@ -335,7 +347,6 @@ async function createPost(req: Request, res: Response): Promise<void> {
       images: validatedImages,
       createdAt: date,
       authorImage: user?.image || null,
-      likes: [], //empty arr
     });
 
     await newPost.save();
@@ -464,15 +475,17 @@ async function getLikes(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const post = await Post.findById(id).lean();
-    if (!post) {
+    const postExists = await Post.exists({ _id: id });
+    if (!postExists) {
       res.status(404).json({ message: 'Post not found' });
       return;
     }
 
-    // Manually fetch user names based on ObjectIDs in 'likes'
+    const likes = await Like.find({ targetType: 'post', targetId: id })
+      .select('user')
+      .lean();
     const users = await getUsersCollection()
-      .find({ _id: { $in: post.likes } })
+      .find({ _id: { $in: likes.map((like) => like.user) } })
       .project({ name: 1 })
       .toArray();
 
@@ -498,27 +511,20 @@ async function toggleLike(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const authorObjectId = toObjectId(authorId);
-
-    const unliked = await Post.findOneAndUpdate(
-      { _id: id, likes: authorObjectId },
-      { $pull: { likes: authorObjectId } }
+    const result = await toggleLikeForTarget(
+      postLikeCounter,
+      'post',
+      id,
+      authorId
     );
-    if (unliked) {
-      res.status(200).json({ message: 'Post unliked' });
+    if (result === 'not_found') {
+      res.status(404).json({ message: 'Post not found' });
       return;
     }
 
-    const liked = await Post.findOneAndUpdate(
-      { _id: id, likes: { $ne: authorObjectId } },
-      { $addToSet: { likes: authorObjectId } }
-    );
-    if (liked) {
-      res.status(200).json({ message: 'Post liked' });
-      return;
-    }
-
-    res.status(404).json({ message: 'Post not found' });
+    res
+      .status(200)
+      .json({ message: result === 'liked' ? 'Post liked' : 'Post unliked' });
   } catch (e) {
     console.error('Error liking/unliking post:', e);
     if (!res.headersSent) {

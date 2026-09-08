@@ -11,5 +11,5 @@ export interface LeanComment {
   parentComment: mongoose.Types.ObjectId | null;
   replies?: LeanComment[];
   createdAt: Date;
-  likes: mongoose.Types.ObjectId[];
+  likeCount: number;
 }

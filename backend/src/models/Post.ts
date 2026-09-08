@@ -29,9 +29,10 @@ const PostSchema = new mongoose.Schema({
     default: Date.now,
     required: true,
   },
-  likes: {
-    type: [mongoose.Schema.Types.ObjectId],
-    default: [],
+  likeCount: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
   comments: {
     type: [mongoose.Schema.Types.ObjectId],

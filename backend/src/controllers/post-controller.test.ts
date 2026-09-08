@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
+import Like from '../models/Like';
 import { MediaValidationError, mediaService } from '../services/media-service';
 import {
   deletePost,
@@ -30,11 +31,15 @@ const originalDeleteOne = Post.deleteOne;
 const originalDeleteMany = Comment.deleteMany;
 const originalFindByIdAndUpdate = Post.findByIdAndUpdate;
 const originalFindOneAndUpdate = Post.findOneAndUpdate;
+const originalExists = Post.exists;
 const originalFind = Post.find;
 const originalCountDocuments = Post.countDocuments;
 const originalDb = Object.getOwnPropertyDescriptor(mongoose.connection, 'db');
 const originalCommentFindById = Comment.findById;
 const originalPostSave = Post.prototype.save;
+const originalLikeFindOneAndDelete = Like.findOneAndDelete;
+const originalLikeCreate = Like.create;
+const originalLikeFind = Like.find;
 const originalAssertOwnedImageUrls = mediaService.assertOwnedImageUrls;
 
 function stubMediaValidation(
@@ -165,6 +170,8 @@ afterEach(() => {
   (
     Post as unknown as { findOneAndUpdate: typeof originalFindOneAndUpdate }
   ).findOneAndUpdate = originalFindOneAndUpdate;
+  (Post as unknown as { exists: typeof originalExists }).exists =
+    originalExists;
   (Post as unknown as { find: typeof originalFind }).find = originalFind;
   (
     Post as unknown as { countDocuments: typeof originalCountDocuments }
@@ -173,6 +180,13 @@ afterEach(() => {
     Comment as unknown as { findById: typeof originalCommentFindById }
   ).findById = originalCommentFindById;
   Post.prototype.save = originalPostSave;
+  (
+    Like as unknown as { findOneAndDelete: typeof originalLikeFindOneAndDelete }
+  ).findOneAndDelete = originalLikeFindOneAndDelete;
+  (Like as unknown as { create: typeof originalLikeCreate }).create =
+    originalLikeCreate;
+  (Like as unknown as { find: typeof originalLikeFind }).find =
+    originalLikeFind;
   mediaService.assertOwnedImageUrls = originalAssertOwnedImageUrls;
   if (originalDb) {
     Object.defineProperty(mongoose.connection, 'db', originalDb);
@@ -265,23 +279,31 @@ test('deletePost returns 403 when the caller does not own the post', async () =>
   assert.equal(deleteOneCalled, false);
 });
 
-test('toggleLike unlikes when a string authorId matches an ObjectId already stored in likes', async () => {
+test('toggleLike unlikes when the author has already liked the post', async () => {
   setReadyState(1);
   const postId = new mongoose.Types.ObjectId();
   const authorObjectId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
 
+  (Post as unknown as { exists: unknown }).exists = async () => ({
+    _id: postId,
+  });
+  (Like as unknown as { findOneAndDelete: unknown }).findOneAndDelete = async (
+    filter: unknown
+  ) => {
+    calls.push(['Like.findOneAndDelete', filter]);
+    return { _id: new mongoose.Types.ObjectId() };
+  };
   (Post as unknown as { findOneAndUpdate: unknown }).findOneAndUpdate = async (
     filter: unknown,
     update: unknown
   ) => {
-    calls.push([filter, update]);
-    return { likes: [] };
+    calls.push(['Post.findOneAndUpdate', filter, update]);
   };
 
   const response = createResponse();
 
-  // req.userId arrives as a string from the verified token, likes are stored as ObjectIds.
+  // req.userId arrives as a string from the verified token.
   await toggleLike(
     createRequest({ id: postId.toString() }, authorObjectId.toString()),
     response
@@ -289,9 +311,10 @@ test('toggleLike unlikes when a string authorId matches an ObjectId already stor
 
   assert.deepEqual(calls, [
     [
-      { _id: postId.toString(), likes: authorObjectId },
-      { $pull: { likes: authorObjectId } },
+      'Like.findOneAndDelete',
+      { user: authorObjectId, targetType: 'post', targetId: postId },
     ],
+    ['Post.findOneAndUpdate', { _id: postId }, { $inc: { likeCount: -1 } }],
   ]);
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { message: 'Post unliked' });
@@ -300,16 +323,48 @@ test('toggleLike unlikes when a string authorId matches an ObjectId already stor
 test('toggleLike likes the post when the author has not liked it yet', async () => {
   setReadyState(1);
   const postId = new mongoose.Types.ObjectId();
-  const authorId = new mongoose.Types.ObjectId().toString();
+  const authorObjectId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
 
+  (Post as unknown as { exists: unknown }).exists = async () => ({
+    _id: postId,
+  });
+  (Like as unknown as { findOneAndDelete: unknown }).findOneAndDelete =
+    async () => null;
+  (Like as unknown as { create: unknown }).create = async (doc: unknown) => {
+    calls.push(['Like.create', doc]);
+  };
   (Post as unknown as { findOneAndUpdate: unknown }).findOneAndUpdate = async (
     filter: unknown,
     update: unknown
   ) => {
-    calls.push([filter, update]);
-    return calls.length === 1 ? null : { likes: [] };
+    calls.push(['Post.findOneAndUpdate', filter, update]);
   };
+
+  const response = createResponse();
+
+  await toggleLike(
+    createRequest({ id: postId.toString() }, authorObjectId.toString()),
+    response
+  );
+
+  assert.deepEqual(calls, [
+    [
+      'Like.create',
+      { user: authorObjectId, targetType: 'post', targetId: postId },
+    ],
+    ['Post.findOneAndUpdate', { _id: postId }, { $inc: { likeCount: 1 } }],
+  ]);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body, { message: 'Post liked' });
+});
+
+test('toggleLike returns 404 when the post does not exist', async () => {
+  setReadyState(1);
+  const postId = new mongoose.Types.ObjectId();
+  const authorId = new mongoose.Types.ObjectId().toString();
+
+  (Post as unknown as { exists: unknown }).exists = async () => null;
 
   const response = createResponse();
 
@@ -318,8 +373,8 @@ test('toggleLike likes the post when the author has not liked it yet', async () 
     response
   );
 
-  assert.equal(calls.length, 2);
-  assert.deepEqual(response.body, { message: 'Post liked' });
+  assert.equal(response.statusCode, 404);
+  assert.deepEqual(response.body, { message: 'Post not found' });
 });
 
 test('allPosts fetches without an author filter when none is given', async () => {
@@ -533,7 +588,7 @@ test('getPost returns the post with comments and author images', async () => {
     images: [],
     name: 'Ada',
     createdAt,
-    likes: [],
+    likeCount: 2,
     author: postAuthorId,
     comments: [commentId],
   });
@@ -543,7 +598,7 @@ test('getPost returns the post with comments and author images', async () => {
       content: 'nice post',
       name: 'Bob',
       createdAt,
-      likes: [],
+      likeCount: 1,
       author: commentAuthorId,
     },
   });
@@ -562,7 +617,8 @@ test('getPost returns the post with comments and author images', async () => {
     images: [],
     name: 'Ada',
     createdAt,
-    likes: [],
+    likeCount: 2,
+    isLiked: false,
     author: postAuthorId,
     authorImage: 'ada.png',
     comments: [
@@ -571,7 +627,8 @@ test('getPost returns the post with comments and author images', async () => {
         content: 'nice post',
         name: 'Bob',
         createdAt,
-        likes: [],
+        likeCount: 1,
+        isLiked: false,
         author: commentAuthorId,
         authorImage: 'bob.png',
       },
@@ -855,7 +912,7 @@ test('getLikes returns 400 when id is missing', async () => {
 });
 
 test('getLikes returns 404 when the post does not exist', async () => {
-  mockPostFindByIdLean(null);
+  (Post as unknown as { exists: unknown }).exists = async () => null;
   const response = createResponse();
 
   await getLikes(
@@ -868,15 +925,20 @@ test('getLikes returns 404 when the post does not exist', async () => {
 });
 
 test('getLikes returns the users who liked the post', async () => {
+  const postId = new mongoose.Types.ObjectId();
   const likerId = new mongoose.Types.ObjectId();
-  mockPostFindByIdLean({ likes: [likerId] });
+  (Post as unknown as { exists: unknown }).exists = async () => ({
+    _id: postId,
+  });
+  (Like as unknown as { find: unknown }).find = () => ({
+    select: () => ({
+      lean: async () => [{ user: likerId }],
+    }),
+  });
   setUsersDb({}, [{ _id: likerId, name: 'Ada' }]);
 
   const response = createResponse();
-  await getLikes(
-    createParamsRequest({ id: new mongoose.Types.ObjectId().toString() }),
-    response
-  );
+  await getLikes(createParamsRequest({ id: postId.toString() }), response);
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { likes: [{ _id: likerId, name: 'Ada' }] });

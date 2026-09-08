@@ -11,16 +11,16 @@ import {
   getLikes,
 } from '../controllers/post-controller';
 import commentRoutes from './comment-routes';
-import { requireAuth } from '../middleware/require-auth';
+import { requireAuth, optionalAuth } from '../middleware/require-auth';
 import { writeLimiter } from '../middleware/rate-limit';
 
 const postRoutes = Router();
 
-postRoutes.get('/', allPosts);
+postRoutes.get('/', optionalAuth, allPosts);
 // Must be registered before '/:id' so "following"/"search" aren't swallowed as an id param.
 postRoutes.get('/following', requireAuth, followingPosts);
-postRoutes.get('/search', searchPosts);
-postRoutes.get('/:id', getPost);
+postRoutes.get('/search', optionalAuth, searchPosts);
+postRoutes.get('/:id', optionalAuth, getPost);
 postRoutes.post('/new', requireAuth, writeLimiter, createPost);
 postRoutes.delete('/delete', requireAuth, writeLimiter, deletePost);
 postRoutes.patch('/edit', requireAuth, writeLimiter, updatePost);
