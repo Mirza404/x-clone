@@ -30,7 +30,6 @@ const CommentItem = ({
   const { data: session } = useSession();
   const [showMore, setShowMore] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const authorId: string = session?.user?.id ?? '';
   const queryClient = useQueryClient();
   const params = useParams();
   const postId = params.id as string;
@@ -123,8 +122,8 @@ const CommentItem = ({
           <LikeButton
             type="comment"
             targetId={comment.id}
-            initialIsLiked={comment.likes.includes(authorId)}
-            initialLikeCount={comment.likes.length}
+            initialIsLiked={comment.isLiked}
+            initialLikeCount={comment.likeCount}
           />
         </div>
       </div>

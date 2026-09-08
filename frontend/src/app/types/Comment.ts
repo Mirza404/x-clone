@@ -3,7 +3,8 @@ export interface Comment {
   author: string;
   content: string;
   images: string[];
-  likes: string[];
+  likeCount: number;
+  isLiked: boolean;
   name: string;
   postId: string;
   parentComment: string | null;

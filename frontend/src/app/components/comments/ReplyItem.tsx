@@ -26,7 +26,6 @@ const ReplyItem = ({
   const { data: session } = useSession();
   const [showMore, setShowMore] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const authorId: string = session?.user?.id ?? '';
   const params = useParams();
   const postId = params.id as string;
   const pathname = usePathname();
@@ -108,8 +107,8 @@ const ReplyItem = ({
           <LikeButton
             type="comment"
             targetId={reply.id}
-            initialIsLiked={reply.likes.includes(authorId)}
-            initialLikeCount={reply.likes.length}
+            initialIsLiked={reply.isLiked}
+            initialLikeCount={reply.likeCount}
           />
         </div>
       </div>
