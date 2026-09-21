@@ -1,1 +1,6 @@
-npm run check:pre-push
+if [ "${SKIP_PRE_PUSH_TESTS:-0}" = "1" ]; then
+  echo "Skipping pre-push test suites (SKIP_PRE_PUSH_TESTS=1)."
+  npm run check:pre-push
+else
+  npm run check
+fi
