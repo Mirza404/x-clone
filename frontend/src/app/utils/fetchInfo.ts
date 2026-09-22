@@ -1,18 +1,15 @@
-import axios from 'axios';
 import type { Comment } from '../types/Comment';
 import { getApiErrorMessage } from './apiError';
 import api from './apiClient';
 
 export const fetchPosts = async () => {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-  const response = await axios.get(`${serverUrl}/api/post/`);
+  const response = await api.get('/api/post/');
   return response.data.posts;
 };
 
 export async function getPost(id: string) {
   try {
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-    const response = await axios.get(`${serverUrl}/api/post/${id}`);
+    const response = await api.get(`/api/post/${id}`);
     return response.data;
   } catch (error) {
     console.error('Failed to fetch post:', error);
@@ -21,10 +18,8 @@ export async function getPost(id: string) {
 }
 
 export async function getPostsPaginated(page: number) {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-
   try {
-    const res = await axios.get(`${serverUrl}/api/post/`, {
+    const res = await api.get('/api/post/', {
       params: { page: page, sort: 'createdAt', limit: 5 },
     });
     const totalPages = res.data.totalPages;
@@ -53,11 +48,8 @@ export async function getComment(
   postId: string,
   commentId: string
 ): Promise<Comment | null> {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   try {
-    const response = await axios.get(
-      `${serverUrl}/api/post/${postId}/comment/${commentId}`
-    );
+    const response = await api.get(`/api/post/${postId}/comment/${commentId}`);
     return (response.data as Comment[])[0] ?? null;
   } catch (error) {
     console.error('Failed to fetch comment:', error);
@@ -66,10 +58,8 @@ export async function getComment(
 }
 
 export async function getCommentsPaginated(postId: string, page: number) {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-
   try {
-    const res = await axios.get(`${serverUrl}/api/post/${postId}/comment`, {
+    const res = await api.get(`/api/post/${postId}/comment`, {
       params: { page: page, limit: 5 },
     });
     const totalPages = res.data.totalPages;
@@ -93,10 +83,8 @@ export async function getCommentsPaginated(postId: string, page: number) {
   }
 }
 export async function getSearchResultsPaginated(query: string, page: number) {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-
   try {
-    const res = await axios.get(`${serverUrl}/api/post/search`, {
+    const res = await api.get('/api/post/search', {
       params: { q: query, page, limit: 10 },
     });
     const totalPages = res.data.totalPages;
@@ -145,10 +133,8 @@ export async function getPostsByAuthorPaginated(
   authorId: string,
   page: number
 ) {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-
   try {
-    const res = await axios.get(`${serverUrl}/api/post/`, {
+    const res = await api.get('/api/post/', {
       params: { page, author: authorId, sort: 'createdAt', limit: 5 },
     });
     const totalPages = res.data.totalPages;

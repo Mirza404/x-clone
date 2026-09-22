@@ -39,7 +39,6 @@ export default function PostItem({
   const [showMore, setShowMore] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const authorId: string = session?.user?.id ?? '';
   const pathname = usePathname();
   const isCurrentPage = useMemo(
     () => pathname === `/posts/${post.id}`,
@@ -205,8 +204,8 @@ export default function PostItem({
             <LikeButton
               type="post"
               targetId={post.id}
-              authorId={authorId}
-              initialLikes={post.likes}
+              initialIsLiked={post.isLiked}
+              initialLikeCount={post.likeCount}
             />
           </div>
           <ActionButton

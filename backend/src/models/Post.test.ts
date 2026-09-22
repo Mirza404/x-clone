@@ -11,7 +11,7 @@ test('post model accepts a minimal valid post', () => {
   });
 
   assert.equal(post.validateSync(), undefined);
-  assert.deepEqual(post.likes, []);
+  assert.equal(post.likeCount, 0);
   assert.deepEqual(post.comments, []);
 });
 

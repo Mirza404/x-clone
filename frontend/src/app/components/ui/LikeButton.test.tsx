@@ -41,8 +41,8 @@ describe('LikeButton', () => {
       <LikeButton
         type="post"
         targetId="post-1"
-        authorId="user-1"
-        initialLikes={['user-1', 'user-2']}
+        initialIsLiked={true}
+        initialLikeCount={2}
       />
     );
 
@@ -59,8 +59,8 @@ describe('LikeButton', () => {
       <LikeButton
         type="post"
         targetId="post-1"
-        authorId="user-1"
-        initialLikes={[]}
+        initialIsLiked={false}
+        initialLikeCount={0}
       />
     );
 
@@ -85,8 +85,8 @@ describe('LikeButton', () => {
       <LikeButton
         type="comment"
         targetId="comment-1"
-        authorId="user-1"
-        initialLikes={[]}
+        initialIsLiked={false}
+        initialLikeCount={0}
       />
     );
 
@@ -107,8 +107,8 @@ describe('LikeButton', () => {
       <LikeButton
         type="post"
         targetId="post-1"
-        authorId="user-1"
-        initialLikes={[]}
+        initialIsLiked={false}
+        initialLikeCount={0}
       />
     );
 

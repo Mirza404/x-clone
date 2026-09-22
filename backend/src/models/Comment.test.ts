@@ -14,7 +14,7 @@ test('comment model accepts a minimal top-level comment', () => {
   assert.equal(comment.validateSync(), undefined);
   assert.equal(comment.parentComment, null);
   assert.deepEqual(comment.replies, []);
-  assert.deepEqual(comment.likes, []);
+  assert.equal(comment.likeCount, 0);
 });
 
 test('comment model accepts a reply with a parent comment', () => {

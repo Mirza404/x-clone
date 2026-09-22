@@ -8,12 +8,12 @@ import {
   getLikes,
   updateComment,
 } from '../controllers/comment-controller';
-import { requireAuth } from '../middleware/require-auth';
+import { requireAuth, optionalAuth } from '../middleware/require-auth';
 import { writeLimiter } from '../middleware/rate-limit';
 const commentRoutes = Router({ mergeParams: true });
 
-commentRoutes.get('/', findCommentsByPost);
-commentRoutes.get('/:commentId', findCommentById);
+commentRoutes.get('/', optionalAuth, findCommentsByPost);
+commentRoutes.get('/:commentId', optionalAuth, findCommentById);
 commentRoutes.post('/new', requireAuth, writeLimiter, createComment);
 commentRoutes.patch(
   '/edit/:commentId',

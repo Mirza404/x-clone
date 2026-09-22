@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Comment from '../models/Comment';
+import Like from '../models/Like';
 import { MediaValidationError, mediaService } from '../services/media-service';
 import {
   deletePost,
@@ -29,11 +30,16 @@ const originalFindById = Post.findById;
 const originalDeleteOne = Post.deleteOne;
 const originalDeleteMany = Comment.deleteMany;
 const originalFindByIdAndUpdate = Post.findByIdAndUpdate;
+const originalFindOneAndUpdate = Post.findOneAndUpdate;
+const originalExists = Post.exists;
 const originalFind = Post.find;
 const originalCountDocuments = Post.countDocuments;
 const originalDb = Object.getOwnPropertyDescriptor(mongoose.connection, 'db');
 const originalCommentFindById = Comment.findById;
 const originalPostSave = Post.prototype.save;
+const originalLikeFindOneAndDelete = Like.findOneAndDelete;
+const originalLikeCreate = Like.create;
+const originalLikeFind = Like.find;
 const originalAssertOwnedImageUrls = mediaService.assertOwnedImageUrls;
 
 function stubMediaValidation(
@@ -103,6 +109,11 @@ function setEmptyUsersCollection() {
     get: () => ({
       collection: () => ({
         findOne: async () => null,
+        find: () => ({
+          project: () => ({
+            toArray: async () => [],
+          }),
+        }),
       }),
     }),
   });
@@ -161,6 +172,11 @@ afterEach(() => {
   (
     Post as unknown as { findByIdAndUpdate: typeof originalFindByIdAndUpdate }
   ).findByIdAndUpdate = originalFindByIdAndUpdate;
+  (
+    Post as unknown as { findOneAndUpdate: typeof originalFindOneAndUpdate }
+  ).findOneAndUpdate = originalFindOneAndUpdate;
+  (Post as unknown as { exists: typeof originalExists }).exists =
+    originalExists;
   (Post as unknown as { find: typeof originalFind }).find = originalFind;
   (
     Post as unknown as { countDocuments: typeof originalCountDocuments }
@@ -169,6 +185,13 @@ afterEach(() => {
     Comment as unknown as { findById: typeof originalCommentFindById }
   ).findById = originalCommentFindById;
   Post.prototype.save = originalPostSave;
+  (
+    Like as unknown as { findOneAndDelete: typeof originalLikeFindOneAndDelete }
+  ).findOneAndDelete = originalLikeFindOneAndDelete;
+  (Like as unknown as { create: typeof originalLikeCreate }).create =
+    originalLikeCreate;
+  (Like as unknown as { find: typeof originalLikeFind }).find =
+    originalLikeFind;
   mediaService.assertOwnedImageUrls = originalAssertOwnedImageUrls;
   if (originalDb) {
     Object.defineProperty(mongoose.connection, 'db', originalDb);
@@ -261,29 +284,43 @@ test('deletePost returns 403 when the caller does not own the post', async () =>
   assert.equal(deleteOneCalled, false);
 });
 
-test('toggleLike unlikes when a string authorId matches an ObjectId already stored in likes', async () => {
+test('toggleLike unlikes when the author has already liked the post', async () => {
   setReadyState(1);
   const postId = new mongoose.Types.ObjectId();
   const authorObjectId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
 
-  (Post as unknown as { findById: unknown }).findById = async () => ({
-    likes: [authorObjectId],
+  (Post as unknown as { exists: unknown }).exists = async () => ({
+    _id: postId,
   });
-  (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
-    async (id: unknown, update: unknown) => {
-      calls.push(update);
-    };
+  (Like as unknown as { findOneAndDelete: unknown }).findOneAndDelete = async (
+    filter: unknown
+  ) => {
+    calls.push(['Like.findOneAndDelete', filter]);
+    return { _id: new mongoose.Types.ObjectId() };
+  };
+  (Post as unknown as { findOneAndUpdate: unknown }).findOneAndUpdate = async (
+    filter: unknown,
+    update: unknown
+  ) => {
+    calls.push(['Post.findOneAndUpdate', filter, update]);
+  };
 
   const response = createResponse();
 
-  // req.userId arrives as a string from the verified token, likes are stored as ObjectIds.
+  // req.userId arrives as a string from the verified token.
   await toggleLike(
     createRequest({ id: postId.toString() }, authorObjectId.toString()),
     response
   );
 
-  assert.deepEqual(calls, [{ $pull: { likes: authorObjectId } }]);
+  assert.deepEqual(calls, [
+    [
+      'Like.findOneAndDelete',
+      { user: authorObjectId, targetType: 'post', targetId: postId },
+    ],
+    ['Post.findOneAndUpdate', { _id: postId }, { $inc: { likeCount: -1 } }],
+  ]);
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { message: 'Post unliked' });
 });
@@ -291,16 +328,48 @@ test('toggleLike unlikes when a string authorId matches an ObjectId already stor
 test('toggleLike likes the post when the author has not liked it yet', async () => {
   setReadyState(1);
   const postId = new mongoose.Types.ObjectId();
-  const authorId = new mongoose.Types.ObjectId().toString();
+  const authorObjectId = new mongoose.Types.ObjectId();
   const calls: unknown[] = [];
 
-  (Post as unknown as { findById: unknown }).findById = async () => ({
-    likes: [],
+  (Post as unknown as { exists: unknown }).exists = async () => ({
+    _id: postId,
   });
-  (Post as unknown as { findByIdAndUpdate: unknown }).findByIdAndUpdate =
-    async (id: unknown, update: unknown) => {
-      calls.push(update);
-    };
+  (Like as unknown as { findOneAndDelete: unknown }).findOneAndDelete =
+    async () => null;
+  (Like as unknown as { create: unknown }).create = async (doc: unknown) => {
+    calls.push(['Like.create', doc]);
+  };
+  (Post as unknown as { findOneAndUpdate: unknown }).findOneAndUpdate = async (
+    filter: unknown,
+    update: unknown
+  ) => {
+    calls.push(['Post.findOneAndUpdate', filter, update]);
+  };
+
+  const response = createResponse();
+
+  await toggleLike(
+    createRequest({ id: postId.toString() }, authorObjectId.toString()),
+    response
+  );
+
+  assert.deepEqual(calls, [
+    [
+      'Like.create',
+      { user: authorObjectId, targetType: 'post', targetId: postId },
+    ],
+    ['Post.findOneAndUpdate', { _id: postId }, { $inc: { likeCount: 1 } }],
+  ]);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body, { message: 'Post liked' });
+});
+
+test('toggleLike returns 404 when the post does not exist', async () => {
+  setReadyState(1);
+  const postId = new mongoose.Types.ObjectId();
+  const authorId = new mongoose.Types.ObjectId().toString();
+
+  (Post as unknown as { exists: unknown }).exists = async () => null;
 
   const response = createResponse();
 
@@ -309,8 +378,8 @@ test('toggleLike likes the post when the author has not liked it yet', async () 
     response
   );
 
-  assert.equal(calls.length, 1);
-  assert.deepEqual(response.body, { message: 'Post liked' });
+  assert.equal(response.statusCode, 404);
+  assert.deepEqual(response.body, { message: 'Post not found' });
 });
 
 test('allPosts fetches without an author filter when none is given', async () => {
@@ -407,6 +476,73 @@ test('allPosts ignores an invalid author id', async () => {
 
   assert.deepEqual(findCalls, [{}]);
   assert.equal(response.statusCode, 200);
+});
+
+test('allPosts batches author-image lookups into a single query for the whole page', async () => {
+  setReadyState(1);
+  const authorOne = new mongoose.Types.ObjectId();
+  const authorTwo = new mongoose.Types.ObjectId();
+  const usersFindCalls: unknown[] = [];
+
+  (Post as unknown as { find: (filter: unknown) => unknown }).find = () => ({
+    sort: () => ({
+      skip: () => ({
+        limit: () => ({
+          lean: async () => [
+            {
+              _id: new mongoose.Types.ObjectId(),
+              author: authorOne,
+              content: 'one',
+              images: [],
+              name: 'Ada',
+              createdAt: new Date(),
+              likeCount: 0,
+              comments: [],
+            },
+            {
+              _id: new mongoose.Types.ObjectId(),
+              author: authorTwo,
+              content: 'two',
+              images: [],
+              name: 'Bob',
+              createdAt: new Date(),
+              likeCount: 0,
+              comments: [],
+            },
+          ],
+        }),
+      }),
+    }),
+  });
+  (
+    Post as unknown as { countDocuments: (filter: unknown) => Promise<number> }
+  ).countDocuments = async () => 2;
+  Object.defineProperty(mongoose.connection, 'db', {
+    configurable: true,
+    get: () => ({
+      collection: () => ({
+        findOne: async () => null,
+        find: (query: unknown) => {
+          usersFindCalls.push(query);
+          return {
+            project: () => ({
+              toArray: async () => [],
+            }),
+          };
+        },
+      }),
+    }),
+  });
+
+  const response = createResponse();
+  await allPosts(createQueryRequest({}), response);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(
+    usersFindCalls.length,
+    1,
+    'expected one batched users query for the whole page, not one per post'
+  );
 });
 
 test('searchPosts returns an empty page without querying when q is blank', async () => {
@@ -524,7 +660,7 @@ test('getPost returns the post with comments and author images', async () => {
     images: [],
     name: 'Ada',
     createdAt,
-    likes: [],
+    likeCount: 2,
     author: postAuthorId,
     comments: [commentId],
   });
@@ -534,7 +670,7 @@ test('getPost returns the post with comments and author images', async () => {
       content: 'nice post',
       name: 'Bob',
       createdAt,
-      likes: [],
+      likeCount: 1,
       author: commentAuthorId,
     },
   });
@@ -553,7 +689,8 @@ test('getPost returns the post with comments and author images', async () => {
     images: [],
     name: 'Ada',
     createdAt,
-    likes: [],
+    likeCount: 2,
+    isLiked: false,
     author: postAuthorId,
     authorImage: 'ada.png',
     comments: [
@@ -562,7 +699,8 @@ test('getPost returns the post with comments and author images', async () => {
         content: 'nice post',
         name: 'Bob',
         createdAt,
-        likes: [],
+        likeCount: 1,
+        isLiked: false,
         author: commentAuthorId,
         authorImage: 'bob.png',
       },
@@ -846,7 +984,7 @@ test('getLikes returns 400 when id is missing', async () => {
 });
 
 test('getLikes returns 404 when the post does not exist', async () => {
-  mockPostFindByIdLean(null);
+  (Post as unknown as { exists: unknown }).exists = async () => null;
   const response = createResponse();
 
   await getLikes(
@@ -859,15 +997,20 @@ test('getLikes returns 404 when the post does not exist', async () => {
 });
 
 test('getLikes returns the users who liked the post', async () => {
+  const postId = new mongoose.Types.ObjectId();
   const likerId = new mongoose.Types.ObjectId();
-  mockPostFindByIdLean({ likes: [likerId] });
+  (Post as unknown as { exists: unknown }).exists = async () => ({
+    _id: postId,
+  });
+  (Like as unknown as { find: unknown }).find = () => ({
+    select: () => ({
+      lean: async () => [{ user: likerId }],
+    }),
+  });
   setUsersDb({}, [{ _id: likerId, name: 'Ada' }]);
 
   const response = createResponse();
-  await getLikes(
-    createParamsRequest({ id: new mongoose.Types.ObjectId().toString() }),
-    response
-  );
+  await getLikes(createParamsRequest({ id: postId.toString() }), response);
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { likes: [{ _id: likerId, name: 'Ada' }] });

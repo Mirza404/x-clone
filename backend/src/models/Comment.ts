@@ -45,10 +45,10 @@ const CommentSchema = new mongoose.Schema({
     default: Date.now,
     required: true,
   },
-  likes: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: 'User',
-    default: [],
+  likeCount: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
 });
 
